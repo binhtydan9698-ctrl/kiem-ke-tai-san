@@ -1,4 +1,7 @@
 .vercel
 node_modules
+dist
 .DS_Store
 Thumbs.db
+# file tạm của Excel khi đang mở
+~$*

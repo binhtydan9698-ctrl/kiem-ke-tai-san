@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kiểm kê tài sản FPTU ĐN</title>
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<!-- Dữ liệu chung khi chạy trên web: Supabase (cấu hình trong config.js) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="supabase-db.js"></script>
+<!-- Danh sách tài sản (sinh khi build từ file Excel) và chức năng xuất Excel cho kế toán -->
+<script src="data/assets.js"></script>
+<script src="export.js"></script>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky top bar + one working column; tablet-landscape first, rows collapse to cards on narrow screens */
+:root{
+  --bg:#f2f4f3; --surface:#ffffff; --surface-2:#e9eeec; --line:#d5dcd9; --fg:#16201c; --muted:#5a6964;
+  --accent:#0e5a4b; --accent-fg:#ffffff; --accent-soft:#d8ebe5;
+  --ok:#1b7443; --ok-soft:#dcf0e3; --warn:#9a5700; --warn-soft:#fbead1; --bad:#b0281f; --bad-soft:#f7dcd8;
+  --info:#2c56a3; --info-soft:#dfe7f6; --idle:#8a9893;
+  --f-ui:"Be Vietnam Pro", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1513; --surface:#18201d; --surface-2:#202a26; --line:#2d3934; --fg:#e4ebe8; --muted:#97a6a0;
+  --accent:#5fc3a9; --accent-fg:#0b1a16; --accent-soft:#1b3830;
+  --ok:#62cf90; --ok-soft:#163222; --warn:#f0b25e; --warn-soft:#3a2a12; --bad:#f2877c; --bad-soft:#3d1c18;
+  --info:#91b1f0; --info-soft:#1b2741; --idle:#5f6e69; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1513; --surface:#18201d; --surface-2:#202a26; --line:#2d3934; --fg:#e4ebe8; --muted:#97a6a0;
+  --accent:#5fc3a9; --accent-fg:#0b1a16; --accent-soft:#1b3830;
+  --ok:#62cf90; --ok-soft:#163222; --warn:#f0b25e; --warn-soft:#3a2a12; --bad:#f2877c; --bad-soft:#3d1c18;
+  --info:#91b1f0; --info-soft:#1b2741; --idle:#5f6e69; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:14.5px;line-height:1.45;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;text-wrap:balance}
+.wrap{max-width:1280px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding-block:10px}
+.brand{display:flex;flex-direction:column;line-height:1.2;min-width:0}
+.brand b{font-size:15.5px;letter-spacing:-.01em}
+.brand span{font-size:12px;color:var(--muted)}
+.nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.nav a{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:6px;color:var(--fg);text-decoration:none;font-weight:500;font-size:14px}
+.nav a:hover{background:var(--surface-2)}
+.nav a[aria-current="page"]{background:var(--accent);color:var(--accent-fg)}
+.pill{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:11.5px;font-weight:600;background:var(--bad);color:var(--surface)}
+.who{font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.who i{width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-style:normal;font-weight:700;font-size:12px}
+
+.sync{font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:10px;white-space:nowrap;background:var(--surface-2);color:var(--muted)}
+.sync.ok{background:var(--ok-soft);color:var(--ok)} .sync.warn{background:var(--warn-soft);color:var(--warn)} .sync.bad{background:var(--bad-soft);color:var(--bad)}
+.by{color:var(--muted)}
+th.new{background:var(--accent-soft);color:var(--accent)}
+.demo.ro{background:var(--surface-2);color:var(--muted)}
+body.ro .row .btns,body.ro .row .stepper button{opacity:.45;pointer-events:none}
+main{padding-block:20px 60px}
+.demo{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--info-soft);color:var(--info);border-radius:var(--r);padding:10px 14px;margin-bottom:18px;font-size:13.5px}
+.demo b{font-weight:600}
+.demo button{margin-left:auto}
+
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 12px;font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.ok{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.btn.bad{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.btn.sm{padding:5px 10px;font-size:13px}
+.lnk{border:0;background:none;color:var(--accent);padding:0;font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
+
+/* overview */
+.head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.head h1{font-size:24px;letter-spacing:-.015em}
+.head p{margin:2px 0 0;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:22px}
+.stat{background:var(--surface);padding:12px 14px}
+.stat small{display:block;font-size:12px;color:var(--muted)}
+.stat b{font-size:22px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.stat.ok b{color:var(--ok)} .stat.warn b{color:var(--warn)} .stat.bad b{color:var(--bad)}
+.sect{display:flex;align-items:baseline;gap:10px;margin:6px 0 10px}
+.sect h2{font-size:15px}
+.sect span{color:var(--muted);font-size:13px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;flex-direction:column;gap:10px;text-decoration:none;color:inherit}
+.card:hover{border-color:var(--accent)}
+.card .t{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.card .t b{font-size:14.5px;line-height:1.3}
+.card .sheet{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.card .m{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.card .m strong{color:var(--fg);font-weight:600}
+.state{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:10px;white-space:nowrap;background:var(--surface-2);color:var(--muted)}
+.state.run{background:var(--warn-soft);color:var(--warn)} .state.done{background:var(--ok-soft);color:var(--ok)}
+.bar{display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--surface-2)}
+.bar i{display:block;height:100%}
+.bar .ok{background:var(--ok)} .bar .warn{background:var(--warn)} .bar .bad{background:var(--bad)} .bar .info{background:var(--info)}
+.card .f{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.card .f .gap{color:var(--warn)}
+
+/* unit view */
+.crumb{font-size:13px;color:var(--muted);margin-bottom:6px}
+.crumb a{color:var(--accent)}
+.uhead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;margin-bottom:14px}
+.uhead h1{font-size:23px;letter-spacing:-.015em}
+.uhead p{margin:3px 0 0;color:var(--muted);font-size:13.5px}
+.prog{min-width:260px}
+.prog .nums{display:flex;gap:12px;font-size:12.5px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.prog .nums b{color:var(--fg)}
+.prog .big{font-size:13px;margin-bottom:6px;display:flex;justify-content:space-between}
+.prog .big b{font-size:17px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.team{display:grid;grid-template-columns:150px repeat(3,minmax(0,1fr));gap:12px}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld>label,.lbl{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.in{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+.in:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--surface-2);border-radius:14px;padding:4px 6px 4px 10px;font-size:13px}
+.chip button{border:0;background:none;color:var(--muted);padding:0 4px;font-size:15px;line-height:1}
+.chips .in{flex:1;min-width:140px}
+
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.tools .search{flex:1 1 240px;max-width:380px}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface);flex-wrap:wrap}
+.seg button{border:0;background:none;padding:6px 10px;font-size:13px;display:flex;gap:6px;align-items:center;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.seg em{font-style:normal;font-size:11.5px;color:var(--muted)}
+.chk{display:flex;gap:6px;align-items:center;font-size:13px}
+
+.grp{display:flex;align-items:center;gap:10px;padding:14px 2px 6px;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--toph,58px));background:var(--bg);z-index:5}
+.grp b{font-size:14px}
+.grp span{font-size:12.5px;color:var(--muted)}
+.grp.none b{color:var(--warn)}
+.list{display:flex;flex-direction:column;gap:6px}
+.row{display:grid;grid-template-columns:96px minmax(0,1fr) 150px 64px 128px 150px 196px;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--idle);border-radius:6px;padding:10px 12px}
+.row.r-du{border-left-color:var(--ok)} .row.r-thieu,.row.r-thua{border-left-color:var(--warn)} .row.r-nf{border-left-color:var(--bad)} .row.r-hoso{border-left-color:var(--info)}
+.row.r-du,.row.r-hoso{background:color-mix(in srgb,var(--surface) 92%,var(--ok-soft))}
+.row .lbl{display:none}
+.c-id{display:flex;flex-direction:column;gap:2px}
+.c-id .stt{font-size:11.5px;color:var(--muted)}
+.c-id .ma{font-size:13px;font-weight:500}
+.c-name .nm{font-weight:500;line-height:1.35}
+.c-name .meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center}
+.tag{font-size:11px;font-weight:600;padding:1px 7px;border-radius:9px;background:var(--surface-2);color:var(--muted)}
+.tag.info{background:var(--info-soft);color:var(--info)}
+.tag.warn{background:var(--warn-soft);color:var(--warn)}
+.more{margin-top:8px;display:grid;gap:6px;font-size:12.5px}
+.more .full{color:var(--muted);background:var(--surface-2);padding:6px 8px;border-radius:5px}
+.c-book{text-align:center}
+.c-book b{font-size:16px;font-variant-numeric:tabular-nums}
+.stepper{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.stepper button{border:0;background:var(--surface-2);width:34px;font-size:17px;line-height:1}
+.stepper input{border:0;width:100%;min-width:0;text-align:center;font-weight:600;font-size:15px;padding:6px 2px;background:none;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.c-act{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.c-act .btns{display:flex;gap:6px}
+.c-act .btns .btn{flex:1}
+.badge{font-size:12px;font-weight:600;padding:3px 8px;border-radius:10px;text-align:center;background:var(--surface-2);color:var(--muted)}
+.badge.du{background:var(--ok-soft);color:var(--ok)} .badge.thieu,.badge.thua{background:var(--warn-soft);color:var(--warn)}
+.badge.nf{background:var(--bad-soft);color:var(--bad)} .badge.hoso{background:var(--info-soft);color:var(--info)}
+.hoso-note{font-size:12px;color:var(--muted);grid-column:span 2}
+
+.empty{padding:28px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line);border-radius:var(--r)}
+.ps{display:grid;grid-template-columns:minmax(0,2fr) 110px minmax(0,1fr) 160px auto;gap:10px;align-items:end}
+.pslist{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.psrow{display:flex;gap:12px;align-items:center;font-size:13.5px;background:var(--surface-2);padding:7px 10px;border-radius:6px;flex-wrap:wrap}
+.psrow .grow{flex:1;min-width:0}
+.end{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) auto;gap:12px;align-items:center}
+.end .k small{display:block;font-size:12px;color:var(--muted)}
+.end .k b{font-size:18px;font-variant-numeric:tabular-nums}
+
+/* xác minh */
+.xm{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--bad);border-radius:6px;padding:14px}
+.xm.done{border-left-color:var(--ok)}
+.xm .ask{font-size:13px;color:var(--muted);margin-top:8px}
+.xm .ask b{color:var(--fg)}
+.xm .form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.xm .form .wide{grid-column:1/-1}
+
+/* xuất */
+.tblwrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--surface-2);font-size:12px;font-weight:600;white-space:nowrap;position:sticky;top:0}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.diff{color:var(--warn);font-weight:600}
+td.miss{color:var(--bad);font-weight:600}
+th .col{display:block;font-family:var(--f-mono);font-weight:400;color:var(--muted);font-size:11px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:6px;font-size:13.5px;z-index:50}
+
+/* overview tabs + rooms */
+.ovtabs{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:4px 0 14px}
+.ovtabs .seg button{padding:8px 14px;font-size:14px}
+.gsearch{flex:1 1 280px;max-width:460px;margin-left:auto}
+.bld{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;align-items:center}
+.bld button{border:1px solid var(--line);background:var(--surface);border-radius:14px;padding:4px 12px;font-size:13px}
+.bld button[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.bld .in{max-width:220px;margin-left:auto}
+.bldname{font-size:13px;font-weight:600;color:var(--muted);margin:16px 0 8px;letter-spacing:.02em}
+.rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:10px}
+.room{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 12px;display:flex;flex-direction:column;gap:7px;text-decoration:none;color:inherit;min-width:0}
+.room:hover{border-color:var(--accent)}
+.room b{font-size:15px;line-height:1.25;overflow-wrap:anywhere}
+.room .m{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.room .u{display:flex;gap:4px;flex-wrap:wrap}
+.room .u span{font-family:var(--f-mono);font-size:10.5px;background:var(--surface-2);color:var(--muted);padding:1px 5px;border-radius:4px}
+.room.done{border-color:var(--ok)}
+.room.done .m .st{color:var(--ok);font-weight:600}
+.room.none{border-style:dashed}
+.room.none b{color:var(--warn)}
+.sr{display:flex;flex-direction:column;gap:6px;margin-bottom:18px}
+.srow{display:grid;grid-template-columns:110px minmax(0,1fr) minmax(0,190px) 140px auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 12px;font-size:13.5px}
+.srow .sub{font-size:12px;color:var(--muted)}
+.srow .acts{display:flex;gap:6px;justify-content:flex-end}
+.units{display:flex;flex-wrap:wrap;gap:8px}
+.ucard{display:flex;flex-direction:column;gap:2px;background:var(--surface-2);border-radius:6px;padding:8px 12px;font-size:13px;min-width:0}
+.ucard b{font-size:13.5px}
+.ucard span{color:var(--muted);font-size:12px}
+.ucard a{font-size:12.5px;color:var(--accent)}
+.armed{background:var(--warn)!important;border-color:var(--warn)!important;color:var(--surface)!important}
+.toast{display:flex;gap:14px;align-items:center}
+.toast[hidden]{display:none}
+/* báo trạng thái 1 giây */
+.flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + var(--toph,58px) + 14px);transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;padding:12px 20px 12px 14px;border-radius:10px;background:var(--surface);border:2px solid var(--idle);box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:240px;max-width:calc(100vw - 32px);pointer-events:none;animation:flashIn 1s ease forwards}
+.flash[hidden]{display:none}
+.flash .fi{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:19px;font-weight:700;flex:0 0 auto;background:var(--surface-2);color:var(--muted)}
+.flash .ft{display:flex;flex-direction:column;min-width:0}
+.flash b{font-size:16px;line-height:1.25}
+.flash small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+.flash.ok{border-color:var(--ok)} .flash.ok .fi{background:var(--ok);color:var(--surface)} .flash.ok b{color:var(--ok)}
+.flash.warn{border-color:var(--warn)} .flash.warn .fi{background:var(--warn);color:var(--surface)} .flash.warn b{color:var(--warn)}
+.flash.bad{border-color:var(--bad)} .flash.bad .fi{background:var(--bad);color:var(--surface)} .flash.bad b{color:var(--bad)}
+.flash.info{border-color:var(--info)} .flash.info .fi{background:var(--info);color:var(--surface)} .flash.info b{color:var(--info)}
+@keyframes flashIn{0%{opacity:0;transform:translate(-50%,-8px) scale(.96)}12%{opacity:1;transform:translate(-50%,0) scale(1)}80%{opacity:1}100%{opacity:0}}
+.row.pulse{animation:rowPulse 1s ease}
+@keyframes rowPulse{0%{box-shadow:0 0 0 0 var(--accent-soft)}20%{box-shadow:0 0 0 5px var(--accent-soft)}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.flash{animation:none}.row.pulse{animation:none}}
+.toast button{border:0;background:none;color:var(--accent-soft);font-weight:600;text-decoration:underline;padding:0}
+details.panel>summary{cursor:pointer;list-style:none;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel>summary h2{font-size:15px}
+details.panel>summary span{color:var(--muted);font-size:13px}
+details.panel>summary::before{content:"▸";color:var(--muted)}
+details.panel[open]>summary::before{content:"▾"}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 10px}
+/* 2 nhánh */
+.branches{display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);gap:18px;align-items:start}
+.branch{min-width:0}
+.bhead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding-bottom:8px;border-bottom:2px solid var(--fg);margin-bottom:6px}
+.bhead h2{font-size:18px;letter-spacing:-.01em}
+.bhead span{font-size:12.5px;color:var(--muted)}
+.bhead .bnum{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft);padding:2px 8px;border-radius:4px}
+.ulist{display:flex;flex-direction:column;gap:6px;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--toph,58px) + 8px);max-height:calc(100vh - var(--toph,58px) - 30px);overflow-y:auto;padding-right:4px}
+.urow{flex-shrink:0;display:grid;grid-template-columns:minmax(0,1fr) auto;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.urow.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.upick{border:0;background:none;text-align:left;padding:9px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.upick:hover{background:var(--surface-2)}
+.urow.on .upick{background:var(--accent-soft)}
+.ut{display:flex;gap:8px;justify-content:space-between;align-items:flex-start}
+.ut b{font-size:13.5px;line-height:1.3}
+.um{display:flex;gap:4px 10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.um .gap{color:var(--warn)}
+.uopen{display:flex;align-items:center;padding:0 10px;font-size:12.5px;font-weight:600;color:var(--accent);text-decoration:none;border-left:1px solid var(--line);white-space:nowrap}
+.uopen:hover{background:var(--surface-2)}
+.selbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--accent-soft);border-radius:6px;padding:8px 10px;margin:8px 0 10px;font-size:13.5px}
+.selbar span{flex:1;min-width:0}
+.room .u span.on{background:var(--accent);color:var(--accent-fg)}
+.glink{margin-left:auto;font-size:12.5px;color:var(--accent);font-weight:600;text-decoration:none;white-space:nowrap}
+.glink:hover{text-decoration:underline}
+.rstrip{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.rchip{display:inline-flex;gap:6px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px 10px;font-size:13px;color:var(--fg);text-decoration:none}
+.rchip:hover{border-color:var(--accent);color:var(--accent)}
+.rchip em{font-style:normal;font-size:11.5px;color:var(--muted)}
+.rchip.none{border-style:dashed;color:var(--warn)}
+.rchip.st-done{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.rchip.st-done em{color:var(--ok)}
+.rchip.st-run{border-color:var(--warn)}
+.rchip.st-nf{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.rchip.cur{outline:2px solid var(--accent);outline-offset:1px;font-weight:600}
+.rchip .ck{font-weight:700}
+.nfdot{display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:var(--surface);font-size:10.5px;font-weight:700}
+.striphead{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.striphead .lbl{flex:1;min-width:200px}
+.roomsel.need{border-color:var(--warn);background:var(--warn-soft);color:var(--warn);font-weight:600}
+.warnlbl{color:var(--warn)!important}
+.newroom{display:flex;gap:6px}
+.newroom .in{flex:1}
+@media (max-width:980px){.branches{grid-template-columns:1fr}.ulist{position:static;max-height:none}}
+
+@media (max-width:1180px){
+  .row{grid-template-columns:90px minmax(0,1fr) 140px 60px 124px;grid-template-areas:none}
+  .row .c-cond{grid-column:3 / 4}
+  .row .c-act{grid-column:4 / 6;flex-direction:row;align-items:center}
+  .row .c-act .badge{flex:0 0 auto}
+  .row .lbl{display:block}
+  .row .c-id,.row .c-name{grid-row:span 2;align-self:start}
+}
+@media (max-width:860px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats .stat:last-child{grid-column:1/-1}
+  .uhead{grid-template-columns:1fr}
+  .prog{min-width:0}
+  .team{grid-template-columns:1fr 1fr}
+  .row{grid-template-columns:1fr 1fr;gap:10px}
+  .row .c-id{grid-row:auto;flex-direction:row;gap:10px;align-items:baseline;grid-column:1/-1}
+  .row .c-name{grid-row:auto;grid-column:1/-1}
+  .row .c-room{grid-column:1/-1}
+  .row .c-cond{grid-column:auto}
+  .row .c-act{grid-column:1/-1}
+  .row .c-book{text-align:left}
+  .ps{grid-template-columns:1fr 1fr}
+  .ps .fld:first-child{grid-column:1/-1}
+  .end{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .xm{grid-template-columns:1fr}
+  .srow{grid-template-columns:1fr auto}
+  .srow>*:nth-child(2){grid-column:1/-1;grid-row:2}
+  .srow>*:nth-child(3),.srow>*:nth-child(4){grid-row:3}
+  .gsearch{margin-left:0}
+  .bld .in{margin-left:0;max-width:none}
+  .nav{margin-left:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<header class="top" id="top">
+  <div class="wrap">
+    <div class="brand"><b>Kiểm kê tài sản 2026</b><span>Phòng Hành chính · chốt sổ 31/10/2026</span></div>
+    <nav class="nav" id="nav">
+      <a href="#tong-quan" data-r="tong-quan">Tổng quan</a>
+      <a href="#xac-minh" data-r="xac-minh">Hỏi đại diện <span class="pill" id="xmCount" hidden>0</span></a>
+      <a href="#xuat" data-r="xuat">Xuất cho kế toán</a>
+    </nav>
+    <div class="who"><span class="sync idle" id="sync" role="status">Đang kết nối…</span><i id="whoI">HC</i><span id="whoN">Cán bộ Phòng HC</span></div>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<datalist id="dl-phong"></datalist>
+<div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>Hoàn tác</button></div>
+<div class="flash" id="flash" role="status" aria-live="polite" hidden><span class="fi" id="flashIcon"></span><span class="ft"><b id="flashTitle"></b><small id="flashSub"></small></span></div>
+
+<script>
+// Danh sách tài sản sinh từ file Excel trong "dữ liệu cập nhật/" (xem scripts/build.mjs)
+const DATA = window.KIEMKE_DATA || {rows:[]};
+const RAW = DATA.rows;
+
+const UNITS = [
+  {id:'GD',   sheet:'GD',   ten:'Bộ môn Thiết kế mỹ thuật số - DAD', match:['Thiết kế mỹ thuật số - DAD'], dd:'Chủ nhiệm bộ môn'},
+  {id:'AI',   sheet:'AI',   ten:'Khoa Trí tuệ nhân tạo - AI', match:['Khoa Trí tuệ nhân tạo - AI'], dd:'Trưởng khoa'},
+  {id:'MC',   sheet:'MC',   ten:'Khoa Công nghệ truyền thông - MC', match:['Khoa công nghệ truyền thông - MC'], dd:'Trưởng khoa'},
+  {id:'GDTC', sheet:'GDTC', ten:'Bộ môn GDTC', match:['Bộ môn GDTC'], dd:'Chủ nhiệm bộ môn'},
+  {id:'BIZ',  sheet:'BIZ',  ten:'Kinh doanh và Luật', match:['Kinh doanh và luật'], dd:'Chủ nhiệm bộ môn'},
+  {id:'VMBD', sheet:'VMBD', ten:'Khoa VMBD & Ô tô số', match:['Khoa VMBD & ô tô số'], dd:'Trưởng khoa'},
+  {id:'IA',   sheet:'IA',   ten:'An toàn thông tin - IA', match:['An toàn thông tin - IA'], dd:'Chủ nhiệm bộ môn'},
+  {id:'SE',   sheet:'SE',   ten:'Kỹ thuật phần mềm - SE', match:['SE'], dd:'Chủ nhiệm bộ môn'},
+  {id:'NTH',  sheet:'Nhật - Trung - Hàn', ten:'Bộ môn Nhật - Trung - Hàn', match:['Lab Ngôn ngữ Trung','Lab Ngôn ngữ Nhật','Lab Ngôn ngữ Hàn'], dd:'Chủ nhiệm bộ môn'},
+  {id:'ENL',  sheet:'Ngôn ngữ Anh', ten:'Bộ môn Tiếng Anh', match:['Bộ môn Tiếng Anh'], dd:'Chủ nhiệm bộ môn'},
+  {id:'CNTT', sheet:'Phòng CNTT', ten:'Phòng CNTT', match:['Phòng CNTT'], dd:'Trưởng phòng'},
+  {id:'TS',   sheet:'Ban Tuyển sinh', ten:'Ban Tuyển sinh', match:['Ban Tuyển sinh'], dd:'Trưởng ban'},
+  {id:'DT',   sheet:'Ban Đào tạo', ten:'Ban Đào tạo', match:['Ban Đào tạo'], dd:'Trưởng ban'},
+  {id:'DVSV', sheet:'Phòng DVSV', ten:'Phòng Dịch vụ sinh viên', match:['Phòng DVSV'], dd:'Trưởng phòng'},
+  {id:'CTSV', sheet:'Phòng CTSV', ten:'Phòng Công tác sinh viên', match:['Phòng CTSV'], dd:'Trưởng phòng'},
+  {id:'ICPDP',sheet:'Phòng IC PDP', ten:'Phòng IC PDP', match:['Phòng IC PDP'], dd:'Trưởng phòng'},
+  {id:'HC',   sheet:'Phòng Hành chính', ten:'Phòng Hành chính', match:['Phòng Hành chính','HC; CTSV; Đào tạo'], dd:'Trưởng phòng'},
+  {id:'FSC3', sheet:'FSC3', ten:'FSC3', match:['FSC3'], dd:'Trưởng đơn vị'},
+  {id:'XLPB', sheet:'Xem lại phân bổ', ten:'Xem lại phân bổ (FSC12)', match:['Xem lại phân bổ'], dd:'Kế toán', review:true},
+  {id:'CBG',  sheet:'Chưa có ghi chú', ten:'Chưa bàn giao · HC giữ trực tiếp', match:[''], dd:'Trưởng phòng HC', review:true},
+];
+// Đơn vị mới trong cột "Ghi chú" của Excel mà danh sách trên chưa có: tự thêm thành mục riêng
+(function(){
+  const known=new Set(UNITS.flatMap(u=>u.match));
+  const extra=[...new Set(RAW.map(r=>String(r[6]||'').trim()).filter(g=>g&&!known.has(g)))];
+  const at=UNITS.findIndex(u=>u.review);
+  extra.forEach((g,i)=>UNITS.splice(at+i,0,{id:'DV'+(i+1),sheet:g,ten:g,match:[g],dd:'Trưởng đơn vị'}));
+})();
+const UNIT = Object.fromEntries(UNITS.map(u=>[u.id,u]));
+
+// Giá trị cột Vị trí trong Excel thực chất là tình trạng
+const STATUS_TEXT = {'Hư hỏng hoàn toàn':'hong_ht','Vật tư tiêu hao':'tieu_hao','Họp thanh lí xác định của FGW, kế toán xử lí':'thanh_ly','Hộp mực đã in hết':'tieu_hao','Giao Nhà thầu cây xanh':'khac'};
+const COND = [['tot','Tốt'],['hong_mp','Hỏng một phần'],['hong_ht','Hỏng hoàn toàn'],['tieu_hao','Vật tư tiêu hao'],['thanh_ly','Đề nghị thanh lý'],['khac','Khác']];
+const NONPHYS = /(Tòa nhà|Tòa Alpha|giảng đường|Giảng đường|Nhà Vovinam|Ký Túc Xá|Khảo sát|Thiết kế,|XÂY LẮP|Xây lắp|Phần mềm|CPXD|trạm biến áp|hạ tầng)/;
+
+const XM_KQ = [['cho','Chờ phản hồi'],['chi','Đã chỉ vị trí khác'],['thay','Đã tìm thấy'],['dc','Đã điều chuyển đơn vị khác'],['hong','Hỏng / đã thanh lý'],['mat','Xác nhận mất']];
+const XM_CACH = [['','— chọn —'],['tt','Gặp trực tiếp'],['dt','Điện thoại'],['email','Email'],['tn','Tin nhắn']];
+
+function shortName(s){
+  let t=s.replace(/^\s*[A-ZĐ][A-Za-zĐ_]*[-_ ]?[A-Z]*\s*[:\-]\s*/,'');
+  t=t.replace(/^\s*[A-Za-zÀ-ỹ]+\d{1,3}\s*[-.]\s*/,'');
+  t=t.replace(/^\s*[A-Za-z]+\d{1,3}\s*[-.]\s*/,'');
+  t=t.replace(/[\s\-_.]*(CT|CTCT)?\d{5,}\s*$/,'').replace(/[\s\-]+CT\d*\s*$/,'').replace(/[\s\-_.]+$/,'');
+  return t.trim()||s;
+}
+function chungTu(s){const m=s.match(/(CT)?(\d{6,7})\s*$/);return m?(m[1]||'')+m[2]:'';}
+
+const ASSETS = RAW.map(r=>{
+  const [stt,ma,ten,sl,ngay,gia,gc0,vt,key,sheet,xr]=r; const gc=String(gc0||'').trim();
+  const u = UNITS.find(u=>u.match.includes(gc)) || UNIT.CBG;
+  const cond0 = STATUS_TEXT[vt]||'';
+  return {stt,ma,ten,short:shortName(ten),ct:chungTu(ten),sl,ngay,gia,gc,vt0:cond0?'':vt,cond0,unit:u.id,key:key||String(ma||'stt-'+stt),sheet,xr,
+          hoso: NONPHYS.test(ten) && gia>=500e6, shared: gc==='HC; CTSV; Đào tạo'};
+});
+const BY_STT = Object.fromEntries(ASSETS.map(a=>[a.stt,a]));
+const BY_KEY = Object.fromEntries(ASSETS.map(a=>[a.key,a]));
+const BY_UNIT = {}; UNITS.forEach(u=>BY_UNIT[u.id]=[]); ASSETS.forEach(a=>BY_UNIT[a.unit].push(a));
+
+/* ---------- state ---------- */
+const KEY='kiemke2026.v1';
+function blank(){return {rows:{},units:{},xm:{},ps:{},demo:false};}
+let S = blank();
+/* Chế độ lưu: 'connecting' → 'shared' (dữ liệu chung trên artifact, mọi tổ thấy nhau) hoặc 'local' (chỉ trình duyệt này) */
+let MODE='connecting', DB=null, USER=null, ME=null, READONLY=false, READY=false, SLOW=false, SYNCERR=false, MIGRATE=null;
+let NAMES={};
+const COLS=['rows','xm','units','ps'];
+const LAST={};                                   // đường dẫn tài liệu → JSON đã đồng bộ
+const WR={busy:new Set(),next:new Map()};        // hàng đợi ghi: mỗi tài liệu một lần ghi tại một thời điểm
+const LOADED=new Set();
+function loadLocal(){ try{const v=localStorage.getItem(KEY); if(v) return JSON.parse(v);}catch(e){} return null; }
+function saveLocal(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+function docBody(col,v){ return col==='ps'?{items:v}:v; }
+function fromBody(col,d){ return col==='ps'?(Array.isArray(d.items)?d.items:[]):d; }
+/* Kết quả theo tài sản (rows, xm) lưu trên máy chủ theo MÃ TSCĐ (a.key), trên trang theo STT.
+   Nhờ vậy thêm/xoá/đổi thứ tự dòng trong Excel không làm kết quả gắn nhầm tài sản.
+   Kết quả của tài sản không còn trong Excel được giữ nguyên trên máy chủ, chỉ không hiện. */
+const KEYED={rows:1,xm:1};
+function docId(c,k){ if(!KEYED[c]) return k; const a=BY_STT[k]; return a?a.key:null; }
+function localKey(c,id){ if(!KEYED[c]) return id; const a=BY_KEY[id]; return a?String(a.stt):null; }
+function desired(){ const m={}; COLS.forEach(c=>Object.entries(S[c]||{}).forEach(([k,v])=>{ const id=docId(c,k); if(v!=null&&id!=null) m[c+'/'+id]=JSON.stringify(docBody(c,v)); })); return m; }
+function restoreFromLast(){ S=blank(); for(const p in LAST){ const i=p.indexOf('/'), c=p.slice(0,i), k=localKey(c,p.slice(i+1)); if(k!=null) S[c][k]=fromBody(c,JSON.parse(LAST[p])); } }
+function save(){
+  if(MODE==='local'){ saveLocal(); return; }
+  if(MODE!=='shared'||!READY) return;
+  if(READONLY){ restoreFromLast(); toast('Bạn chỉ có quyền xem, thay đổi không được lưu'); return; }
+  const want=desired();
+  for(const p in want) if(want[p]!==LAST[p]){ LAST[p]=want[p]; WR.next.set(p,want[p]); }
+  for(const p in LAST) if(!(p in want)){ delete LAST[p]; WR.next.set(p,null); }
+  kick();
+}
+function kick(){ for(const p of WR.next.keys()){ if(WR.busy.size>=6) break; if(!WR.busy.has(p)) runWrite(p); } setSync(); }
+async function runWrite(p){
+  const json=WR.next.get(p); WR.next.delete(p); WR.busy.add(p);
+  for(let i=0;i<3;i++){
+    try{ const ref=DB.doc(p); if(json==null) await ref.delete(); else await ref.set(JSON.parse(json)); SYNCERR=false; break; }
+    catch(e){
+      const c=e&&e.code;
+      if((c==='unavailable'||c==='resource_exhausted')&&i<2){ await new Promise(r=>setTimeout(r,600+Math.random()*1200*(i+1))); continue; }
+      writeFailed(c); break;
+    }
+  }
+  WR.busy.delete(p); kick();
+}
+function writeFailed(c){
+  SYNCERR=true;
+  if(c==='invalid_argument'){ READONLY=true; document.body.classList.add('ro'); toast('Không lưu được: bạn chỉ có quyền xem trang này'); }
+  else if(c==='quota_exceeded') toast('Bộ nhớ dữ liệu chung đã đầy, không lưu thêm được');
+  else toast('Chưa lưu được lên dữ liệu chung. Kiểm tra mạng rồi thao tác lại.');
+}
+function setSync(){
+  const el=document.getElementById('sync'); if(!el) return;
+  let t,k;
+  if(MODE==='connecting'||(MODE==='shared'&&!READY)){ t=SLOW?'Chưa kết nối được':'Đang kết nối…'; k=SLOW?'bad':'idle'; }
+  else if(MODE==='local'){ t='Chỉ lưu trên máy này'; k='warn'; }
+  else if(READONLY){ t='Chỉ xem'; k='idle'; }
+  else if(WR.busy.size||WR.next.size){ t='Đang lưu…'; k='idle'; }
+  else if(SYNCERR){ t='Lỗi lưu'; k='bad'; }
+  else if(SLOW){ t='Số liệu có thể chưa mới'; k='warn'; }
+  else { t='Đã lưu chung'; k='ok'; }
+  el.textContent=t; el.className='sync '+k;
+}
+function listen(col){
+  DB.collection(col).onSnapshot(snap=>{
+    const changed=[];
+    snap.docChanges().forEach(ch=>{
+      const id=ch.doc.id, p=col+'/'+id, k=localKey(col,id);
+      if(k==null) return;                                   // tài sản không còn trong file Excel hiện tại
+      if(WR.busy.has(p)||WR.next.has(p)) return;          // đang ghi bản mới hơn của chính mình
+      if(ch.type==='removed'){ if(p in LAST||S[col][k]){ delete LAST[p]; delete S[col][k]; changed.push(k); } return; }
+      const j=JSON.stringify(ch.doc.data()||{}); if(LAST[p]===j) return;
+      LAST[p]=j; S[col][k]=fromBody(col,JSON.parse(j)); changed.push(k);
+    });
+    if(!snap.metadata.fromCache&&!LOADED.has(col)){ LOADED.add(col); if(LOADED.size===COLS.length){ SLOW=false; if(READY) setSync(); else ready(); } }
+    if(changed.length) onRemote(col,changed);
+  }, ()=>{ SYNCERR=true; setSync(); });
+}
+function ready(){
+  if(READY) return; READY=true; refreshRooms();
+  let moved=null; try{ moved=localStorage.getItem(KEY+'.moved'); }catch(e){}
+  const local=loadLocal();
+  if(local&&!local.demo&&!moved&&!READONLY&&Object.keys(local.rows||{}).length) MIGRATE=local;
+  route(); setSync(); resolveNames();
+}
+function startLocal(){ MODE='local'; S=loadLocal()||seedDemo(blank()); READY=true; refreshRooms(); route(); setSync(); }
+async function init(){
+  setSync(); route();
+  const c=window.claude;
+  if(!c||typeof c.use!=='function'){
+    // Chạy trên web (Vercel): dùng Supabase nếu đã cấu hình, không thì lưu trên máy
+    const sdb=window.makeSupabaseDb?window.makeSupabaseDb():null;
+    if(!sdb){ startLocal(); return; }
+    DB=sdb; MODE='shared'; WEB=true;
+    // Khi file Excel trong "dữ liệu cập nhật" được đẩy lên, báo người đang mở trang tải lại
+    const checkData=()=>fetch('data/version.json',{cache:'no-store'}).then(r=>r.ok?r.json():null).then(v=>{
+      if(v&&DATA.version&&v.version!==DATA.version&&!NEWDATA){ NEWDATA=true; if(!busyEditing()) softRender(); } }).catch(()=>{});
+    setInterval(checkData,120000);
+    document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkData(); });
+    try{ ME=localStorage.getItem(KEY+'.name')||''; }catch(e){}
+    showMe();
+    document.getElementById('whoN').addEventListener('click',askName);
+    COLS.forEach(listen);
+    setTimeout(()=>{ if(LOADED.size<COLS.length){ SLOW=true; if(!READY) ready(); else setSync(); } },10000);
+    setSync(); render(); return;
+  }
+  let db=null; try{ db=await c.use('db'); }catch(e){}
+  if(!db){ startLocal(); return; }
+  DB=db; MODE='shared';
+  try{ USER=await c.use('user'); }catch(e){}
+  if(USER){
+    try{ const me=await USER.me(); ME=me.id; const nm=me.name||'Bạn';
+      document.getElementById('whoN').textContent=nm;
+      document.getElementById('whoI').textContent=(nm.trim().split(/\s+/).pop()||'B')[0].toUpperCase();
+      if(await USER.can('data.write')===false){ READONLY=true; document.body.classList.add('ro'); } }catch(e){}
+  }
+  COLS.forEach(listen);
+  setTimeout(()=>{ if(LOADED.size<COLS.length){ SLOW=true; if(!READY) ready(); else setSync(); } },10000);
+  setSync(); render();
+}
+/* thay đổi từ người khác: cập nhật nhẹ từng dòng, chỉ dựng lại cả trang khi tài sản đổi phòng */
+const RQ={rows:new Set(),full:false,t:0,wait:false};
+function onRemote(col,ids){
+  if(!READY) return;
+  if(col==='rows'){ ids.forEach(i=>RQ.rows.add(+i)); refreshRooms(); } else RQ.full=true;
+  resolveNames(); clearTimeout(RQ.t); RQ.t=setTimeout(flushRemote,250);
+}
+function busyEditing(){ const a=document.activeElement; return !!(a&&app.contains(a)&&(a.tagName==='SELECT'||a.tagName==='TEXTAREA'||(a.tagName==='INPUT'&&!['search','checkbox','button'].includes(a.type)))); }
+function flushRemote(){
+  if(busyEditing()){ RQ.wait=true; return; }
+  RQ.wait=false;
+  const ids=[...RQ.rows], full=RQ.full; RQ.rows.clear(); RQ.full=false;
+  if(!full&&(V.type==='unit'||V.type==='room')){
+    const list=currentList()||[]; const shown=new Set(filtered(list).map(a=>a.stt)); let need=false;
+    for(const stt of ids){ const a=BY_STT[stt]; if(!a) continue; const el=app.querySelector(`.row[data-stt="${stt}"]`);
+      if(el?(el.dataset.room!==roomOf(a)||!list.includes(a)):shown.has(stt)){ need=true; break; } }
+    if(!need){ ids.forEach(s=>{ if(app.querySelector(`.row[data-stt="${s}"]`)) refreshRow(s); }); refreshRow(-1); return; }
+  }
+  softRender();
+}
+function softRender(){
+  const y=window.scrollY, a=document.activeElement, id=(a&&app.contains(a))?a.id:'', val=id?a.value:'', pos=id?a.selectionStart:null;
+  render(); window.scrollTo(0,y); updateBadge();
+  if(id){ const n=document.getElementById(id); if(n){ if(n.type==='search') n.value=val; n.focus(); try{ if(pos!=null) n.setSelectionRange(pos,pos); }catch(e){} if(id==='aq') n.dispatchEvent(new Event('input',{bubbles:true})); } }
+}
+async function resolveNames(){
+  if(!USER) return;
+  const ids=new Set(); Object.values(S.rows).forEach(r=>r&&r.by&&ids.add(r.by)); Object.values(S.xm).forEach(x=>x&&x.by&&ids.add(x.by));
+  if(![...ids].some(i=>!(i in NAMES))) return;
+  let ps={}; try{ ps=await USER.profiles([...ids]); }catch(e){}
+  let ch=false; ids.forEach(i=>{ const n=(ps[i]&&ps[i].name)||''; if(NAMES[i]!==n){ NAMES[i]=n; ch=true; } });
+  if(ch&&READY){ RQ.full=true; clearTimeout(RQ.t); RQ.t=setTimeout(flushRemote,60); }
+}
+function whoLabel(id){ if(!id) return ''; if(id===ME) return 'Bạn'; return NAMES[id]||(/^u_/.test(id)?'Người khác':id); }
+/* Trên web không có tài khoản Claude: mỗi máy tự nhập tên, lưu trên máy, ghi kèm kết quả kiểm */
+let WEB=false, NEWDATA=false;
+function showMe(){
+  const n=document.getElementById('whoN'), i=document.getElementById('whoI');
+  n.textContent=ME||'Bấm để nhập tên'; n.style.cursor='pointer'; n.title='Đổi tên người kiểm trên máy này';
+  i.textContent=((ME||'?').trim().split(/\s+/).pop()||'?')[0].toUpperCase();
+}
+function askName(){
+  const v=(window.prompt('Tên của bạn (hiện cạnh kết quả mình kiểm):',ME||'')||'').trim().slice(0,60);
+  if(!v) return; ME=v; try{ localStorage.setItem(KEY+'.name',v); }catch(e){} showMe();
+}
+function hm(t){ const d=new Date(t), p=n=>String(n).padStart(2,'0'); const same=d.toDateString()===new Date().toDateString(); return (same?'':p(d.getDate())+'/'+p(d.getMonth()+1)+' ')+p(d.getHours())+':'+p(d.getMinutes()); }
+function seedDemo(s){
+  s.demo=true;
+  const gd=[...BY_UNIT.GD].sort((a,b)=>(a.vt0||'').localeCompare(b.vt0||'')||a.stt-b.stt);
+  const t=Date.now();
+  gd.slice(0,24).forEach((a,i)=>{ s.rows[a.stt]={tt:a.sl,phong:a.vt0,cond:'tot',at:t-i*60000}; });
+  const set=(stt,o)=>{ if(BY_STT[stt]) s.rows[stt]=Object.assign({phong:BY_STT[stt].vt0,cond:'tot',at:t},o); };
+  set(1006,{tt:9,note:'1 ghế gãy chân, đã để kho'});
+  set(887,{tt:0,nf:true,note:'Cán bộ trực lab không biết để đâu'});
+  set(883,{tt:3,cond:'hong_mp',note:'1 đèn không lên nguồn'});
+  set(1064,{tt:2,phong:'404 Gamma',note:'Đang dùng ở phòng 404'});
+  s.units.GD={ngay:'2026-11-13',ketoan:'',canbo:['Cán bộ phụ trách Lab (mẫu)'],daidien:'',ended:false,signed:false,started:true};
+  s.xm[887]={cach:'dt',kq:'cho',phanhoi:''};
+  s.ps.GD=[{mo_ta:'Màn hình Dell 24" không có tem tài sản',sl:2,phong:'108 Gamma',cond:'tot'}];
+  return s;
+}
+
+/* ---------- helpers ---------- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=new Intl.NumberFormat('vi-VN');
+function money(v){ if(!v) return '—'; if(v>=1e9) return (v/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2})+' tỷ'; if(v>=1e6) return (v/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1})+' tr'; return nf.format(v)+' đ'; }
+function dmy(d){ if(!d) return '—'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; }
+function res(a){
+  const s=S.rows[a.stt]; if(!s) return 'chua';
+  if(s.hs) return 'hoso'; if(s.nf) return 'nf'; if(s.tt==null||s.tt==='') return 'chua';
+  return s.tt==a.sl?'du':(s.tt<a.sl?'thieu':'thua');
+}
+const RES_LABEL={chua:'Chưa kiểm',du:'Đủ',thieu:'Thiếu',thua:'Thừa',nf:'Chưa tìm thấy',hoso:'Đã xác nhận hồ sơ'};
+function roomOf(a){ const s=S.rows[a.stt]; return ((s&&s.phong!=null)?s.phong:a.vt0)||''; }
+function count(list){
+  const c={tong:list.length,chua:0,du:0,thieu:0,thua:0,nf:0,hoso:0,sl:0,gia:0,novt:0};
+  list.forEach(a=>{c[res(a)]++; c.sl+=a.sl; c.gia+=a.gia; if(!roomOf(a)) c.novt++;});
+  c.da=c.tong-c.chua; c.lech=c.thieu+c.thua; return c;
+}
+function unitState(id){ return S.units[id] || (S.units[id]={ngay:'',ketoan:'',canbo:[],daidien:'',ended:false,signed:false}); }
+function xmPending(){ return Object.keys(S.rows).filter(k=>S.rows[k].nf && (S.xm[k]?.kq||'cho')==='cho').length; }
+function barHTML(c){ const w=k=>c.tong?(c[k]/c.tong*100):0; return `<div class="bar" aria-hidden="true"><i class="ok" style="width:${w('du')}%"></i><i class="info" style="width:${w('hoso')}%"></i><i class="warn" style="width:${(c.tong?c.lech/c.tong*100:0)}%"></i><i class="bad" style="width:${w('nf')}%"></i></div>`; }
+
+/* rooms */
+const NOROOM='chua-co-vi-tri';
+function slugify(n){ return (n||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[đĐ]/g,'d').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || NOROOM; }
+const BLD_ORDER=['Alpha','Beta','Gamma','Delta / Epsilon','KTX','Khu khác'];
+function building(n){ const s=(n||'').toLowerCase();
+  if(/ktx/.test(s)) return 'KTX'; if(/alpha/.test(s)) return 'Alpha'; if(/beta/.test(s)) return 'Beta';
+  if(/gamma/.test(s)) return 'Gamma'; if(/delta|epsilon|fsc12/.test(s)) return 'Delta / Epsilon'; return 'Khu khác'; }
+let ROOMNAME={};
+function buildRooms(){
+  const m={};
+  ASSETS.forEach(a=>{ const n=roomOf(a); const k=n?slugify(n):NOROOM; (m[k]=m[k]||{slug:k,name:n||'Chưa có vị trí',bld:n?building(n):'',list:[]}).list.push(a); });
+  Object.values(m).forEach(r=>ROOMNAME[r.slug]=r.name);
+  return m;
+}
+function roomAssets(slug){ return ASSETS.filter(a=>{const n=roomOf(a); return slug===NOROOM?!n:(n&&slugify(n)===slug);}); }
+function unitsIn(list){ const m={}; list.forEach(a=>(m[a.unit]=m[a.unit]||[]).push(a)); return m; }
+
+/* toast + undo */
+let UNDO=null;
+function snap(stts){ UNDO=stts.map(s=>[s, S.rows[s]?JSON.parse(JSON.stringify(S.rows[s])):null, S.xm[s]?JSON.parse(JSON.stringify(S.xm[s])):null]); }
+function toast(msg,undo){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; document.getElementById('toastUndo').hidden=!undo; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,undo?5000:2200); }
+document.getElementById('toastUndo').addEventListener('click',()=>{
+  if(!UNDO) return; UNDO.forEach(([s,r,x])=>{ if(r) S.rows[s]=r; else delete S.rows[s]; if(x) S.xm[s]=x; else delete S.xm[s]; });
+  UNDO=null; save(); refreshRooms(); route(); document.getElementById('toast').hidden=true;
+});
+
+let ROOMS=[], UROOMS={}, ROOMOPT_BLD='';
+const sortRooms=(a,b)=>(a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'vi',{numeric:true});
+/* báo trạng thái trong 1 giây */
+function flash(kind,icon,title,sub){
+  const f=document.getElementById('flash');
+  f.className='flash '+kind; document.getElementById('flashIcon').textContent=icon;
+  document.getElementById('flashTitle').textContent=title; document.getElementById('flashSub').textContent=sub||'';
+  f.hidden=true; void f.offsetWidth; f.hidden=false;   // chạy lại hiệu ứng mỗi lần bấm
+  clearTimeout(flash._t); flash._t=setTimeout(()=>f.hidden=true,1000);
+}
+function flashRes(stt){
+  const a=BY_STT[stt]; const r=res(a); const s=S.rows[stt]||{}; const sub=`${a.ma||'STT '+a.stt} · ${a.short}`;
+  const M={
+    du:['ok','✓','Đã kiểm đủ',`${sub} · ${a.sl}/${a.sl}`],
+    thieu:['warn','−',`Thiếu ${a.sl-(+s.tt)}`,`${sub} · thực tế ${s.tt}/${a.sl}`],
+    thua:['warn','+',`Thừa ${(+s.tt)-a.sl}`,`${sub} · thực tế ${s.tt}/${a.sl}`],
+    nf:['bad','!','Chưa tìm thấy','Đã đưa vào danh sách hỏi đại diện'],
+    hoso:['info','✓','Đã xác nhận hồ sơ',sub],
+    chua:['info','↺','Đã xoá kết quả, chờ kiểm lại',sub]};
+  const m=M[r]; flash(m[0],m[1],m[2],m[3]);
+  const el=app.querySelector(`.row[data-stt="${stt}"]`); if(el){ el.classList.add('pulse'); }
+}
+function refreshRooms(){
+  const set=new Set(); ASSETS.forEach(a=>a.vt0&&set.add(a.vt0)); Object.values(S.rows).forEach(r=>r.phong&&set.add(r.phong));
+  ROOMS=[...set].sort(sortRooms); UROOMS={};
+  document.getElementById('dl-phong').innerHTML=ROOMS.map(v=>`<option value="${esc(v)}">`).join('');
+  // nhóm phòng theo tòa, dựng sẵn 1 lần cho mọi ô chọn
+  const by={}; ROOMS.forEach(n=>(by[building(n)]=by[building(n)]||[]).push(n));
+  ROOMOPT_BLD=BLD_ORDER.filter(b=>by[b]).map(b=>`<optgroup label="${b==='Khu khác'?'Khu khác':'Tòa '+b}">${by[b].map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</optgroup>`).join('');
+}
+function unitRooms(uid){ if(!UROOMS[uid]){ const s=new Set(); BY_UNIT[uid].forEach(a=>{const n=roomOf(a); if(n) s.add(n);}); UROOMS[uid]=[...s].sort(sortRooms);} return UROOMS[uid]; }
+
+/* ô chọn phòng: phòng của đơn vị lên đầu, sau đó toàn trường theo tòa, cuối cùng là nhập phòng mới */
+function roomField(a,room){
+  if(ui.newRoom&&ui.newRoom[a.stt]) return `<div class="c-room"><span class="lbl">Nhập phòng mới</span><div class="newroom"><input class="in" id="nr-${a.stt}" list="dl-phong" placeholder="VD: 205 Gamma"><button class="btn sm pri" data-act="saveroom">Lưu</button><button class="btn sm" data-act="cancelroom" aria-label="Huỷ">×</button></div></div>`;
+  const ur=unitRooms(a.unit);
+  const mine=ur.length?`<optgroup label="Phòng đang có đồ của ${esc(a.unit)}">${ur.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</optgroup>`:'';
+  let html=`<select class="in roomsel ${room?'':'need'}" id="ph-${a.stt}" data-f="phong" aria-label="Phòng của tài sản ${esc(a.ma)}">
+    <option value="">${room?'— Bỏ vị trí —':'Chọn phòng…'}</option>${mine}${ROOMOPT_BLD}<option value="__new">+ Phòng khác, nhập tên…</option></select>`;
+  // đánh dấu lựa chọn hiện tại (chỉ lần xuất hiện đầu)
+  if(room){ const v=`<option value="${esc(room)}">`; const i=html.indexOf(v); if(i>=0) html=html.slice(0,i)+`<option value="${esc(room)}" selected>`+html.slice(i+v.length); }
+  else html=html.replace('<option value="">','<option value="" selected>');
+  return `<div class="c-room"><span class="lbl ${room?'':'warnlbl'}">${room?'Phòng thực tế':'Cập nhật vị trí'}</span>${html}</div>`;
+}
+
+/* thanh "tài sản của đơn vị đang ở các vị trí", cập nhật trực tiếp khi kiểm */
+function unitRoomStats(uid){ const m={}; BY_UNIT[uid].forEach(a=>{const n=roomOf(a);(m[n]=m[n]||[]).push(a);}); return Object.keys(m).sort(sortRooms).map(n=>({name:n,slug:n?slugify(n):NOROOM,c:count(m[n])})); }
+function stripHTML(uid,cur){
+  const st=unitRoomStats(uid); const real=st.filter(s=>s.name);
+  const done=real.filter(s=>s.c.chua===0).length;
+  let next=null; if(cur){ const i=st.findIndex(s=>s.slug===cur); for(let k=1;k<=st.length;k++){ const s=st[(i+k)%st.length]; if(s.slug!==cur&&s.c.chua>0&&s.name){ next=s; break; } } }
+  const chip=s=>{ const cls=!s.name?'none':s.c.chua===0?(s.c.nf?'st-nf':'st-done'):(s.c.da?'st-run':'');
+    return `<a class="rchip ${cls} ${s.slug===cur?'cur':''}" href="#phong-${s.slug}" data-act="goto" data-u="${uid}" title="${s.c.da}/${s.c.tong} đã kiểm${s.c.nf?', '+s.c.nf+' chưa thấy':''}">
+      ${s.c.chua===0&&s.name?'<span class="ck" aria-hidden="true">✓</span>':''}${s.name?esc(s.name):'Chưa có vị trí'} <em class="num">${s.c.da}/${s.c.tong}</em>${s.c.nf?`<span class="nfdot" title="${s.c.nf} chưa thấy">${s.c.nf}</span>`:''}</a>`; };
+  return `<div class="rstrip"><div class="striphead"><span class="lbl">Tài sản của ${esc(UNIT[uid].sheet)} đang ở ${real.length} vị trí · đã xong ${done}/${real.length}</span>
+    ${next?`<a class="btn sm pri" href="#phong-${next.slug}" data-act="goto" data-u="${uid}">Phòng tiếp theo: ${esc(next.name)} →</a>`:''}
+    ${cur?`<a class="glink" href="#dv-${uid}" style="margin-left:${next?'0':'auto'}">Về sheet ${esc(UNIT[uid].sheet)}</a>`:''}</div>
+    <div class="chips">${st.map(chip).join('')}</div></div>`;
+}
+
+/* ---------- views ---------- */
+const app=document.getElementById('app');
+let V={type:'ov',id:null};
+let ui={filter:'all',q:'',group:true,open:{}};
+let OV={sel:'',bld:'all',rq:'',hideDone:false,gq:''};
+let pendingQ='', pendingU='';
+
+function demoBanner(){
+  if(MODE==='shared'){
+    let h='';
+    if(READONLY) h+=`<div class="demo ro"><b>Chế độ chỉ xem.</b> Bạn xem được tiến độ kiểm kê chung nhưng không ghi kết quả. Cần quyền Contributor trở lên để kiểm.</div>`;
+    if(SLOW) h+=`<div class="demo"><b>Chưa kết nối được dữ liệu chung.</b> Số liệu đang hiện có thể chưa mới, trang sẽ tự cập nhật khi có mạng.</div>`;
+    if(NEWDATA) h+=`<div class="demo"><span><b>File Excel dữ liệu vừa được cập nhật.</b> Tải lại trang để thấy danh sách tài sản mới; kết quả đã kiểm vẫn giữ nguyên.</span><button class="btn sm pri" data-act="reload">Tải lại trang</button></div>`;
+    if(MIGRATE) h+=`<div class="demo"><span>Máy này còn <b>${Object.keys(MIGRATE.rows||{}).length} kết quả kiểm</b> lưu riêng từ trước khi dùng dữ liệu chung.</span><button class="btn sm pri" data-act="migrate">Đưa lên dữ liệu chung</button><button class="btn sm" data-act="nomigrate" style="margin-left:0">Bỏ qua</button></div>`;
+    return h;
+  }
+  return S.demo?`<div class="demo"><b>Đang xem dữ liệu kiểm mẫu.</b> Một phần sheet GD đã được điền sẵn để bạn thấy giao diện khi đang kiểm. Danh sách tài sản là dữ liệu thật từ file kế toán.<button class="btn sm" data-act="reset">Xoá dữ liệu mẫu, bắt đầu từ đầu</button></div>`:'';
+}
+
+function unitCard(u){
+  const c=count(BY_UNIT[u.id]); const us=S.units[u.id];
+  const st= us?.ended?['done','Hoàn tất']:(c.da>0||us?.started)?['run','Đang kiểm']:['','Chưa kiểm'];
+  return `<a class="card" href="#dv-${u.id}">
+    <div class="t"><b>${esc(u.ten)}</b><span class="state ${st[0]}">${st[1]}</span></div>
+    <div class="m"><span><strong class="num">${c.tong}</strong> dòng</span><span><strong class="num">${nf.format(c.sl)}</strong> cái</span><span><strong>${money(c.gia)}</strong></span></div>
+    ${barHTML(c)}
+    <div class="f"><span class="num">Đã kiểm ${c.da}/${c.tong}${c.nf?` · <span style="color:var(--bad)">${c.nf} chưa thấy</span>`:''}</span><span class="${c.novt?'gap':''}">${c.novt?c.novt+' chưa có vị trí':'Đủ vị trí'}</span></div>
+    <div class="sheet">Sheet: ${esc(u.sheet)}</div></a>`;
+}
+function roomTile(r,uid){
+  const sub=uid?r.list.filter(a=>a.unit===uid):r.list;
+  const c=count(sub); const done=c.chua===0; const us=Object.keys(unitsIn(r.list));
+  return `<a class="room ${r.slug===NOROOM?'none':''} ${done&&r.slug!==NOROOM?'done':''}" href="#phong-${r.slug}" ${uid?`data-act="goto" data-u="${uid}"`:''}>
+    <b>${esc(r.name)}</b>
+    <div class="m num"><span>${uid?`${c.tong} dòng của ${esc(uid)}${r.list.length>c.tong?` / ${r.list.length}`:''}`:c.tong+' dòng'}</span><span class="st">${done?'Xong':c.chua+' chưa kiểm'}</span></div>
+    ${barHTML(c)}
+    <div class="u">${us.slice(0,4).map(id=>`<span class="${id===uid?'on':''}">${esc(id)}</span>`).join('')}${us.length>4?`<span>+${us.length-4}</span>`:''}</div></a>`;
+}
+function ovRoomsHTML(){
+  const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM);
+  const uid=OV.sel;
+  const none=roomAssets(NOROOM).filter(a=>!uid||a.unit===uid);
+  const q=slugify(OV.rq);
+  let list=rooms.filter(r=>(!uid||r.list.some(a=>a.unit===uid))&&(OV.bld==='all'||r.bld===OV.bld)&&(!OV.rq.trim()||r.slug.includes(q))&&(!OV.hideDone||count(uid?r.list.filter(a=>a.unit===uid):r.list).chua>0));
+  const by={}; list.forEach(r=>(by[r.bld]=by[r.bld]||[]).push(r));
+  const blocks=BLD_ORDER.filter(b=>by[b]).map(b=>`<div class="bldname">${b==='Khu khác'?'Khu khác, ngoài trời, chưa rõ tòa':'Tòa '+b} · ${by[b].length} vị trí</div><div class="rooms">${by[b].sort((x,y)=>x.name.localeCompare(y.name,'vi',{numeric:true})).map(r=>roomTile(r,uid)).join('')}</div>`).join('');
+  const noneTile=(OV.bld==='all'&&!OV.rq.trim()&&none.length)?`<div class="bldname">Chưa ghi vị trí</div><div class="rooms">${roomTile({slug:NOROOM,name:'Chưa có vị trí',list:none},uid)}</div>`:'';
+  return (blocks||(none.length?'':'<div class="empty">Không có phòng nào khớp.</div>'))+noneTile;
+}
+function unitRow(u){
+  const c=count(BY_UNIT[u.id]); const us=S.units[u.id]; const on=OV.sel===u.id;
+  const nR=new Set(BY_UNIT[u.id].map(a=>roomOf(a)).filter(Boolean)).size;
+  const st= us?.ended?['done','Hoàn tất']:(c.da>0||us?.started)?['run','Đang kiểm']:['',''];
+  return `<div class="urow ${on?'on':''}">
+    <button class="upick" data-sel="${u.id}" aria-pressed="${on}">
+      <span class="ut"><b>${esc(u.ten)}</b>${st[1]?`<span class="state ${st[0]}">${st[1]}</span>`:''}</span>
+      <span class="um num"><span class="mono">${esc(u.sheet)}</span><span>${c.da}/${c.tong} dòng</span><span>${nR} vị trí</span>${c.novt?`<span class="gap">${c.novt} chưa có vị trí</span>`:''}</span>
+      ${barHTML(c)}
+    </button>
+    <a class="uopen" href="#dv-${u.id}" aria-label="Mở sheet ${esc(u.sheet)}">Mở sheet →</a>
+  </div>`;
+}
+function ovSearchHTML(){
+  const q=OV.gq.trim().toLowerCase(); if(q.length<2) return '';
+  const hits=ASSETS.filter(a=>a.ten.toLowerCase().includes(q)||String(a.ma).includes(q)).slice(0,30);
+  if(!hits.length) return `<div class="sr"><div class="empty">Không tìm thấy tài sản nào có “${esc(OV.gq)}”.</div></div>`;
+  return `<div class="sr">${hits.map(a=>{const r=res(a);const n=roomOf(a);return `<div class="srow">
+    <div><div class="mono">${esc(a.ma)}</div><div class="sub">STT ${a.stt}</div></div>
+    <div><div>${esc(a.short)}</div><div class="sub">${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div></div>
+    <div>${n?esc(n):'<span style="color:var(--warn)">Chưa có vị trí</span>'}</div>
+    <span class="badge ${r}">${RES_LABEL[r]}</span>
+    <div class="acts"><a class="btn sm" href="#phong-${n?slugify(n):NOROOM}" data-act="goto" data-q="${esc(a.ma)}">Mở phòng</a><a class="btn sm" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma)}">Mở đơn vị</a></div></div>`;}).join('')}</div>`;
+}
+function viewOverview(){
+  const all=count(ASSETS); const wait=xmPending();
+  const main=UNITS.filter(u=>!u.review), rv=UNITS.filter(u=>u.review);
+  const nRooms=Object.keys(buildRooms()).filter(k=>k!==NOROOM).length;
+  app.innerHTML=`${demoBanner()}
+  <div class="head"><div><h1>Kiểm kê cuối năm 2026</h1><p>Biên bản kiểm kê tài sản Phân hiệu ĐH FPT tại Đà Nẵng, số liệu đến hết 31/10/2026</p></div></div>
+  <div class="stats">
+    <div class="stat"><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b></div>
+    <div class="stat ok"><small>Đã kiểm</small><b>${nf.format(all.da)}</b></div>
+    <div class="stat warn"><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b></div>
+    <div class="stat bad"><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b></div>
+    <div class="stat"><small>Chưa có vị trí</small><b>${nf.format(all.novt)}</b></div>
+  </div>
+  <div class="ovtabs">
+    <input class="in gsearch" id="gq" type="search" placeholder="Tìm nhanh tài sản ở cả trường: mã hoặc tên…" value="${esc(OV.gq)}" style="margin-left:0">
+  </div>
+  <div id="gres">${ovSearchHTML()}</div>
+  <div class="branches">
+    <section class="branch" aria-labelledby="b1">
+      <div class="bhead"><span class="bnum">Nhánh 1</span><h2 id="b1">Theo phòng ban</h2><span>Sheet gốc từ kế toán · ${UNITS.length} sheet</span></div>
+      <p class="hint">Bấm một phòng ban để xem tài sản của họ đang nằm ở những phòng nào bên Nhánh 2. Bấm "Mở sheet" để kiểm theo danh sách gốc.</p>
+      <div class="ulist">${main.map(unitRow).join('')}
+        <div class="bldname">Cần kế toán xem lại</div>${rv.map(unitRow).join('')}</div>
+    </section>
+    <section class="branch" aria-labelledby="b2">
+      <div class="bhead"><span class="bnum">Nhánh 2</span><h2 id="b2">Theo vị trí</h2><span>${nRooms} phòng, khu vực · bấm vào phòng để kiểm tại chỗ</span></div>
+      ${OV.sel?`<div class="selbar"><span>Đang xem vị trí của <b>${esc(UNIT[OV.sel].ten)}</b></span><a class="btn sm" href="#dv-${OV.sel}">Mở sheet ${esc(UNIT[OV.sel].sheet)}</a><button class="btn sm" data-sel="">Xem tất cả phòng</button></div>`:''}
+      <div class="bld" role="group" aria-label="Lọc theo tòa">${['all',...BLD_ORDER].map(b=>`<button data-bld="${b}" aria-pressed="${OV.bld===b}">${b==='all'?'Tất cả':b}</button>`).join('')}
+        <label class="chk"><input type="checkbox" id="hideDone" ${OV.hideDone?'checked':''}> Ẩn phòng đã xong</label>
+        <input class="in" id="rq" type="search" placeholder="Tìm phòng, VD: 108" value="${esc(OV.rq)}"></div>
+      <div id="roomgrid">${ovRoomsHTML()}</div>
+    </section>
+  </div>`;
+}
+
+function rowHTML(a){
+  const s=S.rows[a.stt]||{}; const r=res(a); const open=ui.open[a.stt];
+  const room=roomOf(a); const cond=s.cond||a.cond0||'';
+  const moved = V.type==='room' && V.id!==NOROOM && slugify(room)!==V.id;
+  const tags=[V.type==='room'?`<span class="tag">${esc(a.unit)}</span>`:'', a.shared?'<span class="tag info">Dùng chung HC; CTSV; Đào tạo</span>':'', a.sl>1?`<span class="tag">Đếm số lượng</span>`:'', a.cond0?`<span class="tag warn">Excel ghi: ${esc(Object.keys(STATUS_TEXT).find(k=>STATUS_TEXT[k]===a.cond0))}</span>`:'', (s.phong!=null&&a.vt0&&s.phong!==a.vt0)?`<span class="tag warn">Sổ ghi: ${esc(a.vt0)}</span>`:'', moved?`<span class="tag warn">Đã ghi sang ${esc(room||'chưa có vị trí')}</span>`:''].join('');
+  const real = a.hoso
+    ? `<div class="hoso-note">Tài sản không kiểm đếm được (công trình, dịch vụ). Chỉ cần xác nhận hồ sơ.</div>`
+    : `<div class="c-book"><span class="lbl">Sổ sách</span><b>${nf.format(a.sl)}</b></div>
+       <div class="c-real"><span class="lbl">Thực tế</span><div class="stepper"><button type="button" data-act="dec" aria-label="Giảm">−</button><input id="tt-${a.stt}" type="number" min="0" inputmode="numeric" value="${s.tt??''}" placeholder="—" data-f="tt"><button type="button" data-act="inc" aria-label="Tăng">+</button></div></div>`;
+  const btns = a.hoso
+    ? `<button class="btn sm ${r==='hoso'?'':'pri'}" data-act="hoso">${r==='hoso'?'Bỏ xác nhận':'Xác nhận hồ sơ'}</button>`
+    : (r==='chua'
+        ? `<button class="btn sm ok" data-act="du">Đủ</button><button class="btn sm bad" data-act="nf">Không thấy</button>`
+        : r==='nf'
+          ? `<button class="btn sm" data-act="nf">Bỏ đánh dấu</button>`
+          : `<button class="btn sm" data-act="clr">Kiểm lại</button>${r!=='du'?'<button class="btn sm ok" data-act="du">Đủ</button>':''}`);
+  const who=whoLabel(s.by);
+  const by=(r!=='chua'&&s.at)?`<span class="by" title="Người ghi kết quả gần nhất">${who?esc(who)+' · ':''}${hm(s.at)}</span>`:'';
+  return `<div class="row r-${r}" data-stt="${a.stt}" data-room="${esc(room)}">
+    <div class="c-id"><span class="stt num">STT ${a.stt}</span><span class="ma mono">${esc(a.ma||'không mã')}</span></div>
+    <div class="c-name"><div class="nm">${esc(a.short)}</div>
+      <div class="meta"><span>${dmy(a.ngay)}</span><span>${money(a.gia)}</span>${a.ct?`<span class="mono">${esc(a.ct)}</span>`:''}${by}${tags}<button class="lnk" data-act="more">${open?'Ẩn chi tiết':'Chi tiết, ghi chú'}</button></div>
+      ${open?`<div class="more"><div class="full">${esc(a.ten)}</div><input class="in" id="note-${a.stt}" data-f="note" placeholder="Ghi chú tại chỗ (VD: đang mượn ở phòng 404)" value="${esc(s.note||'')}"></div>`:(s.note?`<div class="meta"><span>Ghi chú: ${esc(s.note)}</span></div>`:'')}
+    </div>
+    ${roomField(a,room)}
+    ${real}
+    <div class="c-cond"><span class="lbl">Tình trạng</span><select class="in" id="cd-${a.stt}" data-f="cond"><option value="">—</option>${COND.map(([k,v])=>`<option value="${k}" ${cond===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="c-act"><span class="badge ${r}">${RES_LABEL[r]}</span><div class="btns">${btns}</div></div>
+  </div>`;
+}
+
+/* shared list body for unit + room views */
+function filtered(list){
+  const q=ui.q.trim().toLowerCase();
+  return list.filter(a=>{
+    const r=res(a);
+    if(ui.filter==='chua'&&r!=='chua') return false;
+    if(ui.filter==='du'&&!(r==='du'||r==='hoso')) return false;
+    if(ui.filter==='lech'&&!(r==='thieu'||r==='thua')) return false;
+    if(ui.filter==='nf'&&r!=='nf') return false;
+    if(V.type==='room'&&ui.unit&&a.unit!==ui.unit) return false;
+    if(q && !(a.ten.toLowerCase().includes(q)||String(a.ma).includes(q)||roomOf(a).toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+function listBody(list,groupBy){
+  const rows=filtered(list);
+  if(!rows.length) return `<div class="empty">Không có tài sản nào khớp bộ lọc.</div>`;
+  if(!ui.group) return `<div class="list">${rows.sort((a,b)=>a.stt-b.stt).map(rowHTML).join('')}</div>`;
+  const g={}; rows.forEach(a=>{const k=groupBy==='unit'?a.unit:roomOf(a);(g[k]=g[k]||[]).push(a);});
+  const keys=Object.keys(g).sort((a,b)=>groupBy==='unit'?UNITS.findIndex(u=>u.id===a)-UNITS.findIndex(u=>u.id===b):((a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'vi',{numeric:true})));
+  return keys.map(k=>{const cc=count(g[k]);const title=groupBy==='unit'?esc(UNIT[k].ten):(k?esc(k):'Chưa có vị trí');
+    const link=groupBy==='unit'?`<a class="glink" href="#dv-${k}">Mở sheet ${esc(UNIT[k].sheet)} →</a>`:`<a class="glink" href="#phong-${k?slugify(k):NOROOM}" data-act="goto" data-u="${V.id}">Kiểm tại phòng này →</a>`;
+    return `<div class="grp ${groupBy!=='unit'&&!k?'none':''}" data-g="${esc(k)}" data-by="${groupBy}"><b>${title}</b><span class="num">${g[k].length} dòng · ${cc.chua} chưa kiểm</span>${link}</div><div class="list">${g[k].sort((a,b)=>a.stt-b.stt).map(rowHTML).join('')}</div>`;}).join('');
+}
+function toolsHTML(c,groupLabel,bulk){
+  const F=[['all','Tất cả',c.tong],['chua','Chưa kiểm',c.chua],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]];
+  const nb=bulkCandidates().length;
+  return `<div class="tools">
+    <input class="in search" id="q" type="search" placeholder="Tìm theo mã, tên, phòng…" value="${esc(ui.q)}">
+    <div class="seg" role="group" aria-label="Lọc theo kết quả">${F.map(([k,l,n])=>`<button data-filter="${k}" aria-pressed="${ui.filter===k}">${l} <em class="num">${n}</em></button>`).join('')}</div>
+    <label class="chk"><input type="checkbox" id="grp" ${ui.group?'checked':''}> ${groupLabel}</label>
+    ${V.type==='room'&&ui.unit?`<span class="chip">Chỉ đồ của ${esc(UNIT[ui.unit].sheet)}<button data-act="unitall" aria-label="Xem đồ của mọi đơn vị">×</button></span>`:''}
+    ${bulk&&nb?`<button class="btn ${ui.bulkArm?'armed':''}" data-act="bulk" style="margin-left:auto">${ui.bulkArm?`Bấm lần nữa: đánh dấu đủ ${nb} món`:`Đủ tất cả còn lại (${nb})`}</button>`:''}
+  </div>`;
+}
+function bulkCandidates(){ const l=currentList()||[]; return filtered(l).filter(a=>res(a)==='chua'&&!a.hoso); }
+function psHTML(key){
+  const ps=S.ps[key]||[];
+  return `<section class="panel" style="margin-top:22px" aria-label="Tài sản phát sinh">
+    <div class="sect" style="margin-top:0"><h2>Tài sản phát sinh</h2><span>Có ngoài thực tế nhưng không có trong sổ</span></div>
+    <form class="ps" id="psForm">
+      <div class="fld"><label for="ps-mt">Mô tả</label><input class="in" id="ps-mt" required placeholder="VD: Máy chiếu Epson, không có tem"></div>
+      <div class="fld"><label for="ps-sl">Số lượng</label><input class="in" id="ps-sl" type="number" min="1" value="1"></div>
+      <div class="fld"><label for="ps-ph">Phòng</label><input class="in" id="ps-ph" list="dl-phong" value="${V.type==='room'&&V.id!==NOROOM?esc(ROOMNAME[V.id]||''):''}"></div>
+      <div class="fld"><label for="ps-cd">Tình trạng</label><select class="in" id="ps-cd">${COND.map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+      <button class="btn pri" type="submit">Thêm</button>
+    </form>
+    ${ps.length?`<div class="pslist">${ps.map((p,i)=>`<div class="psrow"><span class="grow">${esc(p.mo_ta)}</span><span class="num">SL ${p.sl}</span><span>${esc(p.phong||'—')}</span><span>${esc((COND.find(x=>x[0]===p.cond)||[])[1]||'')}</span><button class="lnk" data-act="rmps" data-i="${i}">Xoá</button></div>`).join('')}</div>`:''}
+  </section>`;
+}
+function psKey(){ return V.type==='unit'?V.id:'p:'+V.id; }
+
+function viewUnit(id){
+  const u=UNIT[id]; if(!u) return viewOverview();
+  const list=BY_UNIT[id]; const c=count(list); const us=unitState(id);
+  app.innerHTML=`${demoBanner()}
+  <div class="crumb"><a href="#tong-quan">Tổng quan</a> / Sheet ${esc(u.sheet)}</div>
+  <div class="uhead">
+    <div><h1>${esc(u.ten)}</h1><p class="num">${c.tong} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
+    <div class="prog" id="prog">${progHTML(c)}</div>
+  </div>
+  <section class="panel" aria-label="Thành phần buổi kiểm kê">
+    <div class="team">
+      <div class="fld"><label for="u-ngay">Ngày kiểm</label><input class="in" type="date" id="u-ngay" data-u="ngay" value="${esc(us.ngay)}"></div>
+      <div class="fld"><label for="u-kt">Kế toán đi cùng</label><input class="in" id="u-kt" data-u="ketoan" value="${esc(us.ketoan)}" placeholder="Họ tên kế toán"></div>
+      <div class="fld"><span class="lbl">Cán bộ đơn vị có mặt</span><div class="chips">${us.canbo.map((n,i)=>`<span class="chip">${esc(n)}<button data-act="rmcb" data-i="${i}" aria-label="Bỏ ${esc(n)}">×</button></span>`).join('')}<input class="in" id="u-cb" placeholder="Nhập tên, Enter để thêm"></div></div>
+      <div class="fld"><label for="u-dd">Đại diện đơn vị (${esc(u.dd)})</label><input class="in" id="u-dd" data-u="daidien" value="${esc(us.daidien)}" placeholder="Người để hỏi khi không xử lý được"></div>
+    </div>
+  </section>
+  <div id="strip">${stripHTML(id,'')}</div>
+  ${toolsHTML(c,'Nhóm theo phòng',true)}
+  <div id="rows">${listBody(list,'room')}</div>
+  ${psHTML(id)}
+  <section class="panel" aria-label="Kết thúc buổi">
+    <div class="sect" style="margin-top:0"><h2>Kết thúc buổi kiểm kê</h2><span>${us.ended?'Đã kết thúc buổi này':'Chốt số liệu và ký biên bản với đơn vị'}</span></div>
+    <div class="end" id="endbox">${endHTML(c,us,S.ps[id]||[])}</div>
+  </section>`;
+}
+
+function viewRoom(slug){
+  buildRooms();
+  const list=roomAssets(slug); const c=count(list); const name=slug===NOROOM?'Chưa có vị trí':(ROOMNAME[slug]||slug);
+  const byU=unitsIn(list);
+  const unitPanel=Object.keys(byU).sort((a,b)=>UNITS.findIndex(u=>u.id===a)-UNITS.findIndex(u=>u.id===b)).map(id=>{const u=UNIT[id];const us=S.units[id]||{};
+    return `<div class="ucard"><b>${esc(u.ten)}</b><span class="num">${byU[id].length} dòng ở đây · ${count(byU[id]).chua} chưa kiểm</span><span>Hỏi: ${esc(us.daidien||u.dd)}${us.canbo?.length?' · có mặt: '+esc(us.canbo.join(', ')):''}</span><span style="display:flex;gap:12px;flex-wrap:wrap"><a href="#phong-${slug}" data-act="goto" data-u="${id}">Đi theo đơn vị này</a><a href="#dv-${id}">Mở sheet</a></span></div>`;}).join('');
+  // gợi ý: tài sản chưa có vị trí của các đơn vị đang có đồ ở phòng này
+  const sugg = slug===NOROOM?[]:ASSETS.filter(a=>byU[a.unit]&&!roomOf(a)&&res(a)==='chua');
+  app.innerHTML=`${demoBanner()}
+  <div class="crumb"><a href="#tong-quan">Tổng quan</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
+  <div class="uhead">
+    <div><h1>${esc(name)}</h1><p class="num">${c.tong} dòng của ${Object.keys(byU).length} đơn vị · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
+    <div class="prog" id="prog">${progHTML(c)}</div>
+  </div>
+  ${slug===NOROOM?`<p class="hint">Các tài sản này chưa ghi phòng. Khi thấy ở đâu, gõ phòng vào ô "Phòng thực tế" để chuyển nó về đúng phòng.</p>`:''}
+  ${ui.unit?`<div id="strip">${stripHTML(ui.unit,slug)}</div>`:''}
+  ${unitPanel?`<section class="panel" aria-label="Đơn vị có tài sản ở phòng này"><div class="sect" style="margin-top:0"><h2>Đơn vị có tài sản ở đây</h2><span>Hỏi đúng người khi không thấy đồ</span></div><div class="units">${unitPanel}</div></section>`:''}
+  ${toolsHTML(c,'Nhóm theo đơn vị',slug!==NOROOM)}
+  <div id="rows">${list.length?listBody(list,'unit'):'<div class="empty">Phòng này chưa có tài sản nào theo sổ. Dùng ô tìm bên dưới để ghi nhận đồ thấy ở đây.</div>'}</div>
+  ${slug!==NOROOM?`
+  <details class="panel" style="margin-top:22px" ${sugg.length&&sugg.length<=40?'open':''}>
+    <summary><h2>Có thể đang ở phòng này</h2><span class="num">${sugg.length} tài sản chưa ghi vị trí của các đơn vị trên</span></summary>
+    <p class="hint">Nhìn quanh phòng. Món nào thấy ở đây thì bấm "Có ở đây" để chuyển vào danh sách phòng.</p>
+    <div class="sr" id="sugg">${sugg.slice(0,80).map(a=>srow(a,name)).join('')||'<div class="empty">Không có gợi ý.</div>'}</div>
+  </details>
+  <section class="panel">
+    <div class="sect" style="margin-top:0"><h2>Thấy đồ của nơi khác ở đây?</h2><span>Tìm trong cả trường rồi ghi nhận vào phòng này</span></div>
+    <input class="in" id="aq" type="search" placeholder="Gõ mã hoặc tên tài sản…" style="max-width:460px">
+    <div class="sr" id="ares" style="margin-top:10px"></div>
+  </section>`:''}
+  ${psHTML('p:'+slug)}`;
+}
+function srow(a,roomName){
+  const n=roomOf(a); const r=res(a);
+  return `<div class="srow" data-stt="${a.stt}">
+    <div><div class="mono">${esc(a.ma)}</div><div class="sub">STT ${a.stt}</div></div>
+    <div><div>${esc(a.short)}</div><div class="sub">${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div></div>
+    <div class="sub">${n?'Sổ ghi: '+esc(n):'Chưa có vị trí'}</div>
+    <span class="badge ${r}">${RES_LABEL[r]}</span>
+    <div class="acts"><button class="btn sm pri" data-act="here">Có ở đây</button></div></div>`;
+}
+function progHTML(c){
+  const pct=c.tong?Math.round(c.da/c.tong*100):0;
+  return `<div class="big"><span>Tiến độ</span><b class="num">${c.da}/${c.tong} · ${pct}%</b></div>${barHTML(c)}
+  <div class="nums"><span>Đủ <b>${c.du+c.hoso}</b></span><span>Lệch <b>${c.lech}</b></span><span>Chưa thấy <b>${c.nf}</b></span><span>Chưa có vị trí <b>${c.novt}</b></span></div>`;
+}
+function endHTML(c,us,ps){
+  return `<div class="k"><small>Chưa kiểm</small><b>${c.chua}</b></div><div class="k"><small>Đủ</small><b>${c.du+c.hoso}</b></div><div class="k"><small>Lệch số lượng</small><b>${c.lech}</b></div><div class="k"><small>Chưa tìm thấy</small><b>${c.nf}</b></div><div class="k"><small>Phát sinh</small><b>${ps.length}</b></div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><label class="chk"><input type="checkbox" id="u-sign" ${us.signed?'checked':''}> Đã ký biên bản</label>
+  <button class="btn ${us.ended?'':'pri'}" data-act="end">${us.ended?'Mở lại buổi':'Kết thúc buổi'}</button></div>`;
+}
+
+function viewXM(){
+  const items=ASSETS.filter(a=>S.rows[a.stt]?.nf || S.xm[a.stt]);
+  const card=a=>{
+    const x=S.xm[a.stt]||{kq:'cho'}; const u=UNIT[a.unit]; const us=S.units[a.unit]||{};
+    const done=x.kq!=='cho';
+    return `<div class="xm ${done?'done':''}" data-stt="${a.stt}">
+      <div><div class="crumb">${esc(u.ten)} · STT ${a.stt} · <span class="mono">${esc(a.ma)}</span></div>
+        <b>${esc(a.short)}</b>
+        <div class="ask">Sổ sách <b class="num">${a.sl}</b> · vị trí theo sổ <b>${esc(a.vt0||'chưa có')}</b>${S.rows[a.stt]?.note?` · ghi chú: ${esc(S.rows[a.stt].note)}`:''}</div>
+        <div class="ask">Hỏi: <b>${esc(us.daidien||u.dd)}</b>${us.daidien?` (${esc(u.dd)})`:' (chưa nhập tên)'}</div></div>
+      <div class="form">
+        <div class="fld"><label for="xc-${a.stt}">Cách liên hệ</label><select class="in" id="xc-${a.stt}" data-x="cach">${XM_CACH.map(([k,v])=>`<option value="${k}" ${x.cach===k?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div class="fld"><label for="xk-${a.stt}">Kết quả</label><select class="in" id="xk-${a.stt}" data-x="kq">${XM_KQ.map(([k,v])=>`<option value="${k}" ${x.kq===k?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div class="fld wide"><label for="xp-${a.stt}">Đại diện trả lời</label><input class="in" id="xp-${a.stt}" data-x="phanhoi" value="${esc(x.phanhoi||'')}" placeholder="Ghi lại câu trả lời"></div>
+        ${x.kq==='chi'?`<div class="fld"><label for="xv-${a.stt}">Phòng được chỉ</label><input class="in" id="xv-${a.stt}" list="dl-phong" data-x="phong" value="${esc(x.phong||'')}"></div><div class="fld" style="justify-content:flex-end"><button class="btn pri" data-act="recheck">Đến phòng này kiểm lại</button></div>`:''}
+      </div></div>`;
+  };
+  const wait=items.filter(a=>(S.xm[a.stt]?.kq||'cho')==='cho'), done=items.filter(a=>(S.xm[a.stt]?.kq||'cho')!=='cho');
+  app.innerHTML=`${demoBanner()}
+  <div class="head"><div><h1>Hỏi đại diện đơn vị</h1><p>Những món cán bộ có mặt không chỉ ra được. Hỏi Trưởng phòng ban hoặc Chủ nhiệm bộ môn rồi ghi lại kết quả.</p></div></div>
+  <div class="sect"><h2>Chờ phản hồi</h2><span class="num">${wait.length} món</span></div>
+  <div class="list">${wait.length?wait.map(card).join(''):'<div class="empty">Không còn món nào chờ hỏi.</div>'}</div>
+  ${done.length?`<div class="sect" style="margin-top:22px"><h2>Đã có kết quả</h2><span class="num">${done.length} món</span></div><div class="list">${done.map(card).join('')}</div>`:''}`;
+}
+
+let xuatUnit='all';
+function exportRows(){ return ASSETS.filter(a=>xuatUnit==='all'||a.unit===xuatUnit).sort((a,b)=>a.stt-b.stt); }
+function cellE(a){ const r=res(a); const s=S.rows[a.stt]; return r==='chua'?'':(r==='hoso'?a.sl:(s.tt??0)); }
+/* 3 cột kế toán cần: Kết quả kiểm kê · Vị trí thực tế · Ghi chú kiểm kê (dùng cho bảng xem trước và file Excel) */
+const XM_TEXT={mat:'Đã xác nhận mất',hong:'Hỏng / đã thanh lý',dc:'Đã điều chuyển đơn vị khác',chi:'Chưa tìm thấy (đơn vị chỉ vị trí khác)',cho:'Chưa tìm thấy'};
+function ketQuaKeToan(a){
+  const r=res(a), s=S.rows[a.stt]||{}, x=S.xm[a.stt];
+  let kq;
+  if(r==='chua') kq='Chưa kiểm';
+  else if(r==='du') kq='Đã kiểm - Đủ';
+  else if(r==='thieu') kq=`Đã kiểm - Thiếu ${a.sl-(+s.tt)} (thực tế ${s.tt}/${a.sl})`;
+  else if(r==='thua') kq=`Đã kiểm - Thừa ${(+s.tt)-a.sl} (thực tế ${s.tt}/${a.sl})`;
+  else if(r==='hoso') kq='Đã xác nhận hồ sơ';
+  else kq=XM_TEXT[(x&&x.kq)||'cho']||'Chưa tìm thấy';
+  let vt='';
+  if(r==='nf') vt=(x&&x.kq==='chi'&&x.phong)?x.phong:'';
+  else if(r!=='chua'||s.phong!=null) vt=roomOf(a);
+  const cond=s.cond&&s.cond!=='tot'?(COND.find(c=>c[0]===s.cond)||[])[1]:'';
+  const gc=[cond, s.note, x&&x.phanhoi?'Đại diện trả lời: '+x.phanhoi:''].filter(Boolean).join('; ');
+  return {kq, vt, gc, thucTe: cellE(a), r};
+}
+function viewXuat(){
+  const rows=exportRows(); const c=count(rows);
+  app.innerHTML=`${demoBanner()}
+  <div class="head"><div><h1>Xuất cho kế toán</h1><p>File tải về giữ nguyên file Excel gốc trong thư mục "dữ liệu cập nhật" (<b>${esc(DATA.file||'')}</b>), chỉ điền cột Thực tế (nếu có) và thêm 3 cột cuối: <b>Kết quả kiểm kê</b>, <b>Vị trí thực tế</b>, <b>Ghi chú kiểm kê</b>.</p></div></div>
+  <div class="tools">
+    <button class="btn pri" data-act="xlsx">Tải file Excel cho kế toán</button>
+    <span class="num" style="color:var(--muted);font-size:13px">Toàn bộ ${ASSETS.length} tài sản · đã kiểm ${count(ASSETS).da} · lệch ${count(ASSETS).lech} · chưa thấy ${count(ASSETS).nf}${Object.values(S.ps).reduce((n,l)=>n+(l||[]).length,0)?` · phát sinh ${Object.values(S.ps).reduce((n,l)=>n+(l||[]).length,0)} (sheet riêng)`:''}</span>
+  </div>
+  <div class="sect" style="margin-top:18px"><h2>Xem trước</h2><span>
+    <select class="in" id="xu" style="max-width:300px;display:inline-block;padding:4px 8px"><option value="all">Tất cả đơn vị</option>${UNITS.map(u=>`<option value="${u.id}" ${xuatUnit===u.id?'selected':''}>${esc(u.sheet)}</option>`).join('')}</select>
+    <span class="num">${rows.length} dòng · đã kiểm ${c.da}</span> · <button class="lnk" data-act="copy">Sao chép bảng này</button></span></div>
+  <div class="tblwrap" style="max-height:70vh"><table>
+    <thead><tr><th>STT</th><th>Mã TSCĐ</th><th>Tên TSCĐ</th><th>Sổ sách</th><th>Thực tế</th><th>Vị trí theo sổ</th><th class="new">Kết quả kiểm kê</th><th class="new">Vị trí thực tế</th><th class="new">Ghi chú kiểm kê</th></tr></thead>
+    <tbody>${rows.slice(0,400).map(a=>{const k=ketQuaKeToan(a);
+      return `<tr><td class="n">${a.stt}</td><td class="mono">${esc(a.ma)}</td><td>${esc(a.short)}</td><td class="n">${a.sl}</td><td class="n ${k.r==='thieu'||k.r==='thua'?'diff':''}${k.r==='nf'?'miss':''}">${k.thucTe}</td><td>${esc(a.vt0)}</td><td class="${k.r==='nf'?'miss':(k.r==='thieu'||k.r==='thua')?'diff':''}">${esc(k.kq)}</td><td>${esc(k.vt)}</td><td>${esc(k.gc)}</td></tr>`;}).join('')}</tbody>
+  </table></div>
+  ${rows.length>400?`<p style="color:var(--muted);font-size:12.5px">Đang xem trước 400 dòng đầu. File Excel và nút sao chép lấy đủ.</p>`:''}`;
+}
+
+/* ---------- router ---------- */
+function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):null; }
+function render(){ if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else viewOverview(); }
+function route(){
+  const h=(location.hash||'#tong-quan').slice(1);
+  const nv = h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:{type:'ov'};
+  if(nv.type!==V.type||nv.id!==V.id){ ui={filter:'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
+  V=nv;
+  document.querySelectorAll('#nav a').forEach(a=>a.toggleAttribute('aria-current',false));
+  const cur=(V.type==='unit'||V.type==='room')?'tong-quan':h;
+  const nav=document.querySelector(`#nav a[data-r="${cur}"]`); if(nav) nav.setAttribute('aria-current','page');
+  render(); updateBadge();
+}
+function updateBadge(){const n=xmPending();const b=document.getElementById('xmCount');b.textContent=n;b.hidden=!n;}
+
+function refreshRow(stt){
+  const el=app.querySelector(`.row[data-stt="${stt}"]`); if(el){ el.outerHTML=rowHTML(BY_STT[stt]); }
+  const sp=document.getElementById('strip'); const su=V.type==='unit'?V.id:ui.unit; if(sp&&su) sp.innerHTML=stripHTML(su,V.type==='room'?V.id:'');
+  const list=currentList(); if(!list) return;
+  const c=count(list); const p=document.getElementById('prog'); if(p) p.innerHTML=progHTML(c);
+  app.querySelectorAll('.grp[data-g]').forEach(g=>{ const k=g.dataset.g, by=g.dataset.by; const sub=filtered(list).filter(a=>by==='unit'?a.unit===k:roomOf(a)===k); const cc=count(sub); g.querySelector('span').textContent=`${sub.length} dòng · ${cc.chua} chưa kiểm`; });
+  if(V.type==='unit'){ const e=document.getElementById('endbox'); if(e) e.innerHTML=endHTML(c,unitState(V.id),S.ps[V.id]||[]); }
+  const F={all:c.tong,chua:c.chua,du:c.du+c.hoso,lech:c.lech,nf:c.nf};
+  app.querySelectorAll('[data-filter]').forEach(b=>b.querySelector('em').textContent=F[b.dataset.filter]);
+  const bb=app.querySelector('[data-act="bulk"]'); if(bb){ const n=bulkCandidates().length; if(!n) bb.remove(); else if(!ui.bulkArm) bb.textContent=`Đủ tất cả còn lại (${n})`; }
+  updateBadge();
+}
+/* đổi phòng: lưu, dựng lại danh sách để tài sản nhảy sang đúng nhóm phòng, cho phép hoàn tác */
+function moveRoom(stt,val){
+  const a=BY_STT[stt]; const from=roomOf(a); if(val===from){ refreshRow(stt); return; }
+  snap([stt]); const r=touch(stt); r.phong=val;
+  save(); refreshRooms();
+  const y=window.scrollY; render(); window.scrollTo(0,y);
+  flash('info','→',val?`Đã chuyển vào ${val}`:'Đã bỏ vị trí',`${a.ma||'STT '+a.stt} · ${a.short}${from?' · trước đó: '+from:''}`);
+  toast('Bấm Hoàn tác nếu chọn nhầm phòng',true);
+}
+function touch(stt){ const r=S.rows[stt]||(S.rows[stt]={}); r.at=Date.now(); if(WEB&&!ME&&!touch.asked){ touch.asked=true; askName(); } if(ME) r.by=ME; unitState(BY_STT[stt].unit).started=true; return r; }
+function refocusAfter(id,fn){ const el=document.getElementById(id); const pos=el?el.selectionStart:null; fn(); const n=document.getElementById(id); if(n){ n.focus(); if(pos!=null) try{n.setSelectionRange(pos,pos);}catch(e){} } }
+
+/* ---------- events ---------- */
+app.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act],[data-filter],[data-sel],[data-bld]'); if(!b) return;
+  if(b.dataset.sel!=null){ OV.sel=(OV.sel===b.dataset.sel)?'':b.dataset.sel; viewOverview(); if(OV.sel&&window.innerWidth<980) document.getElementById('b2').scrollIntoView({block:'start'}); return; }
+  if(b.dataset.bld){ OV.bld=b.dataset.bld; viewOverview(); return; }
+  if(b.dataset.filter){ ui.filter=b.dataset.filter; ui.bulkArm=false; render(); return; }
+  const act=b.dataset.act; const row=b.closest('[data-stt]'); const stt=row?+row.dataset.stt:null; const a=stt?BY_STT[stt]:null;
+  if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
+  if(act==='unitall'){ ui.unit=''; render(); return; }
+  if(act==='migrate'&&MIGRATE){ const L=MIGRATE; let n=0;
+    Object.entries(L.rows||{}).forEach(([k,v])=>{ if(v&&!S.rows[k]){ S.rows[k]=Object.assign({},v,ME?{by:ME}:{}); n++; } });
+    Object.entries(L.xm||{}).forEach(([k,v])=>{ if(v&&!S.xm[k]) S.xm[k]=v; });
+    Object.entries(L.units||{}).forEach(([k,v])=>{ if(v&&!S.units[k]) S.units[k]=v; });
+    Object.entries(L.ps||{}).forEach(([k,v])=>{ if(Array.isArray(v)&&v.length) S.ps[k]=(S.ps[k]||[]).concat(v); });
+    MIGRATE=null; try{ localStorage.setItem(KEY+'.moved','1'); }catch(e){}
+    save(); refreshRooms(); render(); updateBadge(); toast(`Đã đưa ${n} kết quả lên dữ liệu chung${Object.keys(L.rows||{}).length>n?' (bỏ qua món đã có người kiểm)':''}`); return; }
+  if(act==='nomigrate'){ MIGRATE=null; try{ localStorage.setItem(KEY+'.moved','1'); }catch(e){} render(); return; }
+  if(act==='reset'){ if(MODE!=='local') return; S=blank(); save(); refreshRooms(); route(); toast('Đã xoá dữ liệu mẫu'); return; }
+  if(act==='more'){ ui.open[stt]=!ui.open[stt]; refreshRow(stt); return; }
+  if(act==='bulk'){
+    if(!ui.bulkArm){ ui.bulkArm=true; b.classList.add('armed'); b.textContent=`Bấm lần nữa: đánh dấu đủ ${bulkCandidates().length} món`; clearTimeout(ui._arm); ui._arm=setTimeout(()=>{ui.bulkArm=false; const x=app.querySelector('[data-act="bulk"]'); if(x){x.classList.remove('armed'); x.textContent=`Đủ tất cả còn lại (${bulkCandidates().length})`;}},4000); return; }
+    const list=bulkCandidates(); snap(list.map(x=>x.stt));
+    list.forEach(x=>{ const r=touch(x.stt); r.tt=x.sl; r.nf=false; if(r.phong==null) r.phong=roomOf(x); if(!r.cond) r.cond='tot'; });
+    ui.bulkArm=false; save(); render(); flash('ok','✓',`Đã kiểm đủ ${list.length} món`,V.type==='room'?ROOMNAME[V.id]||'':UNIT[V.id]?.ten||''); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); return;
+  }
+  if(['du','nf','hoso','inc','dec','clr','here'].includes(act)) snap([stt]);
+  if(act==='du'){ const r=touch(stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=a.vt0; if(!r.cond) r.cond='tot'; }
+  if(act==='nf'){ const r=touch(stt); if(r.nf){ r.nf=false; r.tt=null; delete S.xm[stt]; save(); refreshRow(stt); flashRes(stt); return; } else { r.nf=true; r.tt=0; if(!S.xm[stt]) S.xm[stt]={kq:'cho',cach:''}; save(); refreshRow(stt); flashRes(stt); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); return; } }
+  if(act==='hoso'){ const r=touch(stt); r.hs=!r.hs; }
+  if(act==='clr'){ delete S.rows[stt]; delete S.xm[stt]; save(); refreshRow(stt); flashRes(stt); toast('Bấm Hoàn tác để lấy lại kết quả cũ',true); return; }
+  if(act==='inc'||act==='dec'){ const r=touch(stt); if(r.tt==null||r.tt===''){ r.tt=a.sl; } else r.tt=Math.max(0,+r.tt+(act==='inc'?1:-1)); r.nf=false; if(r.phong==null) r.phong=a.vt0; }
+  if(['du','hoso','inc','dec'].includes(act)){ save(); refreshRow(stt); flashRes(stt); return; }
+  if(act==='saveroom'){ const v=(document.getElementById('nr-'+stt)?.value||'').trim(); if(!v){ toast('Nhập tên phòng trước khi lưu'); return; } delete ui.newRoom[stt]; moveRoom(stt,v); return; }
+  if(act==='cancelroom'){ delete ui.newRoom[stt]; refreshRow(stt); return; }
+  if(act==='here'){ const name=ROOMNAME[V.id]; const from=roomOf(a); const r=touch(stt); r.phong=name; if(from&&from!==name) r.note=((r.note?r.note+'; ':'')+'Thấy ở '+name+', sổ ghi '+from); save(); refreshRooms(); render(); flash('info','→',`Đã ghi nhận ở ${name}`,`${a.ma||'STT '+a.stt} · ${a.short}`); toast('Bấm Hoàn tác nếu ghi nhầm',true); return; }
+  if(act==='rmcb'){ unitState(V.id).canbo.splice(+b.dataset.i,1); save(); render(); return; }
+  if(act==='rmps'){ S.ps[psKey()].splice(+b.dataset.i,1); save(); render(); return; }
+  if(act==='end'){ const us=unitState(V.id); us.ended=!us.ended; save(); render(); toast(us.ended?'Đã kết thúc buổi kiểm kê':'Đã mở lại buổi'); return; }
+  if(act==='recheck'){ const x=S.xm[stt]; const r=touch(stt); r.nf=false; r.tt=null; if(x.phong) r.phong=x.phong; save(); refreshRooms(); pendingQ=a.ma; location.hash='phong-'+slugify(roomOf(a)); return; }
+  if(act==='reload'){ location.reload(); return; }
+  if(act==='xlsx'){
+    if(!window.xuatExcelKeToan){ toast('Chưa tải được chức năng xuất Excel'); return; }
+    const kq={}; ASSETS.forEach(a=>kq[a.key]=ketQuaKeToan(a));
+    const ps=[]; Object.entries(S.ps).forEach(([k,l])=>(l||[]).forEach(p=>ps.push({...p, noi:k.startsWith('p:')?(ROOMNAME[k.slice(2)]||k.slice(2)):(UNIT[k]?.ten||k), cond:(COND.find(c=>c[0]===p.cond)||[])[1]||''})));
+    b.disabled=true; const old=b.textContent; b.textContent='Đang tạo file…';
+    window.xuatExcelKeToan({ketQua:kq, phatSinh:ps, tenFile:(DATA.file||'Kiem ke.xlsx').replace(/\.xlsx$/i,'')})
+      .then(n=>toast(`Đã tạo file: ${n} dòng có kết quả`),e=>{ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); })
+      .finally(()=>{ b.disabled=false; b.textContent=old; });
+    return;
+  }
+  if(act==='copy'){
+    const rows=exportRows(); const head=['STT','Mã TSCĐ','Tên TSCĐ','Sổ sách','Thực tế','Ngày bắt đầu SD','Nguyên giá','Ghi chú','Vị trí theo sổ','Kết quả kiểm kê','Vị trí thực tế','Ghi chú kiểm kê'];
+    const txt=[head.join('\t')].concat(rows.map(a=>{const k=ketQuaKeToan(a); return [a.stt,a.ma,a.ten,a.sl,k.thucTe,dmy(a.ngay),a.gia,a.gc,a.vt0,k.kq,k.vt,k.gc].map(v=>String(v??'').replace(/[\t\n]/g,' ')).join('\t');})).join('\n');
+    if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast(`Đã sao chép ${rows.length} dòng. Mở Excel và dán.`),()=>toast('Trình duyệt chặn sao chép. Hãy chọn bảng rồi Ctrl+C.')); }
+    else toast('Trình duyệt chặn sao chép. Hãy chọn bảng rồi Ctrl+C.');
+  }
+});
+app.addEventListener('change',e=>{
+  const t=e.target; const row=t.closest('[data-stt]'); const stt=row?+row.dataset.stt:null;
+  if(t.dataset.f==='phong' && stt){
+    if(t.value==='__new'){ (ui.newRoom=ui.newRoom||{})[stt]=true; refreshRow(stt); const n=document.getElementById('nr-'+stt); if(n) n.focus(); return; }
+    moveRoom(stt,t.value); return;
+  }
+  if(t.dataset.f && stt){
+    const r=touch(stt); const a=BY_STT[stt];
+    if(t.dataset.f==='tt'){ snap([stt]); r.tt=t.value===''?null:Math.max(0,+t.value); r.nf=false; if(r.phong==null) r.phong=a.vt0; }
+    else r[t.dataset.f]=t.value.trim?t.value.trim():t.value;
+    save(); if(t.dataset.f==='phong') refreshRooms();
+    if(t.dataset.f!=='note') refreshRow(stt);
+    if(t.dataset.f==='tt') flashRes(stt);
+    if(t.dataset.f==='cond'&&t.value){ const lb=(COND.find(c=>c[0]===t.value)||[])[1]; flash(t.value==='tot'?'ok':'warn',t.value==='tot'?'✓':'!',`Tình trạng: ${lb}`,`${a.ma||'STT '+a.stt} · ${a.short}`); }
+    return;
+  }
+  if(t.dataset.x && stt){ const x=S.xm[stt]||(S.xm[stt]={kq:'cho'}); x[t.dataset.x]=t.value; x.at=Date.now(); if(ME) x.by=ME;
+    if(t.dataset.x==='kq'){ const r=S.rows[stt]||(S.rows[stt]={});
+      if(t.value==='thay'){ r.nf=false; r.tt=BY_STT[stt].sl; }
+      else if(t.value==='hong'){ r.cond='thanh_ly'; }
+    }
+    save(); viewXM(); updateBadge(); return; }
+  if(t.dataset.u){ unitState(V.id)[t.dataset.u]=t.value; save(); return; }
+  if(t.id==='grp'){ ui.group=t.checked; render(); return; }
+  if(t.id==='u-sign'){ unitState(V.id).signed=t.checked; save(); return; }
+  if(t.id==='xu'){ xuatUnit=t.value; viewXuat(); return; }
+  if(t.id==='hideDone'){ OV.hideDone=t.checked; document.getElementById('roomgrid').innerHTML=ovRoomsHTML(); return; }
+});
+app.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='q'){ ui.q=t.value; ui.bulkArm=false; clearTimeout(app._q); app._q=setTimeout(()=>refocusAfter('q',()=>{ const l=currentList(); document.getElementById('rows').innerHTML=l.length?listBody(l,V.type==='unit'?'room':'unit'):''; refreshRow(-1); }),200); }
+  if(t.id==='gq'){ OV.gq=t.value; clearTimeout(app._g); app._g=setTimeout(()=>document.getElementById('gres').innerHTML=ovSearchHTML(),200); }
+  if(t.id==='rq'){ OV.rq=t.value; clearTimeout(app._r); app._r=setTimeout(()=>document.getElementById('roomgrid').innerHTML=ovRoomsHTML(),150); }
+  if(t.id==='aq'){ clearTimeout(app._a); app._a=setTimeout(()=>{ const q=t.value.trim().toLowerCase(); const box=document.getElementById('ares'); if(q.length<2){box.innerHTML='';return;}
+      const name=ROOMNAME[V.id]; const hits=ASSETS.filter(a=>roomOf(a)!==name&&(a.ten.toLowerCase().includes(q)||String(a.ma).includes(q))).slice(0,25);
+      box.innerHTML=hits.length?hits.map(a=>srow(a,name)).join(''):`<div class="empty">Không tìm thấy “${esc(t.value)}”. Nếu là đồ không có trong sổ, ghi vào Tài sản phát sinh.</div>`; },200); }
+  if(t.dataset.f==='note'){ const stt=+t.closest('[data-stt]').dataset.stt; touch(stt).note=t.value; save(); }
+});
+app.addEventListener('keydown',e=>{
+  if(e.target.id==='u-cb' && e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; unitState(V.id).canbo.push(v); save(); render(); document.getElementById('u-cb').focus(); }
+  // Enter trong ô tìm: nếu chỉ còn 1 món chưa kiểm thì đánh dấu đủ luôn
+  if(e.target.id==='q' && e.key==='Enter'){ e.preventDefault(); const l=filtered(currentList()||[]).filter(a=>res(a)==='chua'&&!a.hoso); if(l.length===1){ const a=l[0]; snap([a.stt]); const r=touch(a.stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=roomOf(a); if(!r.cond) r.cond='tot'; save(); refreshRow(a.stt); flashRes(a.stt); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); e.target.select(); } else if(l.length>1){ flash('warn','?',`Còn ${l.length} món khớp`,'Gõ thêm để chỉ còn 1 món rồi nhấn Enter'); } else { flash('bad','×','Không có món chưa kiểm nào khớp',e.target.value); } }
+});
+app.addEventListener('submit',e=>{
+  if(e.target.id!=='psForm') return; e.preventDefault();
+  const k=psKey(); (S.ps[k]=S.ps[k]||[]).push({mo_ta:document.getElementById('ps-mt').value.trim(),sl:+document.getElementById('ps-sl').value||1,phong:document.getElementById('ps-ph').value.trim(),cond:document.getElementById('ps-cd').value});
+  save(); render(); toast('Đã thêm tài sản phát sinh');
+});
+
+function setTopH(){document.documentElement.style.setProperty('--toph',document.getElementById('top').offsetHeight+'px');}
+window.addEventListener('resize',setTopH);
+window.addEventListener('hashchange',route);
+app.addEventListener('focusout',()=>setTimeout(()=>{ if(RQ.wait&&!busyEditing()) flushRemote(); },60));
+window.addEventListener('beforeunload',e=>{ if(WR.busy.size||WR.next.size){ e.preventDefault(); e.returnValue=''; } });
+setTopH(); refreshRooms(); init();
+</script>
+
+</body></html>
