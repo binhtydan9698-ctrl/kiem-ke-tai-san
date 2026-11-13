@@ -7,6 +7,10 @@
 <style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <!-- Dữ liệu chung khi chạy trên web: Supabase (cấu hình trong config.js) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+<!-- Giao diện: biểu tượng (Lucide), biểu đồ (Chart.js), quét QR/mã vạch bằng camera (html5-qrcode). Thiếu thư viện nào thì trang vẫn chạy, chỉ ẩn phần đó. -->
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 <script src="config.js"></script>
 <script src="supabase-db.js"></script>
 <!-- Danh sách tài sản (sinh khi build từ file Excel) và chức năng xuất Excel cho kế toán -->
@@ -337,16 +341,390 @@ details.panel[open]>summary::before{content:"▾"}
   .nav{margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== Giao diện 2026 (tham khảo bố cục trang quản trị Tabler): lớp nền, thẻ nổi, biểu tượng, biểu đồ ===== */
+:root{--r:10px;--shadow-sm:0 1px 2px rgba(16,32,28,.06),0 1px 1px rgba(16,32,28,.04);--shadow:0 2px 6px rgba(16,32,28,.07),0 10px 24px -12px rgba(16,32,28,.18);--top-bg:#0e3f36;--top-fg:#e8f3ef;--top-muted:#9fc3b8}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow:0 2px 8px rgba(0,0,0,.45);--top-bg:#0b1210;--top-fg:#e4ebe8;--top-muted:#97a6a0}}
+:root[data-theme="dark"]{--shadow-sm:0 1px 2px rgba(0,0,0,.4);--shadow:0 2px 8px rgba(0,0,0,.45);--top-bg:#0b1210;--top-fg:#e4ebe8;--top-muted:#97a6a0}
+svg.lucide{width:1.15em;height:1.15em;flex:0 0 auto;vertical-align:-.2em;stroke-width:2.1}
+body::before{background:var(--top-bg)}
+/* thanh trên: nền đậm, chữ sáng */
+.top{background:var(--top-bg);border-bottom:0;box-shadow:0 2px 10px rgba(0,0,0,.12);color:var(--top-fg)}
+.top .wrap{gap:16px}
+.brand{flex-direction:row;align-items:center;gap:10px}
+.brand .logo{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:var(--accent);color:var(--accent-fg);flex:0 0 auto}
+.brand .logo svg{width:20px;height:20px}
+.brand .bt{display:flex;flex-direction:column;min-width:0}
+.brand span{color:var(--top-muted)}
+.nav a{color:var(--top-fg);opacity:.86}
+.nav a:hover{background:rgba(255,255,255,.08);opacity:1}
+.nav a[aria-current="page"]{background:rgba(255,255,255,.14);color:#fff;opacity:1;box-shadow:inset 0 -2px 0 var(--accent)}
+.who{color:var(--top-muted)}
+.who i{background:rgba(255,255,255,.14);color:var(--top-fg)}
+.scanbtn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13.5px;background:var(--accent);color:var(--accent-fg);box-shadow:var(--shadow-sm)}
+.scanbtn:hover{filter:brightness(1.08)}
+:root{--accent-on-dark:#5fc3a9}
+.top .scanbtn{background:var(--accent-on-dark);color:#0b1a16}
+/* nút, ô nhập */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:7px;box-shadow:var(--shadow-sm);transition:background .15s,border-color .15s,filter .15s}
+.btn.pri:hover,.btn.ok:hover,.btn.bad:hover{filter:brightness(.97)}
+.in{border-radius:7px}
+.stepper{border-radius:7px}
+.stepper button{display:grid;place-items:center}
+/* tiêu đề trang */
+.pretitle{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.head h1,.uhead h1{font-size:26px;letter-spacing:-.02em}
+/* thẻ số liệu */
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;background:none;border:0;border-radius:0;overflow:visible;margin-bottom:18px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);padding:14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center}
+.stat .si{grid-row:span 2;width:42px;height:42px;border-radius:10px;display:grid;place-items:center;background:var(--surface-2);color:var(--muted)}
+.stat .si svg{width:21px;height:21px}
+.stat.ok .si{background:var(--ok-soft);color:var(--ok)} .stat.warn .si{background:var(--warn-soft);color:var(--warn)} .stat.bad .si{background:var(--bad-soft);color:var(--bad)} .stat.acc .si{background:var(--accent-soft);color:var(--accent)} .stat.inf .si{background:var(--info-soft);color:var(--info)}
+.stat small{font-weight:500}
+.stat b{font-size:24px;line-height:1.1}
+.stat .sub{grid-column:1/-1;font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
+.stat .sub a{color:var(--accent);font-weight:600;text-decoration:none}
+.stat .sub .bar{flex:1;max-width:110px}
+/* biểu đồ */
+.charts{margin-bottom:22px}
+.charts>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;margin-bottom:10px;font-weight:600;font-size:15px}
+.charts>summary::-webkit-details-marker{display:none}
+.charts>summary .chev{transition:transform .15s;color:var(--muted)}
+.charts[open]>summary .chev{transform:rotate(90deg)}
+.charts>summary span{font-weight:400;color:var(--muted);font-size:13px}
+.cgrid{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);gap:12px;align-items:start}
+.ccol{display:flex;flex-direction:column;gap:12px;min-width:0}
+.ccard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);padding:14px 16px;min-width:0}
+.ccard h3{font-size:14px;display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.ccard h3 svg{color:var(--accent)}
+.ccard .cs{font-size:12px;color:var(--muted);margin-bottom:10px}
+.donut{display:grid;grid-template-columns:140px minmax(0,1fr);gap:14px;align-items:center}
+.donut .cv{position:relative;height:140px}
+.donut .mid{position:absolute;inset:0;display:grid;place-items:center;text-align:center;pointer-events:none}
+.donut .mid b{display:block;font-size:24px;line-height:1;font-variant-numeric:tabular-nums}
+.donut .mid small{font-size:11px;color:var(--muted)}
+.legend{display:flex;flex-direction:column;gap:6px;font-size:13px}
+.legend div{display:flex;align-items:center;gap:8px}
+.legend i{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+.legend span{flex:1;color:var(--muted)}
+.legend b{font-variant-numeric:tabular-nums}
+.cbox{position:relative}
+/* danh sách, thẻ */
+.card,.room,.urow,.row,.srow,.xm,.panel,.tblwrap,.empty{box-shadow:var(--shadow-sm)}
+.card:hover,.room:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
+.card,.room{transition:box-shadow .15s,transform .15s,border-color .15s}
+.panel,.xm{border-radius:var(--r)}
+.row{border-radius:8px}
+.bhead{border-bottom:0;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);margin-bottom:10px;align-items:center}
+.bhead h2{display:flex;align-items:center;gap:8px}
+.bhead h2 svg{color:var(--accent)}
+.bldname{display:flex;align-items:center;gap:6px}
+.flash .fi svg{width:20px;height:20px;stroke-width:2.6}
+.sect h2{display:flex;align-items:center;gap:7px}
+.sect h2 svg{color:var(--accent)}
+/* hộp quét mã */
+dialog.scan{border:0;border-radius:14px;padding:0;width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:var(--surface);color:var(--fg);box-shadow:0 24px 60px rgba(0,0,0,.35)}
+dialog.scan::backdrop{background:rgba(8,16,14,.55)}
+.scan .sh{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.scan .sh b{flex:1;font-size:16px;display:flex;align-items:center;gap:8px}
+.scan .sb{padding:14px 16px;display:flex;flex-direction:column;gap:12px;overflow:auto}
+.scan .cam{width:100%;min-height:200px;background:#0b1210;border-radius:10px;overflow:hidden;display:grid;place-items:center;color:#9fc3b8;font-size:13px;text-align:center}
+.scan .cam video{border-radius:10px}
+.scan .msg{font-size:13px;color:var(--muted)}
+.scan .msg.bad{color:var(--bad)}
+.scan .manual{display:flex;gap:8px}
+.scan .manual .in{flex:1}
+.shit{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-left:4px solid var(--idle);border-radius:8px;padding:10px 12px;background:var(--surface)}
+.shit.r-du,.shit.r-hoso{border-left-color:var(--ok)} .shit.r-thieu,.shit.r-thua{border-left-color:var(--warn)} .shit.r-nf{border-left-color:var(--bad)}
+.shit .nm{font-weight:600}
+.shit .sub{font-size:12.5px;color:var(--muted)}
+.shit .acts{display:flex;gap:6px;flex-wrap:wrap}
+/* --- màn hình kiểm tài sản --- */
+:root{--chart-idle:#dfe5e2}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--chart-idle:#2b3632}}
+:root[data-theme="dark"]{--chart-idle:#2b3632}
+.prog{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);padding:12px 14px;min-width:320px}
+.prog .big{align-items:baseline;margin-bottom:8px}
+.prog .big span{font-weight:600}
+.prog .big em{font-style:normal;font-weight:400;color:var(--muted);margin-left:6px;font-size:12.5px}
+.prog .big b{font-size:24px;color:var(--accent);line-height:1}
+.prog .bar{height:10px;border-radius:5px}
+.prog .nums{gap:6px;margin-top:10px}
+.prog .nums .k{background:var(--surface-2);border-radius:10px;padding:2px 9px;font-size:12px}
+.prog .nums .k.ok{background:var(--ok-soft);color:var(--ok)} .prog .nums .k.warn{background:var(--warn-soft);color:var(--warn)} .prog .nums .k.bad{background:var(--bad-soft);color:var(--bad)}
+.prog .nums .k b{color:inherit}
+.uhead{align-items:center}
+/* ô tìm có kính lúp */
+.sbox{position:relative;display:block;min-width:0}
+.sbox svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+.sbox .in{padding-left:34px;width:100%}
+.tools .sbox.search{flex:1 1 240px;max-width:380px}
+/* tiêu đề cột (chỉ màn hình rộng, cùng lưới với .row) */
+.lhead{display:grid;grid-template-columns:96px minmax(0,1fr) 150px 64px 128px 150px 196px;gap:12px;padding:6px 12px 6px 16px;font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.02em;text-transform:uppercase}
+.lhead span:nth-child(4){text-align:center}
+@media (max-width:1180px){.lhead{display:none}}
+/* hàng tài sản */
+.c-id .ma{font-size:13.5px;font-weight:600}
+.c-act .badge.chua{display:none}
+.c-act .btn.ok{background:var(--ok);border-color:var(--ok);color:var(--surface);font-weight:600}
+.c-act .btn.bad{background:var(--surface);border-color:var(--bad-soft);color:var(--bad)}
+.c-act .btn.bad:hover{background:var(--bad-soft)}
+.row.r-du .c-act .badge,.row.r-hoso .c-act .badge{font-size:12.5px}
+.sosach{display:none;font-style:normal;font-weight:500;text-transform:none}
+.grp{border-bottom:1px solid var(--line);margin-bottom:6px}
+.grp b{font-size:15px}
+
+@media (max-width:860px){
+  /* thanh trên gọn: 1 hàng thương hiệu + quét + người dùng, 1 hàng menu cuộn ngang */
+  .top .wrap{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px;padding-block:8px 6px}
+  .brand{grid-column:1;grid-row:1}
+  .brand>.bt>span{display:none}
+  .brand .logo{width:30px;height:30px;border-radius:8px}
+  .brand .logo svg{width:17px;height:17px}
+  .top .scanbtn{grid-column:2;grid-row:1;padding:8px 11px}
+  .who{grid-column:3;grid-row:1}
+  #whoN{display:none}
+  .who i{cursor:pointer;width:30px;height:30px}
+  .sync{font-size:0;width:10px;height:10px;padding:0;border-radius:50%}
+  .sync.ok{background:var(--ok)} .sync.warn{background:var(--warn)} .sync.bad{background:var(--bad)} .sync.idle{background:var(--idle)}
+  .nav{grid-column:1/-1;grid-row:2;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -6px;gap:2px}
+  .nav::-webkit-scrollbar{display:none}
+  .nav a{white-space:nowrap;padding:6px 10px;font-size:13.5px}
+  .nav a svg.lucide{display:none}
+  /* tiến độ, công cụ lọc */
+  .prog{min-width:0}
+  .tools .sbox.search{max-width:none;flex-basis:100%}
+  .tools .seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%}
+  .tools .seg::-webkit-scrollbar{display:none}
+  .tools .seg button{white-space:nowrap}
+  /* hàng tài sản gọn hơn: ẩn cột Sổ sách (đã ghi trong nhãn Thực tế), nút to dễ bấm */
+  .row{padding:12px;gap:10px}
+  .row .c-book{display:none}
+  .sosach{display:inline}
+  .row .c-real{grid-column:1}
+  .row .c-cond{grid-column:2}
+  .row .c-act{gap:8px}
+  .c-act .btns{flex:1}
+  .c-act .btn{min-height:42px;font-size:14.5px}
+  .stepper button{width:42px}
+  .stepper input{padding:9px 2px}
+}
+/* --- menu "Tổng quan" xổ xuống --- */
+.dd{position:relative;display:flex}
+.dd-t .chev{opacity:.7;transition:transform .15s}
+.dd:hover .dd-t .chev,.dd.open .dd-t .chev{transform:rotate(180deg)}
+.nav .dd.on>.dd-t{background:rgba(255,255,255,.14);color:#fff;opacity:1;box-shadow:inset 0 -2px 0 var(--accent)}
+.dd-m{display:none;position:absolute;top:100%;left:0;padding-top:8px;z-index:40}
+.dd:hover .dd-m,.dd:focus-within .dd-m,.dd.open .dd-m{display:block}
+.dd.shut .dd-m{display:none!important}
+.dd-p{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.22);padding:6px;min-width:350px;display:flex;flex-direction:column;gap:2px}
+.nav .dd-p a{color:var(--fg);opacity:1;padding:9px 10px;border-radius:8px;align-items:flex-start;gap:10px;box-shadow:none}
+.nav .dd-p a:hover{background:var(--surface-2)}
+.nav .dd-p a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);box-shadow:none}
+.dd-p .mi{width:30px;height:30px;border-radius:8px;background:var(--surface-2);color:var(--accent);display:grid;place-items:center;flex:0 0 auto}
+.dd-p a[aria-current="page"] .mi{background:var(--surface)}
+.dd-p .mt{display:flex;flex-direction:column;line-height:1.3}
+.dd-p .mt small{font-weight:400;font-size:12px;color:var(--muted)}
+.dd-p .short{display:none}
+/* --- lối vào 2 cách kiểm trên Bảng tổng quan --- */
+.entries{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.entry{display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm);padding:16px;color:inherit;text-decoration:none;transition:box-shadow .15s,transform .15s,border-color .15s}
+.entry:hover{border-color:var(--accent);box-shadow:var(--shadow);transform:translateY(-1px)}
+.entry .ei{width:46px;height:46px;border-radius:12px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;flex:0 0 auto}
+.entry .ei svg{width:23px;height:23px}
+.entry .et{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.entry .et b{font-size:16.5px}
+.entry .et small{font-size:12.5px;color:var(--muted)}
+.entry>svg{color:var(--muted)}
+/* --- thẻ đơn vị --- */
+.utile .t{color:inherit;text-decoration:none}
+a.btn{text-decoration:none}
+.nav .short{display:none}
+.utile .t:hover b{color:var(--accent)}
+.utile .up{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--muted)}
+.utile .up b{font-size:18px;color:var(--fg)}
+.utile .acts{display:flex;gap:8px;flex-wrap:wrap;border-top:1px dashed var(--line);padding-top:10px}
+.utile .acts .btn{flex:1}
+.utile:hover{transform:none}
+.cards{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+@media (max-width:860px){
+  .entries{grid-template-columns:1fr}
+  /* điện thoại: không xổ menu, hiện thẳng 3 mục trên hàng menu */
+  .dd,.dd-m,.dd-p{display:contents!important}
+  .dd-t{display:none!important}
+  .dd-p .mi,.dd-p .mt small,.dd-p .full{display:none}
+  .dd-p .short{display:inline}
+  .nav .full{display:none} .nav .short{display:inline}
+  .nav a{padding:6px 8px}
+  .nav .dd-p a{color:var(--top-fg);opacity:.86;padding:6px 10px;border-radius:6px;align-items:center}
+  .nav .dd-p a:hover{background:rgba(255,255,255,.08)}
+  .nav .dd-p a[aria-current="page"]{background:rgba(255,255,255,.14);color:#fff;opacity:1}
+  .cards{grid-template-columns:1fr}
+}
+@media (max-width:1100px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:860px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats .stat:last-child{grid-column:1/-1}
+  .cgrid{grid-template-columns:1fr}
+  .top .scanbtn span{display:none}
+  .charts>summary span:last-child{display:none}
+}
+@media (max-width:420px){.donut{grid-template-columns:1fr}.stat b{font-size:20px}}
+
+/* ===== Phong cách Trường Đại học FPT: cam FPT, nền trắng, ảnh campus Đà Nẵng ===== */
+:root{
+  --bg:#f6f6f6; --surface:#ffffff; --surface-2:#f1f1f1; --line:#e3e3e3; --fg:#1e1e1e; --muted:#6b6b6b;
+  --accent:#c94f0a; --accent-fg:#ffffff; --accent-soft:#fdeadb; --brand:#f37021;
+  --warn:#946200; --warn-soft:#fbf0cc; --idle:#9e9e9e; --chart-idle:#e7e7e7;
+  --top-bg:#ffffff; --top-fg:#242424; --top-muted:#707070;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121212; --surface:#1c1c1c; --surface-2:#262626; --line:#333333; --fg:#ececec; --muted:#a3a3a3;
+  --accent:#ff8a3d; --accent-fg:#1a0d04; --accent-soft:#3a2111; --brand:#f37021;
+  --warn:#efc35c; --warn-soft:#352a10; --idle:#666666; --chart-idle:#2e2e2e;
+  --top-bg:#181818; --top-fg:#ececec; --top-muted:#a3a3a3}}
+:root[data-theme="dark"]{
+  --bg:#121212; --surface:#1c1c1c; --surface-2:#262626; --line:#333333; --fg:#ececec; --muted:#a3a3a3;
+  --accent:#ff8a3d; --accent-fg:#1a0d04; --accent-soft:#3a2111; --brand:#f37021;
+  --warn:#efc35c; --warn-soft:#352a10; --idle:#666666; --chart-idle:#2e2e2e;
+  --top-bg:#181818; --top-fg:#ececec; --top-muted:#a3a3a3}
+
+/* thanh trên nền trắng như trang trường */
+.top{box-shadow:0 1px 0 var(--line),0 6px 16px rgba(0,0,0,.05)}
+.brand .logo{background:var(--brand);color:#fff}
+.brand b{color:var(--fg)}
+.nav a{color:var(--top-fg);opacity:1}
+.nav a:hover{background:var(--surface-2)}
+.nav a[aria-current="page"],.nav .dd.on>.dd-t{background:transparent;color:var(--accent);box-shadow:inset 0 -3px 0 var(--brand);border-radius:0}
+.who i{background:var(--accent-soft);color:var(--accent)}
+.top .scanbtn{background:var(--brand);color:#fff}
+.nav .dd-p a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);box-shadow:none;border-radius:8px}
+
+/* tiêu đề mục hai màu + vạch sọc */
+.stitle{display:flex;align-items:center;gap:18px;margin:36px 0 16px}
+.stitle h2{font-size:28px;font-weight:700;letter-spacing:-.02em;line-height:1.2}
+.stitle h2 strong{color:var(--brand);font-weight:700}
+.stitle::after{content:"";flex:1;max-width:170px;height:10px;margin-left:auto;background:repeating-linear-gradient(-60deg,var(--line) 0 3px,transparent 3px 8px)}
+
+/* ảnh lớn đầu trang */
+.hero{position:relative;border-radius:14px;overflow:hidden;min-height:400px;display:flex;align-items:center;background:#1e1e1e;color:#fff;box-shadow:var(--shadow);isolation:isolate}
+.hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;transform:scale(1.02);transition:transform 8s ease}
+.hero:hover>img{transform:scale(1.08)}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(14,14,14,.88) 0%,rgba(14,14,14,.6) 42%,rgba(14,14,14,.08) 78%),linear-gradient(0deg,rgba(0,0,0,.35),transparent 45%)}
+.hero::after{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--brand)}
+.hero-in{position:relative;padding:36px 44px;max-width:640px;display:flex;flex-direction:column;gap:14px}
+.hero-k{font-size:12.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#ffb27a}
+.hero h1{font-size:42px;line-height:1.08;font-weight:800;letter-spacing:-.015em;color:#fff;text-transform:uppercase}
+.hero h1 b{color:var(--brand)}
+.hero p{margin:0;color:rgba(255,255,255,.85)}
+.hero-prog{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.1);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:10px 16px;max-width:470px}
+.hero-prog b{font-size:30px;line-height:1;color:#fff}
+.hero-prog span{font-size:12px;line-height:1.3;color:rgba(255,255,255,.8);flex:0 0 auto}
+.hero-prog .bar{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.22)}
+.hero .sbox{max-width:470px}
+.hero .sbox .in{background:#fff;color:#1e1e1e;border:0;padding-block:11px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.hero .sbox svg{color:#707070}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap}
+.btn.brand{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;padding:10px 18px;font-size:14px}
+.btn.ghost{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.45);color:#fff;font-weight:600;padding:10px 18px;font-size:14px}
+.btn.ghost:hover{background:rgba(255,255,255,.22)}
+.credit{position:absolute;right:12px;bottom:8px;font-size:11px;color:rgba(255,255,255,.65);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
+#gres .sr{margin-top:14px}
+
+/* ảnh nhỏ đầu các trang con */
+.pban{position:relative;border-radius:12px;overflow:hidden;min-height:170px;display:flex;align-items:flex-end;color:#fff;margin-bottom:18px;isolation:isolate;box-shadow:var(--shadow-sm)}
+.pban>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.pban::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(14,14,14,.85),rgba(14,14,14,.45) 60%,rgba(14,14,14,.15))}
+.pban::after{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--brand)}
+.pban-in{padding:22px 28px;max-width:820px;display:flex;flex-direction:column;gap:6px}
+.pban h1{font-size:28px;letter-spacing:-.015em;color:#fff}
+.pban p{margin:0;color:rgba(255,255,255,.86);font-size:14px}
+
+/* khối ảnh có chú thích: rê chuột ảnh phóng nhẹ */
+.mosaic{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-auto-rows:190px}
+.mcol.l .tile:first-child,.mcol.r .tile:last-child{grid-column:1/-1;grid-row:span 2}
+.tile{position:relative;display:block;overflow:hidden;border-radius:6px;border:0;padding:0;margin:0;background:#2a2a2a;color:#fff;text-decoration:none;text-align:left;cursor:pointer;font:inherit;box-shadow:var(--shadow-sm)}
+.tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
+.tile .cap{position:absolute;inset:0;display:flex;align-items:flex-end;padding:16px;background:linear-gradient(0deg,rgba(20,20,20,.92) 0%,rgba(20,20,20,0) 62%);transition:background .3s ease}
+.tile .cap p{margin:0;padding-left:12px;border-left:4px solid var(--brand);display:flex;flex-direction:column;gap:3px}
+.tile .cap b{font-size:17px;font-weight:600;line-height:1.25}
+.tile .cap small{font-size:12.5px;color:rgba(255,255,255,.82);max-height:0;opacity:0;overflow:hidden;transition:max-height .3s ease,opacity .3s ease}
+.tile.big .cap b{font-size:21px}
+.tile.big .cap small,.tile:hover .cap small,.tile:focus-visible .cap small{max-height:40px;opacity:1}
+.tile:hover img,.tile:focus-visible img{transform:scale(1.07)}
+.tile:hover .cap,.tile:focus-visible .cap{background:linear-gradient(0deg,rgba(20,20,20,.94) 0%,rgba(20,20,20,.2) 75%)}
+
+/* khối "theo tòa nhà": ảnh bên trái đổi theo tòa đang rê chuột */
+.bsec{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.bimg{position:relative;min-height:440px;background:#2a2a2a}
+.bfig{position:absolute;inset:0;margin:0;overflow:hidden;opacity:0;transition:opacity .5s ease}
+.bfig.on{opacity:1}
+/* ảnh toàn cảnh: phóng dần vào đúng tòa đang chọn (điểm --x --y giữ nguyên chỗ khi phóng) */
+.bfig img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--x,50%) var(--y,50%);transform-origin:var(--x,50%) var(--y,50%);transform:scale(var(--zi,1.04));transition:transform 1.4s cubic-bezier(.2,.7,.2,1)}
+.bfig.on img{transform:scale(var(--z,1))}
+.bpin{position:absolute;transform:translate(-50%,-100%);margin-top:-4px;background:var(--brand);color:#fff;font-weight:700;font-size:13px;padding:5px 11px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;opacity:0;transition:opacity .3s ease .5s,margin-top .3s ease .5s;pointer-events:none}
+.bpin::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--brand)}
+.bfig.on .bpin{opacity:1;margin-top:-12px}
+.bmain{padding:26px 24px;display:flex;flex-direction:column;gap:18px;min-width:0}
+.bdesc{margin:0;color:var(--muted);line-height:1.5}
+.bitems{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:auto}
+.bitem{position:relative;display:flex;flex-direction:column;gap:8px;background:var(--surface);color:inherit;text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:30px 14px 14px;box-shadow:-10px 0 20px rgba(0,0,0,.04);transition:border-color .25s,box-shadow .25s,transform .25s}
+.bitem::before{content:"";position:absolute;top:12px;left:14px;width:40%;height:8px;background:repeating-linear-gradient(-60deg,var(--line) 0 3px,transparent 3px 7px);transition:width .3s ease,background .3s ease}
+.bitem h3{font-size:15.5px;color:var(--muted);transition:color .25s,font-size .25s}
+.bitem .bp{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.bitem .bp b{font-size:20px}
+.bitem .bp span{font-size:12px;color:var(--muted)}
+.bitem.on{border-color:var(--brand);box-shadow:0 8px 22px rgba(243,112,33,.16);transform:translateY(-2px)}
+.bitem.on::before{width:75%;background:repeating-linear-gradient(-60deg,var(--brand) 0 3px,transparent 3px 7px)}
+.bitem.on h3{color:var(--accent);font-size:17px}
+.bfig .credit{bottom:10px}
+
+@media (max-width:860px){
+  .stitle{margin:26px 0 12px}
+  .stitle h2{font-size:22px}
+  .hero{min-height:0;border-radius:12px}
+  .hero::before{background:linear-gradient(0deg,rgba(14,14,14,.92) 35%,rgba(14,14,14,.45))}
+  .hero-in{padding:26px 20px 30px}
+  .hero h1{font-size:28px}
+  .hero-prog b{font-size:24px}
+  .pban{min-height:140px}
+  .pban-in{padding:18px}
+  .pban h1{font-size:22px}
+  .mosaic{grid-template-columns:1fr}
+  .mcol{grid-auto-rows:130px}
+  .tile .cap{padding:12px}
+  .tile .cap b{font-size:15px}
+  .tile.big .cap b{font-size:18px}
+  .bsec{grid-template-columns:1fr}
+  .bimg{min-height:190px}
+  .bmain{padding:18px 14px}
+  .bitems{grid-template-columns:1fr 1fr}
+  .nav a[aria-current="page"],.nav .dd-p a[aria-current="page"]{background:transparent;color:var(--accent);box-shadow:inset 0 -3px 0 var(--brand);border-radius:0}
+  .nav .dd-p a{color:var(--top-fg);opacity:1}
+  .nav .dd-p a:hover{background:var(--surface-2)}
+}
+.btn.pri{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+@media (max-width:860px){.rooms{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+@media (prefers-reduced-motion:reduce){.hero>img,.tile img,.bfig img,.bfig,.bpin{transition:none}.hero:hover>img,.tile:hover img{transform:none}}
 </style>
 
 <header class="top" id="top">
   <div class="wrap">
-    <div class="brand"><b>Kiểm kê tài sản 2026</b><span>Phòng Hành chính · chốt sổ 31/10/2026</span></div>
+    <div class="brand"><span class="logo"><span data-ic="ClipboardCheck"></span></span><span class="bt"><b>Kiểm kê tài sản 2026</b><span>Trường ĐH FPT Đà Nẵng · Phòng Hành chính</span></span></div>
     <nav class="nav" id="nav">
-      <a href="#tong-quan" data-r="tong-quan">Tổng quan</a>
-      <a href="#xac-minh" data-r="xac-minh">Hỏi đại diện <span class="pill" id="xmCount" hidden>0</span></a>
-      <a href="#xuat" data-r="xuat">Xuất cho kế toán</a>
+      <div class="dd" id="navOv">
+        <a href="#tong-quan" class="dd-t" aria-haspopup="true"><span data-ic="LayoutDashboard"></span>Tổng quan<span class="chev"><span data-ic="ChevronDown"></span></span></a>
+        <div class="dd-m"><div class="dd-p" role="menu">
+          <a href="#tong-quan" data-r="tong-quan" role="menuitem"><span class="mi"><span data-ic="LayoutDashboard"></span></span><span class="mt"><b class="full">Bảng tổng quan</b><b class="short">Tổng quan</b><small>Số liệu, biểu đồ tiến độ, tìm nhanh tài sản</small></span></a>
+          <a href="#don-vi" data-r="don-vi" role="menuitem"><span class="mi"><span data-ic="Users"></span></span><span class="mt"><b class="full">Kiểm theo đơn vị</b><b class="short">Đơn vị</b><small>Theo sheet của kế toán, từng phòng ban</small></span></a>
+          <a href="#vi-tri" data-r="vi-tri" role="menuitem"><span class="mi"><span data-ic="MapPin"></span></span><span class="mt"><b class="full">Kiểm theo phòng</b><b class="short">Phòng</b><small>Đi từng phòng, kiểm tại chỗ mọi tài sản</small></span></a>
+        </div></div>
+      </div>
+      <a href="#xac-minh" data-r="xac-minh"><span data-ic="MessageCircleQuestion"></span>Hỏi đại diện <span class="pill" id="xmCount" hidden>0</span></a>
+      <a href="#xuat" data-r="xuat"><span data-ic="FileSpreadsheet"></span><span class="full">Xuất cho kế toán</span><span class="short">Xuất Excel</span></a>
     </nav>
+    <button type="button" class="scanbtn" id="scanBtn" title="Quét mã QR / mã vạch trên tem tài sản, hoặc gõ mã"><span data-ic="ScanLine"></span><span>Quét mã</span></button>
     <div class="who"><span class="sync idle" id="sync" role="status">Đang kết nối…</span><i id="whoI">HC</i><span id="whoN">Cán bộ Phòng HC</span></div>
   </div>
 </header>
@@ -354,6 +732,15 @@ details.panel[open]>summary::before{content:"▾"}
 <datalist id="dl-phong"></datalist>
 <div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>Hoàn tác</button></div>
 <div class="flash" id="flash" role="status" aria-live="polite" hidden><span class="fi" id="flashIcon"></span><span class="ft"><b id="flashTitle"></b><small id="flashSub"></small></span></div>
+<dialog class="scan" id="scanDlg" aria-labelledby="scanTitle">
+  <div class="sh"><b id="scanTitle"><span data-ic="ScanLine"></span>Quét mã tài sản</b><button type="button" class="btn sm" id="scanClose" aria-label="Đóng"><span data-ic="X"></span></button></div>
+  <div class="sb">
+    <div class="cam" id="scanCam">Đang mở camera…</div>
+    <div class="msg" id="scanMsg">Đưa tem QR hoặc mã vạch vào khung. Không có tem thì gõ Mã TSCĐ bên dưới.</div>
+    <form class="manual" id="scanForm"><input class="in" id="scanIn" placeholder="Gõ Mã TSCĐ hoặc tên, rồi Enter" autocomplete="off"><button class="btn pri" type="submit"><span data-ic="Search"></span>Tìm</button></form>
+    <div id="scanRes" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</dialog>
 
 <script>
 // Danh sách tài sản sinh từ file Excel trong "dữ liệu cập nhật/" (xem scripts/build.mjs)
@@ -480,7 +867,7 @@ function setSync(){
   else if(SYNCERR){ t='Lỗi lưu'; k='bad'; }
   else if(SLOW){ t='Số liệu có thể chưa mới'; k='warn'; }
   else { t='Đã lưu chung'; k='ok'; }
-  el.textContent=t; el.className='sync '+k;
+  el.textContent=t; el.title=t; el.className='sync '+k;
 }
 function listen(col){
   DB.collection(col).onSnapshot(snap=>{
@@ -521,6 +908,7 @@ async function init(){
     try{ ME=localStorage.getItem(KEY+'.name')||''; }catch(e){}
     showMe();
     document.getElementById('whoN').addEventListener('click',askName);
+    document.getElementById('whoI').addEventListener('click',askName);
     COLS.forEach(listen);
     setTimeout(()=>{ if(LOADED.size<COLS.length){ SLOW=true; if(!READY) ready(); else setSync(); } },10000);
     setSync(); render(); return;
@@ -603,6 +991,14 @@ function seedDemo(s){
 
 /* ---------- helpers ---------- */
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* Biểu tượng Lucide → chuỗi SVG (lưu sẵn). Không tải được thư viện thì trả về '' và trang chỉ hiện chữ. */
+const IC={};
+function ic(name){
+  if(name in IC) return IC[name];
+  let h=''; try{ const L=window.lucide; if(L&&L.icons&&L.icons[name]){ const el=L.createElement(L.icons[name]); el.setAttribute('class','lucide'); el.setAttribute('aria-hidden','true'); h=el.outerHTML; } }catch(e){}
+  return IC[name]=h;
+}
+function fillIcons(root){ root.querySelectorAll('[data-ic]').forEach(e=>{ e.outerHTML=ic(e.dataset.ic); }); }
 const nf=new Intl.NumberFormat('vi-VN');
 function money(v){ if(!v) return '—'; if(v>=1e9) return (v/1e9).toLocaleString('vi-VN',{maximumFractionDigits:2})+' tỷ'; if(v>=1e6) return (v/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1})+' tr'; return nf.format(v)+' đ'; }
 function dmy(d){ if(!d) return '—'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; }
@@ -653,7 +1049,8 @@ const sortRooms=(a,b)=>(a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'vi',{numeri
 /* báo trạng thái trong 1 giây */
 function flash(kind,icon,title,sub){
   const f=document.getElementById('flash');
-  f.className='flash '+kind; document.getElementById('flashIcon').textContent=icon;
+  const FI={'✓':'Check','−':'Minus','+':'Plus','!':'CircleAlert','↺':'RotateCcw','→':'ArrowRight','?':'CircleHelp','×':'X'};
+  f.className='flash '+kind; const fi=document.getElementById('flashIcon'); const svg=FI[icon]&&ic(FI[icon]); if(svg) fi.innerHTML=svg; else fi.textContent=icon;
   document.getElementById('flashTitle').textContent=title; document.getElementById('flashSub').textContent=sub||'';
   f.hidden=true; void f.offsetWidth; f.hidden=false;   // chạy lại hiệu ứng mỗi lần bấm
   clearTimeout(flash._t); flash._t=setTimeout(()=>f.hidden=true,1000);
@@ -712,7 +1109,7 @@ function stripHTML(uid,cur){
 const app=document.getElementById('app');
 let V={type:'ov',id:null};
 let ui={filter:'all',q:'',group:true,open:{}};
-let OV={sel:'',bld:'all',rq:'',hideDone:false,gq:''};
+let OV={sel:'',bld:'all',rq:'',hideDone:false,gq:'',uq:'',ust:'all'};
 let pendingQ='', pendingU='';
 
 function demoBanner(){
@@ -727,16 +1124,6 @@ function demoBanner(){
   return S.demo?`<div class="demo"><b>Đang xem dữ liệu kiểm mẫu.</b> Một phần sheet GD đã được điền sẵn để bạn thấy giao diện khi đang kiểm. Danh sách tài sản là dữ liệu thật từ file kế toán.<button class="btn sm" data-act="reset">Xoá dữ liệu mẫu, bắt đầu từ đầu</button></div>`:'';
 }
 
-function unitCard(u){
-  const c=count(BY_UNIT[u.id]); const us=S.units[u.id];
-  const st= us?.ended?['done','Hoàn tất']:(c.da>0||us?.started)?['run','Đang kiểm']:['','Chưa kiểm'];
-  return `<a class="card" href="#dv-${u.id}">
-    <div class="t"><b>${esc(u.ten)}</b><span class="state ${st[0]}">${st[1]}</span></div>
-    <div class="m"><span><strong class="num">${c.tong}</strong> dòng</span><span><strong class="num">${nf.format(c.sl)}</strong> cái</span><span><strong>${money(c.gia)}</strong></span></div>
-    ${barHTML(c)}
-    <div class="f"><span class="num">Đã kiểm ${c.da}/${c.tong}${c.nf?` · <span style="color:var(--bad)">${c.nf} chưa thấy</span>`:''}</span><span class="${c.novt?'gap':''}">${c.novt?c.novt+' chưa có vị trí':'Đủ vị trí'}</span></div>
-    <div class="sheet">Sheet: ${esc(u.sheet)}</div></a>`;
-}
 function roomTile(r,uid){
   const sub=uid?r.list.filter(a=>a.unit===uid):r.list;
   const c=count(sub); const done=c.chua===0; const us=Object.keys(unitsIn(r.list));
@@ -757,19 +1144,58 @@ function ovRoomsHTML(){
   const noneTile=(OV.bld==='all'&&!OV.rq.trim()&&none.length)?`<div class="bldname">Chưa ghi vị trí</div><div class="rooms">${roomTile({slug:NOROOM,name:'Chưa có vị trí',list:none},uid)}</div>`:'';
   return (blocks||(none.length?'':'<div class="empty">Không có phòng nào khớp.</div>'))+noneTile;
 }
-function unitRow(u){
-  const c=count(BY_UNIT[u.id]); const us=S.units[u.id]; const on=OV.sel===u.id;
+/* ---------- trang "Kiểm theo đơn vị": mỗi sheet của kế toán là một thẻ ---------- */
+function unitState0(u){ const c=count(BY_UNIT[u.id]); const us=S.units[u.id]; return us?.ended?'done':(c.da>0||us?.started)?'run':'chua'; }
+const UST_LABEL={done:'Hoàn tất',run:'Đang kiểm',chua:'Chưa kiểm'};
+function unitCard(u){
+  const c=count(BY_UNIT[u.id]); const st=unitState0(u);
   const nR=new Set(BY_UNIT[u.id].map(a=>roomOf(a)).filter(Boolean)).size;
-  const st= us?.ended?['done','Hoàn tất']:(c.da>0||us?.started)?['run','Đang kiểm']:['',''];
-  return `<div class="urow ${on?'on':''}">
-    <button class="upick" data-sel="${u.id}" aria-pressed="${on}">
-      <span class="ut"><b>${esc(u.ten)}</b>${st[1]?`<span class="state ${st[0]}">${st[1]}</span>`:''}</span>
-      <span class="um num"><span class="mono">${esc(u.sheet)}</span><span>${c.da}/${c.tong} dòng</span><span>${nR} vị trí</span>${c.novt?`<span class="gap">${c.novt} chưa có vị trí</span>`:''}</span>
-      ${barHTML(c)}
-    </button>
-    <a class="uopen" href="#dv-${u.id}" aria-label="Mở sheet ${esc(u.sheet)}">Mở sheet →</a>
+  const pct=c.tong?Math.round(c.da/c.tong*100):0;
+  return `<div class="card utile">
+    <a class="t" href="#dv-${u.id}"><b>${esc(u.ten)}</b><span class="state ${st==='chua'?'':st}">${UST_LABEL[st]}</span></a>
+    <div class="m"><span class="mono">${esc(u.sheet)}</span><span><strong class="num">${c.tong}</strong> dòng</span><span><strong class="num">${nf.format(c.sl)}</strong> cái</span><span><strong>${money(c.gia)}</strong></span></div>
+    <div class="up"><span class="num">Đã kiểm ${c.da}/${c.tong}</span><b class="num">${pct}%</b></div>
+    ${barHTML(c)}
+    <div class="f"><span>${nR} vị trí${c.nf?` · <span style="color:var(--bad)">${c.nf} chưa thấy</span>`:''}</span><span class="${c.novt?'gap':''}">${c.novt?c.novt+' chưa có vị trí':'Đủ vị trí'}</span></div>
+    <div class="acts"><a class="btn sm pri" href="#dv-${u.id}">${ic('ListChecks')}Kiểm theo sheet</a><button class="btn sm" data-sel="${u.id}">${ic('MapPin')}Xem các phòng</button></div>
   </div>`;
 }
+function unitsGridHTML(){
+  const q=slugify(OV.uq||''); const has=(OV.uq||'').trim();
+  const ok=u=>(OV.ust==='all'||unitState0(u)===OV.ust)&&(!has||slugify(u.ten+' '+u.sheet).includes(q));
+  const main=UNITS.filter(u=>!u.review&&ok(u)), rv=UNITS.filter(u=>u.review&&ok(u));
+  if(!main.length&&!rv.length) return '<div class="empty">Không có đơn vị nào khớp.</div>';
+  return (main.length?`<div class="cards">${main.map(unitCard).join('')}</div>`:'')
+    +(rv.length?`<div class="sect" style="margin-top:22px"><h2>${ic('CircleHelp')}Cần kế toán xem lại</h2><span>Tài sản chưa rõ đơn vị quản lý</span></div><div class="cards">${rv.map(unitCard).join('')}</div>`:'');
+}
+function viewUnits(){
+  const n={all:UNITS.length,chua:0,run:0,done:0}; UNITS.forEach(u=>n[unitState0(u)]++);
+  app.innerHTML=`${demoBanner()}
+  ${banner('hoi-truong','Kiểm theo đơn vị','Danh sách theo sheet của kế toán',`Mỗi đơn vị là một sheet trong biên bản gốc. "Kiểm theo sheet" để kiểm đúng danh sách; "Xem các phòng" để biết tài sản của đơn vị đang nằm ở đâu.`)}
+  <div class="tools">
+    <label class="sbox search">${ic('Search')}<input class="in" id="uq" type="search" placeholder="Tìm đơn vị, VD: CNTT" value="${esc(OV.uq||'')}" aria-label="Tìm đơn vị"></label>
+    <div class="seg" role="group" aria-label="Lọc theo trạng thái">${[['all','Tất cả'],['chua','Chưa kiểm'],['run','Đang kiểm'],['done','Hoàn tất']].map(([k,l])=>`<button data-ust="${k}" aria-pressed="${OV.ust===k}">${l} <em class="num">${n[k]}</em></button>`).join('')}</div>
+  </div>
+  <div id="ugrid">${unitsGridHTML()}</div>`;
+}
+
+/* ---------- trang "Kiểm theo phòng": lưới phòng theo tòa ---------- */
+function viewRooms(){
+  const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM);
+  const done=rooms.filter(r=>count(r.list).chua===0).length;
+  const u=OV.sel&&UNIT[OV.sel];
+  app.innerHTML=`${demoBanner()}
+  ${banner('phong-hoc','Kiểm theo phòng','Đi từng phòng, kiểm tại chỗ',`${rooms.length} phòng, khu vực · đã xong ${done}. Bấm vào một phòng để kiểm mọi tài sản đang ở đó, của bất kỳ đơn vị nào.`)}
+  <div class="tools">
+    <label class="sbox search">${ic('Search')}<input class="in" id="rq" type="search" placeholder="Tìm phòng, VD: 108" value="${esc(OV.rq)}" aria-label="Tìm phòng"></label>
+    <select class="in" id="selU" style="max-width:300px" aria-label="Chỉ xem phòng có tài sản của một đơn vị"><option value="">Mọi đơn vị</option>${UNITS.map(x=>`<option value="${x.id}" ${OV.sel===x.id?'selected':''}>${esc(x.ten)}</option>`).join('')}</select>
+    <label class="chk"><input type="checkbox" id="hideDone" ${OV.hideDone?'checked':''}> Ẩn phòng đã xong</label>
+  </div>
+  <div class="bld" role="group" aria-label="Lọc theo tòa">${['all',...BLD_ORDER].map(b=>`<button data-bld="${b}" aria-pressed="${OV.bld===b}">${b==='all'?'Tất cả tòa':b}</button>`).join('')}</div>
+  ${u?`<div class="selbar"><span>Đang xem các phòng có tài sản của <b>${esc(u.ten)}</b></span><a class="btn sm" href="#dv-${u.id}">Mở sheet ${esc(u.sheet)}</a><button class="btn sm" data-sel="">Bỏ lọc</button></div>`:''}
+  <div id="roomgrid">${ovRoomsHTML()}</div>`;
+}
+
 function ovSearchHTML(){
   const q=OV.gq.trim().toLowerCase(); if(q.length<2) return '';
   const hits=ASSETS.filter(a=>a.ten.toLowerCase().includes(q)||String(a.ma).includes(q)).slice(0,30);
@@ -781,39 +1207,142 @@ function ovSearchHTML(){
     <span class="badge ${r}">${RES_LABEL[r]}</span>
     <div class="acts"><a class="btn sm" href="#phong-${n?slugify(n):NOROOM}" data-act="goto" data-q="${esc(a.ma)}">Mở phòng</a><a class="btn sm" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma)}">Mở đơn vị</a></div></div>`;}).join('')}</div>`;
 }
+
+/* ---------- trang "Bảng tổng quan" — bố cục theo trang daihoc.fpt.edu.vn:
+   ảnh lớn đầu trang, khối ảnh có chú thích (phóng nhẹ khi rê chuột), khối ảnh đổi theo mục đang rê chuột ---------- */
+const IMG='img/';
+const BLD_IMG={'Alpha':'toan-canh','Beta':'toan-canh','Gamma':'toan-canh','Delta / Epsilon':'phong-hoc','KTX':'can-tin','Khu khác':'vuon','':'sanh-giai-tri'};
+// Alpha: tòa tháp 13 tầng · Gamma: tòa mái cam phía trước, đối diện Alpha · Beta: tòa cùng cỡ nằm cạnh Gamma (phía sau)
+const BLD_FOCUS={'Alpha':{x:65,y:41,z:1.65},'Beta':{x:26,y:44,z:1.8},'Gamma':{x:40,y:57,z:1.55}};
+function banner(img,kicker,title,desc){
+  return `<section class="pban"><img src="${IMG}${img}.jpg" alt=""><div class="pban-in"><div class="hero-k">${kicker}</div><h1>${title}</h1>${desc?`<p>${desc}</p>`:''}</div></section>`;
+}
+function tile(href,img,title,sub,cls){
+  return `<a class="tile ${cls||''}" href="${href}"><img src="${IMG}${img}.jpg" alt="" loading="lazy"><div class="cap"><p><b>${title}</b><small>${sub}</small></p></div></a>`;
+}
+function bldSecHTML(){
+  const bl={}; ASSETS.forEach(a=>{ const n=roomOf(a); const k=n?building(n):''; (bl[k]=bl[k]||[]).push(a); });
+  const items=[...BLD_ORDER.filter(b=>bl[b]),...(bl['']?['']:[])].map(b=>({id:b,name:b===''?'Chưa có vị trí':b==='Khu khác'?'Khu khác':'Tòa '+b,c:count(bl[b]),rooms:new Set(bl[b].map(roomOf).filter(Boolean)).size}));
+  return `<div class="stitle"><h2>Tiến độ <strong>theo tòa nhà</strong></h2></div>
+  <section class="bsec">
+    <div class="bimg">${items.map((it,i)=>{ const f=BLD_FOCUS[it.id];
+      return `<figure class="bfig ${i?'':'on'}" data-i="${i}" ${f?`style="--x:${f.x}%;--y:${f.y}%;--z:${f.z};--zi:1"`:''}><img src="${IMG}${BLD_IMG[it.id]||'toan-canh'}.jpg" alt="${f?esc(it.name)+' trên ảnh toàn cảnh campus':''}" loading="lazy">${f?`<span class="bpin" style="left:${f.x}%;top:${f.y}%">${esc(it.name)}</span>`:''}<span class="credit">${f?'Ảnh: daihoc.fpt.edu.vn':'Ảnh minh hoạ · campus Đà Nẵng'}</span></figure>`; }).join('')}</div>
+    <div class="bmain">
+      <p class="bdesc">Tài sản tính theo vị trí thực tế (cập nhật ngay khi kiểm). Rê chuột vào từng tòa để xem, bấm để mở danh sách phòng của tòa đó.</p>
+      <div class="bitems">${items.map((it,i)=>{ const p=it.c.tong?Math.round(it.c.da/it.c.tong*100):0;
+        return `<a class="bitem ${i?'':'on'}" href="${it.id===''?'#phong-'+NOROOM:'#vi-tri'}" data-i="${i}" ${it.id!==''?`data-gobld="${esc(it.id)}"`:''}><h3>${esc(it.name)}</h3><div class="bp"><b class="num">${p}%</b><span class="num">${nf.format(it.c.da)}/${nf.format(it.c.tong)} dòng${it.rooms?` · ${it.rooms} phòng`:''}</span></div>${barHTML(it.c)}</a>`; }).join('')}</div>
+    </div>
+  </section>`;
+}
 function viewOverview(){
   const all=count(ASSETS); const wait=xmPending();
-  const main=UNITS.filter(u=>!u.review), rv=UNITS.filter(u=>u.review);
-  const nRooms=Object.keys(buildRooms()).filter(k=>k!==NOROOM).length;
+  const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM); const nRooms=rooms.length;
+  const doneR=rooms.filter(r=>count(r.list).chua===0).length;
+  const n={chua:0,run:0,done:0}; UNITS.forEach(u=>n[unitState0(u)]++);
+  const pct=all.tong?Math.round(all.da/all.tong*100):0;
+  killCharts();
   app.innerHTML=`${demoBanner()}
-  <div class="head"><div><h1>Kiểm kê cuối năm 2026</h1><p>Biên bản kiểm kê tài sản Phân hiệu ĐH FPT tại Đà Nẵng, số liệu đến hết 31/10/2026</p></div></div>
-  <div class="stats">
-    <div class="stat"><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b></div>
-    <div class="stat ok"><small>Đã kiểm</small><b>${nf.format(all.da)}</b></div>
-    <div class="stat warn"><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b></div>
-    <div class="stat bad"><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b></div>
-    <div class="stat"><small>Chưa có vị trí</small><b>${nf.format(all.novt)}</b></div>
-  </div>
-  <div class="ovtabs">
-    <input class="in gsearch" id="gq" type="search" placeholder="Tìm nhanh tài sản ở cả trường: mã hoặc tên…" value="${esc(OV.gq)}" style="margin-left:0">
-  </div>
+  <section class="hero">
+    <img src="${IMG}toan-canh.jpg" alt="Toàn cảnh campus Trường Đại học FPT Đà Nẵng" fetchpriority="high">
+    <div class="hero-in">
+      <div class="hero-k">Trường Đại học FPT · Campus Đà Nẵng</div>
+      <h1>Kiểm kê tài sản <b>2026</b></h1>
+      <p>Phòng Hành chính · số liệu chốt sổ đến hết 31/10/2026</p>
+      <div class="hero-prog"><b class="num">${pct}%</b><span class="num">đã kiểm<br>${nf.format(all.da)}/${nf.format(all.tong)} dòng</span>${barHTML(all)}</div>
+      <label class="sbox">${ic('Search')}<input class="in" id="gq" type="search" placeholder="Tìm nhanh tài sản ở cả trường: mã hoặc tên…" value="${esc(OV.gq)}" aria-label="Tìm tài sản ở cả trường"></label>
+      <div class="hero-cta"><a class="btn brand" href="#vi-tri">${ic('MapPin')}Kiểm theo phòng</a><a class="btn ghost" href="#don-vi">${ic('Users')}Kiểm theo đơn vị</a></div>
+    </div>
+    <span class="credit">Ảnh: daihoc.fpt.edu.vn</span>
+  </section>
   <div id="gres">${ovSearchHTML()}</div>
-  <div class="branches">
-    <section class="branch" aria-labelledby="b1">
-      <div class="bhead"><span class="bnum">Nhánh 1</span><h2 id="b1">Theo phòng ban</h2><span>Sheet gốc từ kế toán · ${UNITS.length} sheet</span></div>
-      <p class="hint">Bấm một phòng ban để xem tài sản của họ đang nằm ở những phòng nào bên Nhánh 2. Bấm "Mở sheet" để kiểm theo danh sách gốc.</p>
-      <div class="ulist">${main.map(unitRow).join('')}
-        <div class="bldname">Cần kế toán xem lại</div>${rv.map(unitRow).join('')}</div>
-    </section>
-    <section class="branch" aria-labelledby="b2">
-      <div class="bhead"><span class="bnum">Nhánh 2</span><h2 id="b2">Theo vị trí</h2><span>${nRooms} phòng, khu vực · bấm vào phòng để kiểm tại chỗ</span></div>
-      ${OV.sel?`<div class="selbar"><span>Đang xem vị trí của <b>${esc(UNIT[OV.sel].ten)}</b></span><a class="btn sm" href="#dv-${OV.sel}">Mở sheet ${esc(UNIT[OV.sel].sheet)}</a><button class="btn sm" data-sel="">Xem tất cả phòng</button></div>`:''}
-      <div class="bld" role="group" aria-label="Lọc theo tòa">${['all',...BLD_ORDER].map(b=>`<button data-bld="${b}" aria-pressed="${OV.bld===b}">${b==='all'?'Tất cả':b}</button>`).join('')}
-        <label class="chk"><input type="checkbox" id="hideDone" ${OV.hideDone?'checked':''}> Ẩn phòng đã xong</label>
-        <input class="in" id="rq" type="search" placeholder="Tìm phòng, VD: 108" value="${esc(OV.rq)}"></div>
-      <div id="roomgrid">${ovRoomsHTML()}</div>
-    </section>
-  </div>`;
+  <div class="stitle"><h2>Số liệu <strong>kiểm kê</strong></h2></div>
+  <div class="stats">
+    <div class="stat acc"><span class="si">${ic('Boxes')}</span><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b><div class="sub"><span>${nf.format(all.sl)} cái</span><span>${money(all.gia)}</span></div></div>
+    <div class="stat ok"><span class="si">${ic('CircleCheck')}</span><small>Đã kiểm</small><b>${nf.format(all.da)}</b><div class="sub"><span class="num">${pct}%</span>${barHTML(all)}</div></div>
+    <div class="stat warn"><span class="si">${ic('TriangleAlert')}</span><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b><div class="sub"><span>Thiếu ${nf.format(all.thieu)}</span><span>Thừa ${nf.format(all.thua)}</span></div></div>
+    <div class="stat bad"><span class="si">${ic('CircleAlert')}</span><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b><div class="sub"><span>${wait} chờ hỏi</span>${wait?`<a href="#xac-minh">Hỏi đại diện →</a>`:''}</div></div>
+    <div class="stat inf"><span class="si">${ic('MapPin')}</span><small>Chưa có vị trí</small><b>${nf.format(all.novt)}</b><div class="sub"><span>${nRooms} phòng, khu vực</span>${all.novt?`<a href="#phong-${NOROOM}">Xem →</a>`:''}</div></div>
+  </div>
+  <div class="stitle"><h2>Bắt đầu <strong>kiểm kê</strong></h2></div>
+  <div class="mosaic">
+    <div class="mcol l">
+      ${tile('#vi-tri','phong-hoc','Kiểm theo phòng',`${nRooms} phòng, khu vực · đã xong ${doneR} · kiểm tại chỗ mọi tài sản`,'big')}
+      ${tile('#don-vi','hoi-truong','Kiểm theo đơn vị',`${UNITS.length} sheet · ${n.done} hoàn tất · ${n.run} đang kiểm`)}
+      <button type="button" class="tile" data-act="scan"><img src="${IMG}phong-lab.jpg" alt="" loading="lazy"><div class="cap"><p><b>Quét mã tài sản</b><small>Camera đọc QR, mã vạch trên tem</small></p></div></button>
+    </div>
+    <div class="mcol r">
+      ${tile('#xac-minh','can-tin','Hỏi đại diện',wait?`${wait} món chờ phản hồi`:'Không có món nào chờ hỏi')}
+      ${tile('#xuat','thu-vien','Xuất cho kế toán','File Excel gốc + 3 cột kết quả')}
+      ${tile('#phong-'+NOROOM,'sanh-giai-tri','Tài sản chưa có vị trí',`${nf.format(all.novt)} tài sản cần ghi phòng thực tế`,'big')}
+    </div>
+  </div>
+  ${bldSecHTML()}
+  <div style="height:26px"></div>
+  ${chartsHTML(all)}`;
+  const cd=document.getElementById('charts');
+  if(cd){ cd.addEventListener('toggle',()=>{ try{ localStorage.setItem(KEY+'.charts',cd.open?'1':'0'); }catch(e){} if(cd.open&&!CHARTS.length) drawCharts(); else if(!cd.open) killCharts(); }); if(cd.open) drawCharts(); }
+}
+/* khối "theo tòa nhà": rê chuột / chọn bằng bàn phím vào tòa nào thì ảnh bên trái đổi theo tòa đó */
+function bldOn(it){ const sec=it.closest('.bsec'); if(!sec||it.classList.contains('on')) return; const i=it.dataset.i;
+  sec.querySelectorAll('.bitem').forEach(x=>x.classList.toggle('on',x===it)); sec.querySelectorAll('.bimg .bfig').forEach(x=>x.classList.toggle('on',x.dataset.i===i)); }
+app.addEventListener('mouseover',e=>{ const it=e.target.closest&&e.target.closest('.bitem'); if(it) bldOn(it); });
+app.addEventListener('focusin',e=>{ const it=e.target.closest&&e.target.closest('.bitem'); if(it) bldOn(it); });
+
+/* ---------- biểu đồ trang Tổng quan (Chart.js) ---------- */
+let CHARTS=[], CH_DRAWN=false;
+function killCharts(){ CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS=[]; }
+function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+const SEG=[['Đủ / đã xác nhận','--ok',c=>c.du+c.hoso],['Lệch số lượng','--warn',c=>c.lech],['Chưa tìm thấy','--bad',c=>c.nf],['Chưa kiểm','--chart-idle',c=>c.chua]];
+function chartsHTML(all){
+  if(!window.Chart) return '';
+  let open=window.innerWidth>=860; try{ const v=localStorage.getItem(KEY+'.charts'); if(v) open=v==='1'; }catch(e){}  // điện thoại: thu gọn sẵn
+  const pct=all.tong?Math.round(all.da/all.tong*100):0;
+  return `<details class="charts" id="charts" ${open?'open':''}>
+    <summary><span class="chev">${ic('ChevronRight')}</span>${ic('ChartBar')} Biểu đồ tiến độ <span>Bấm vào thanh để mở đơn vị hoặc tòa nhà</span></summary>
+    <div class="cgrid">
+      <div class="ccol">
+        <div class="ccard"><h3>${ic('ChartPie')}Kết quả toàn trường</h3><div class="cs">Theo số dòng tài sản trong biên bản</div>
+          <div class="donut"><div class="cv"><canvas id="chDonut" aria-label="Tỷ lệ kết quả kiểm kê toàn trường"></canvas><div class="mid"><div><b>${pct}%</b><small>đã kiểm</small></div></div></div>
+            <div class="legend">${SEG.map(([l,v,f])=>`<div><i style="background:var(${v})"></i><span>${l}</span><b>${nf.format(f(all))}</b></div>`).join('')}</div></div></div>
+        <div class="ccard"><h3>${ic('Building2')}Theo tòa nhà</h3><div class="cs">Tỷ lệ theo vị trí hiện tại của tài sản</div><div class="cbox" id="cbBld"><canvas id="chBld" aria-label="Tiến độ theo tòa nhà"></canvas></div></div>
+      </div>
+      <div class="ccard"><h3>${ic('Users')}Theo đơn vị (sheet)</h3><div class="cs">Mỗi thanh là 100% số dòng của đơn vị</div><div class="cbox" id="cbUnit"><canvas id="chUnit" aria-label="Tiến độ theo đơn vị"></canvas></div></div>
+    </div></details>`;
+}
+function stackChart(canvas,groups,onPick){
+  const muted=cssv('--muted'), line=cssv('--line'), fg=cssv('--fg');
+  const pc=(v,c)=>c.tong?v/c.tong*100:0;
+  return new Chart(canvas,{type:'bar',
+    data:{labels:groups.map(g=>g.label),datasets:SEG.map(([l,v,f])=>({label:l,data:groups.map(g=>pc(f(g.c),g.c)),raw:groups.map(g=>f(g.c)),backgroundColor:cssv(v),borderWidth:0,barPercentage:.75,categoryPercentage:.9}))},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:CH_DRAWN?false:{duration:450},
+      scales:{x:{stacked:true,min:0,max:100,ticks:{callback:v=>v+'%',color:muted,font:{size:11}},grid:{color:line},border:{display:false}},
+              y:{stacked:true,ticks:{color:fg,font:{size:11.5}},grid:{display:false},border:{display:false}}},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:x=>`${x.dataset.label}: ${nf.format(x.dataset.raw[x.dataIndex])} dòng (${Math.round(x.parsed.x)}%)`,
+                            footer:it=>{ const g=groups[it[0].dataIndex]; return `Tổng ${nf.format(g.c.tong)} dòng · đã kiểm ${nf.format(g.c.da)}`; }}}},
+      onClick:(e,els)=>{ if(els.length&&onPick) onPick(groups[els[0].index]); },
+      onHover:(e,els)=>{ if(e.native&&e.native.target) e.native.target.style.cursor=els.length&&onPick?'pointer':'default'; }}});
+}
+function drawCharts(){
+  if(!window.Chart) return; killCharts();
+  Chart.defaults.font.family=cssv('--f-ui')||'sans-serif';
+  const all=count(ASSETS);
+  const dn=document.getElementById('chDonut');
+  if(dn) CHARTS.push(new Chart(dn,{type:'doughnut',
+    data:{labels:SEG.map(s=>s[0]),datasets:[{data:SEG.map(s=>s[2](all)),backgroundColor:SEG.map(s=>cssv(s[1])),borderColor:cssv('--surface'),borderWidth:2}]},
+    options:{cutout:'72%',responsive:true,maintainAspectRatio:false,animation:CH_DRAWN?false:{duration:450},plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:x=>`${x.label}: ${nf.format(x.parsed)} dòng (${all.tong?Math.round(x.parsed/all.tong*100):0}%)`}}}}}));
+  // theo tòa nhà (vị trí hiện tại)
+  const bl={}; ASSETS.forEach(a=>{ const n=roomOf(a); const k=n?building(n):''; (bl[k]=bl[k]||[]).push(a); });
+  const bg=[...BLD_ORDER.filter(b=>bl[b]).map(b=>({label:b==='Khu khác'?'Khu khác':'Tòa '+b,id:b,c:count(bl[b])})),...(bl['']?[{label:'Chưa có vị trí',id:'',c:count(bl[''])}]:[])];
+  const cb=document.getElementById('cbBld'), cu=document.getElementById('cbUnit');
+  if(cb){ cb.style.height=(bg.length*30+20)+'px';
+    CHARTS.push(stackChart(document.getElementById('chBld'),bg,g=>{ if(!g.id){ location.hash='phong-'+NOROOM; return; } OV.bld=g.id; OV.sel=''; location.hash='vi-tri'; })); }
+  // theo đơn vị
+  const ug=UNITS.filter(u=>BY_UNIT[u.id].length).map(u=>({label:u.sheet.length>22?u.sheet.slice(0,21)+'…':u.sheet,id:u.id,c:count(BY_UNIT[u.id])}));
+  if(cu){ cu.style.height=(ug.length*24+20)+'px';
+    CHARTS.push(stackChart(document.getElementById('chUnit'),ug,g=>{ location.hash='dv-'+g.id; })); }
+  CH_DRAWN=true;
 }
 
 function rowHTML(a){
@@ -824,14 +1353,14 @@ function rowHTML(a){
   const real = a.hoso
     ? `<div class="hoso-note">Tài sản không kiểm đếm được (công trình, dịch vụ). Chỉ cần xác nhận hồ sơ.</div>`
     : `<div class="c-book"><span class="lbl">Sổ sách</span><b>${nf.format(a.sl)}</b></div>
-       <div class="c-real"><span class="lbl">Thực tế</span><div class="stepper"><button type="button" data-act="dec" aria-label="Giảm">−</button><input id="tt-${a.stt}" type="number" min="0" inputmode="numeric" value="${s.tt??''}" placeholder="—" data-f="tt"><button type="button" data-act="inc" aria-label="Tăng">+</button></div></div>`;
+       <div class="c-real"><span class="lbl">Thực tế<em class="sosach"> · sổ sách ${nf.format(a.sl)}</em></span><div class="stepper"><button type="button" data-act="dec" aria-label="Giảm">${ic('Minus')||'−'}</button><input id="tt-${a.stt}" type="number" min="0" inputmode="numeric" value="${s.tt??''}" placeholder="—" data-f="tt"><button type="button" data-act="inc" aria-label="Tăng">${ic('Plus')||'+'}</button></div></div>`;
   const btns = a.hoso
     ? `<button class="btn sm ${r==='hoso'?'':'pri'}" data-act="hoso">${r==='hoso'?'Bỏ xác nhận':'Xác nhận hồ sơ'}</button>`
     : (r==='chua'
-        ? `<button class="btn sm ok" data-act="du">Đủ</button><button class="btn sm bad" data-act="nf">Không thấy</button>`
+        ? `<button class="btn sm ok" data-act="du">${ic('Check')}Đủ</button><button class="btn sm bad" data-act="nf">${ic('CircleAlert')}Không thấy</button>`
         : r==='nf'
-          ? `<button class="btn sm" data-act="nf">Bỏ đánh dấu</button>`
-          : `<button class="btn sm" data-act="clr">Kiểm lại</button>${r!=='du'?'<button class="btn sm ok" data-act="du">Đủ</button>':''}`);
+          ? `<button class="btn sm" data-act="nf">${ic('Undo2')}Bỏ đánh dấu</button>`
+          : `<button class="btn sm" data-act="clr">${ic('RotateCcw')}Kiểm lại</button>${r!=='du'?`<button class="btn sm ok" data-act="du">${ic('Check')}Đủ</button>`:''}`);
   const who=whoLabel(s.by);
   const by=(r!=='chua'&&s.at)?`<span class="by" title="Người ghi kết quả gần nhất">${who?esc(who)+' · ':''}${hm(s.at)}</span>`:'';
   return `<div class="row r-${r}" data-stt="${a.stt}" data-room="${esc(room)}">
@@ -864,6 +1393,10 @@ function filtered(list){
 function listBody(list,groupBy){
   const rows=filtered(list);
   if(!rows.length) return `<div class="empty">Không có tài sản nào khớp bộ lọc.</div>`;
+  return LHEAD+listGroups(rows,groupBy);
+}
+const LHEAD=`<div class="lhead" aria-hidden="true"><span>STT · Mã TSCĐ</span><span>Tài sản</span><span>Phòng thực tế</span><span>Sổ sách</span><span>Thực tế</span><span>Tình trạng</span><span>Kết quả</span></div>`;
+function listGroups(rows,groupBy){
   if(!ui.group) return `<div class="list">${rows.sort((a,b)=>a.stt-b.stt).map(rowHTML).join('')}</div>`;
   const g={}; rows.forEach(a=>{const k=groupBy==='unit'?a.unit:roomOf(a);(g[k]=g[k]||[]).push(a);});
   const keys=Object.keys(g).sort((a,b)=>groupBy==='unit'?UNITS.findIndex(u=>u.id===a)-UNITS.findIndex(u=>u.id===b):((a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'vi',{numeric:true})));
@@ -875,7 +1408,7 @@ function toolsHTML(c,groupLabel,bulk){
   const F=[['all','Tất cả',c.tong],['chua','Chưa kiểm',c.chua],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]];
   const nb=bulkCandidates().length;
   return `<div class="tools">
-    <input class="in search" id="q" type="search" placeholder="Tìm theo mã, tên, phòng…" value="${esc(ui.q)}">
+    <label class="sbox search">${ic('Search')}<input class="in" id="q" type="search" placeholder="Tìm theo mã, tên, phòng…" value="${esc(ui.q)}" aria-label="Tìm tài sản"></label>
     <div class="seg" role="group" aria-label="Lọc theo kết quả">${F.map(([k,l,n])=>`<button data-filter="${k}" aria-pressed="${ui.filter===k}">${l} <em class="num">${n}</em></button>`).join('')}</div>
     <label class="chk"><input type="checkbox" id="grp" ${ui.group?'checked':''}> ${groupLabel}</label>
     ${V.type==='room'&&ui.unit?`<span class="chip">Chỉ đồ của ${esc(UNIT[ui.unit].sheet)}<button data-act="unitall" aria-label="Xem đồ của mọi đơn vị">×</button></span>`:''}
@@ -903,7 +1436,7 @@ function viewUnit(id){
   const u=UNIT[id]; if(!u) return viewOverview();
   const list=BY_UNIT[id]; const c=count(list); const us=unitState(id);
   app.innerHTML=`${demoBanner()}
-  <div class="crumb"><a href="#tong-quan">Tổng quan</a> / Sheet ${esc(u.sheet)}</div>
+  <div class="crumb"><a href="#don-vi">Kiểm theo đơn vị</a> / Sheet ${esc(u.sheet)}</div>
   <div class="uhead">
     <div><h1>${esc(u.ten)}</h1><p class="num">${c.tong} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
     <div class="prog" id="prog">${progHTML(c)}</div>
@@ -935,7 +1468,7 @@ function viewRoom(slug){
   // gợi ý: tài sản chưa có vị trí của các đơn vị đang có đồ ở phòng này
   const sugg = slug===NOROOM?[]:ASSETS.filter(a=>byU[a.unit]&&!roomOf(a)&&res(a)==='chua');
   app.innerHTML=`${demoBanner()}
-  <div class="crumb"><a href="#tong-quan">Tổng quan</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
+  <div class="crumb"><a href="#vi-tri">Kiểm theo phòng</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
   <div class="uhead">
     <div><h1>${esc(name)}</h1><p class="num">${c.tong} dòng của ${Object.keys(byU).length} đơn vị · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
     <div class="prog" id="prog">${progHTML(c)}</div>
@@ -969,8 +1502,8 @@ function srow(a,roomName){
 }
 function progHTML(c){
   const pct=c.tong?Math.round(c.da/c.tong*100):0;
-  return `<div class="big"><span>Tiến độ</span><b class="num">${c.da}/${c.tong} · ${pct}%</b></div>${barHTML(c)}
-  <div class="nums"><span>Đủ <b>${c.du+c.hoso}</b></span><span>Lệch <b>${c.lech}</b></span><span>Chưa thấy <b>${c.nf}</b></span><span>Chưa có vị trí <b>${c.novt}</b></span></div>`;
+  return `<div class="big"><span>Tiến độ kiểm <em class="num">${nf.format(c.da)}/${nf.format(c.tong)} dòng</em></span><b class="num">${pct}%</b></div>${barHTML(c)}
+  <div class="nums"><span class="k ok">Đủ <b>${c.du+c.hoso}</b></span><span class="k warn">Lệch <b>${c.lech}</b></span><span class="k bad">Chưa thấy <b>${c.nf}</b></span><span class="k">Chưa có vị trí <b>${c.novt}</b></span></div>`;
 }
 function endHTML(c,us,ps){
   return `<div class="k"><small>Chưa kiểm</small><b>${c.chua}</b></div><div class="k"><small>Đủ</small><b>${c.du+c.hoso}</b></div><div class="k"><small>Lệch số lượng</small><b>${c.lech}</b></div><div class="k"><small>Chưa tìm thấy</small><b>${c.nf}</b></div><div class="k"><small>Phát sinh</small><b>${ps.length}</b></div>
@@ -997,7 +1530,7 @@ function viewXM(){
   };
   const wait=items.filter(a=>(S.xm[a.stt]?.kq||'cho')==='cho'), done=items.filter(a=>(S.xm[a.stt]?.kq||'cho')!=='cho');
   app.innerHTML=`${demoBanner()}
-  <div class="head"><div><h1>Hỏi đại diện đơn vị</h1><p>Những món cán bộ có mặt không chỉ ra được. Hỏi Trưởng phòng ban hoặc Chủ nhiệm bộ môn rồi ghi lại kết quả.</p></div></div>
+  ${banner('can-tin','Tài sản chưa tìm thấy','Hỏi đại diện đơn vị',`Những món cán bộ có mặt không chỉ ra được. Hỏi Trưởng phòng ban hoặc Chủ nhiệm bộ môn rồi ghi lại kết quả.`)}
   <div class="sect"><h2>Chờ phản hồi</h2><span class="num">${wait.length} món</span></div>
   <div class="list">${wait.length?wait.map(card).join(''):'<div class="empty">Không còn món nào chờ hỏi.</div>'}</div>
   ${done.length?`<div class="sect" style="margin-top:22px"><h2>Đã có kết quả</h2><span class="num">${done.length} món</span></div><div class="list">${done.map(card).join('')}</div>`:''}`;
@@ -1027,9 +1560,9 @@ function ketQuaKeToan(a){
 function viewXuat(){
   const rows=exportRows(); const c=count(rows);
   app.innerHTML=`${demoBanner()}
-  <div class="head"><div><h1>Xuất cho kế toán</h1><p>File tải về giữ nguyên file Excel gốc trong thư mục "dữ liệu cập nhật" (<b>${esc(DATA.file||'')}</b>), chỉ điền cột Thực tế (nếu có) và thêm 3 cột cuối: <b>Kết quả kiểm kê</b>, <b>Vị trí thực tế</b>, <b>Ghi chú kiểm kê</b>.</p></div></div>
+  ${banner('thu-vien','Hoàn tất kiểm kê','Xuất cho kế toán',`File tải về giữ nguyên file Excel gốc trong thư mục "dữ liệu cập nhật" (<b>${esc(DATA.file||'')}</b>), chỉ điền cột Thực tế (nếu có) và thêm 3 cột cuối: <b>Kết quả kiểm kê</b>, <b>Vị trí thực tế</b>, <b>Ghi chú kiểm kê</b>.`)}
   <div class="tools">
-    <button class="btn pri" data-act="xlsx">Tải file Excel cho kế toán</button>
+    <button class="btn pri" data-act="xlsx">${ic('Download')}Tải file Excel cho kế toán</button>
     <span class="num" style="color:var(--muted);font-size:13px">Toàn bộ ${ASSETS.length} tài sản · đã kiểm ${count(ASSETS).da} · lệch ${count(ASSETS).lech} · chưa thấy ${count(ASSETS).nf}${Object.values(S.ps).reduce((n,l)=>n+(l||[]).length,0)?` · phát sinh ${Object.values(S.ps).reduce((n,l)=>n+(l||[]).length,0)} (sheet riêng)`:''}</span>
   </div>
   <div class="sect" style="margin-top:18px"><h2>Xem trước</h2><span>
@@ -1045,14 +1578,15 @@ function viewXuat(){
 
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):null; }
-function render(){ if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else viewOverview(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else viewOverview(); }
 function route(){
   const h=(location.hash||'#tong-quan').slice(1);
-  const nv = h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:{type:'ov'};
+  const nv = h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:{type:'ov'};
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
   V=nv;
   document.querySelectorAll('#nav a').forEach(a=>a.toggleAttribute('aria-current',false));
-  const cur=(V.type==='unit'||V.type==='room')?'tong-quan':h;
+  const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':V.type==='ov'?'tong-quan':h;
+  document.getElementById('navOv').classList.toggle('on',['tong-quan','don-vi','vi-tri'].includes(cur));
   const nav=document.querySelector(`#nav a[data-r="${cur}"]`); if(nav) nav.setAttribute('aria-current','page');
   render(); updateBadge();
 }
@@ -1084,9 +1618,12 @@ function refocusAfter(id,fn){ const el=document.getElementById(id); const pos=el
 
 /* ---------- events ---------- */
 app.addEventListener('click',e=>{
-  const b=e.target.closest('[data-act],[data-filter],[data-sel],[data-bld]'); if(!b) return;
-  if(b.dataset.sel!=null){ OV.sel=(OV.sel===b.dataset.sel)?'':b.dataset.sel; viewOverview(); if(OV.sel&&window.innerWidth<980) document.getElementById('b2').scrollIntoView({block:'start'}); return; }
-  if(b.dataset.bld){ OV.bld=b.dataset.bld; viewOverview(); return; }
+  const b=e.target.closest('[data-act],[data-filter],[data-sel],[data-bld],[data-ust],[data-gobld]'); if(!b) return;
+  if(b.dataset.gobld!=null){ OV.bld=b.dataset.gobld; OV.sel=''; return; }   // để trình duyệt tự chuyển sang #vi-tri
+  if(b.dataset.act==='scan'){ document.getElementById('scanBtn').click(); return; }
+  if(b.dataset.sel!=null){ OV.sel=b.dataset.sel; if(V.type==='rooms') render(); else location.hash='vi-tri'; return; }
+  if(b.dataset.bld){ OV.bld=b.dataset.bld; render(); return; }
+  if(b.dataset.ust){ OV.ust=b.dataset.ust; render(); return; }
   if(b.dataset.filter){ ui.filter=b.dataset.filter; ui.bulkArm=false; render(); return; }
   const act=b.dataset.act; const row=b.closest('[data-stt]'); const stt=row?+row.dataset.stt:null; const a=stt?BY_STT[stt]:null;
   if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
@@ -1126,10 +1663,10 @@ app.addEventListener('click',e=>{
     if(!window.xuatExcelKeToan){ toast('Chưa tải được chức năng xuất Excel'); return; }
     const kq={}; ASSETS.forEach(a=>kq[a.key]=ketQuaKeToan(a));
     const ps=[]; Object.entries(S.ps).forEach(([k,l])=>(l||[]).forEach(p=>ps.push({...p, noi:k.startsWith('p:')?(ROOMNAME[k.slice(2)]||k.slice(2)):(UNIT[k]?.ten||k), cond:(COND.find(c=>c[0]===p.cond)||[])[1]||''})));
-    b.disabled=true; const old=b.textContent; b.textContent='Đang tạo file…';
+    b.disabled=true; const old=b.innerHTML; b.textContent='Đang tạo file…';
     window.xuatExcelKeToan({ketQua:kq, phatSinh:ps, tenFile:(DATA.file||'Kiem ke.xlsx').replace(/\.xlsx$/i,'')})
       .then(n=>toast(`Đã tạo file: ${n} dòng có kết quả`),e=>{ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); })
-      .finally(()=>{ b.disabled=false; b.textContent=old; });
+      .finally(()=>{ b.disabled=false; b.innerHTML=old; });
     return;
   }
   if(act==='copy'){
@@ -1165,12 +1702,14 @@ app.addEventListener('change',e=>{
   if(t.id==='grp'){ ui.group=t.checked; render(); return; }
   if(t.id==='u-sign'){ unitState(V.id).signed=t.checked; save(); return; }
   if(t.id==='xu'){ xuatUnit=t.value; viewXuat(); return; }
+  if(t.id==='selU'){ OV.sel=t.value; render(); return; }
   if(t.id==='hideDone'){ OV.hideDone=t.checked; document.getElementById('roomgrid').innerHTML=ovRoomsHTML(); return; }
 });
 app.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='q'){ ui.q=t.value; ui.bulkArm=false; clearTimeout(app._q); app._q=setTimeout(()=>refocusAfter('q',()=>{ const l=currentList(); document.getElementById('rows').innerHTML=l.length?listBody(l,V.type==='unit'?'room':'unit'):''; refreshRow(-1); }),200); }
   if(t.id==='gq'){ OV.gq=t.value; clearTimeout(app._g); app._g=setTimeout(()=>document.getElementById('gres').innerHTML=ovSearchHTML(),200); }
+  if(t.id==='uq'){ OV.uq=t.value; clearTimeout(app._u); app._u=setTimeout(()=>document.getElementById('ugrid').innerHTML=unitsGridHTML(),150); }
   if(t.id==='rq'){ OV.rq=t.value; clearTimeout(app._r); app._r=setTimeout(()=>document.getElementById('roomgrid').innerHTML=ovRoomsHTML(),150); }
   if(t.id==='aq'){ clearTimeout(app._a); app._a=setTimeout(()=>{ const q=t.value.trim().toLowerCase(); const box=document.getElementById('ares'); if(q.length<2){box.innerHTML='';return;}
       const name=ROOMNAME[V.id]; const hits=ASSETS.filter(a=>roomOf(a)!==name&&(a.ten.toLowerCase().includes(q)||String(a.ma).includes(q))).slice(0,25);
@@ -1188,12 +1727,90 @@ app.addEventListener('submit',e=>{
   save(); render(); toast('Đã thêm tài sản phát sinh');
 });
 
+/* ---------- quét mã QR / mã vạch trên tem tài sản (html5-qrcode), hoặc gõ mã ---------- */
+const BY_MA={}; ASSETS.forEach(a=>{ if(a.ma) BY_MA[String(a.ma).trim().toUpperCase()]=a; });
+const SC={cam:null,last:'',lastAt:0};
+const SD=document.getElementById('scanDlg');
+function scanParse(t){
+  t=String(t||'').trim();
+  // tem có thể chứa đường link, VD .../#ma=ABC hoặc ?ma=ABC
+  try{ if(/^https?:\/\//i.test(t)){ const u=new URL(t); const h=new URLSearchParams((u.hash||'').replace(/^#/,'')); t=u.searchParams.get('ma')||h.get('ma')||t; } }catch(e){}
+  return t.trim();
+}
+function scanFind(t){
+  const k=t.toUpperCase(); if(BY_MA[k]) return [BY_MA[k]]; if(BY_KEY[t]) return [BY_KEY[t]];
+  const q=t.toLowerCase(); if(q.length<2) return [];
+  return ASSETS.filter(a=>String(a.ma).toLowerCase().includes(q)||a.ten.toLowerCase().includes(q)).slice(0,8);
+}
+function scanItem(a){
+  const r=res(a), n=roomOf(a), canDu=r==='chua'&&!a.hoso&&!READONLY&&READY;
+  return `<div class="shit r-${r}" data-stt="${a.stt}">
+    <div><div class="nm">${esc(a.short)}</div><div class="sub"><span class="mono">${esc(a.ma||'không mã')}</span> · STT ${a.stt} · ${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div><div class="sub">${ic('MapPin')} ${n?esc(n):'Chưa có vị trí'}</div></div>
+    <div class="acts"><span class="badge ${r}">${RES_LABEL[r]}</span>${canDu?`<button class="btn sm ok" data-sa="du">${ic('Check')}Đủ</button>`:''}<button class="btn sm" data-sa="room">${ic('MapPin')}Mở phòng</button><button class="btn sm" data-sa="unit">${ic('Users')}Mở đơn vị</button></div></div>`;
+}
+function scanMsg(t,bad){ const m=document.getElementById('scanMsg'); m.className='msg'+(bad?' bad':''); m.textContent=t; }
+function scanShow(raw,fromCam){
+  const t=scanParse(raw); const box=document.getElementById('scanRes');
+  if(!t){ box.innerHTML=''; return; }
+  const hits=scanFind(t);
+  if(!hits.length){ scanMsg(`Không tìm thấy tài sản có mã “${t}”. Nếu là đồ ngoài sổ, ghi vào mục Tài sản phát sinh.`,true); box.innerHTML=''; return; }
+  scanMsg(hits.length===1?(fromCam?'Đã đọc mã: '+t:'Tìm thấy 1 tài sản'):`Có ${hits.length} tài sản khớp “${t}”${hits.length===8?' (hiện 8 món đầu, gõ thêm để thu hẹp)':''}`);
+  box.innerHTML=hits.map(scanItem).join('');
+  if(fromCam&&navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
+}
+async function scanStart(){
+  const cam=document.getElementById('scanCam');
+  if(!window.Html5Qrcode){ cam.textContent='Chưa tải được bộ quét camera. Vẫn có thể gõ mã bên dưới.'; return; }
+  if(!window.isSecureContext){ cam.textContent='Camera chỉ mở được khi trang chạy bằng https. Hãy gõ mã bên dưới.'; return; }
+  cam.textContent='';
+  try{
+    SC.cam=new Html5Qrcode('scanCam');
+    await SC.cam.start({facingMode:'environment'},
+      {fps:10,qrbox:(w,h)=>{ const s=Math.max(160,Math.floor(Math.min(w,h)*.7)); return {width:s,height:Math.floor(s*.75)}; }},
+      text=>{ const now=Date.now(); if(text===SC.last&&now-SC.lastAt<2500) return; SC.last=text; SC.lastAt=now; scanShow(text,true); },
+      ()=>{});
+    if(!SD.open) scanStop();
+  }catch(e){ SC.cam=null; cam.textContent='Không mở được camera. Hãy cho phép trình duyệt dùng camera, hoặc gõ mã bên dưới.'; }
+}
+async function scanStop(){ const c=SC.cam; SC.cam=null; if(c){ try{ if(c.isScanning) await c.stop(); c.clear(); }catch(e){} } }
+function markDu(stt){
+  const a=BY_STT[stt]; snap([stt]); const r=touch(stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=a.vt0; if(!r.cond) r.cond='tot';
+  save(); if(V.type==='ov') softRender(); else refreshRow(stt); flashRes(stt);
+}
+document.getElementById('scanBtn').addEventListener('click',()=>{
+  if(SD.open) return;
+  document.getElementById('scanRes').innerHTML=''; document.getElementById('scanIn').value='';
+  scanMsg('Đưa tem QR hoặc mã vạch vào khung. Không có tem thì gõ Mã TSCĐ bên dưới.');
+  document.getElementById('scanCam').textContent='Đang mở camera…';
+  SD.showModal(); scanStart();
+});
+document.getElementById('scanClose').addEventListener('click',()=>SD.close());
+SD.addEventListener('close',scanStop);
+SD.addEventListener('click',e=>{ if(e.target===SD) SD.close(); });
+document.getElementById('scanForm').addEventListener('submit',e=>{ e.preventDefault(); scanShow(document.getElementById('scanIn').value,false); });
+document.getElementById('scanRes').addEventListener('click',e=>{
+  const b=e.target.closest('[data-sa]'); if(!b) return; const a=BY_STT[+b.closest('[data-stt]').dataset.stt]; if(!a) return;
+  if(b.dataset.sa==='du'){ markDu(a.stt); b.closest('.shit').outerHTML=scanItem(a); scanMsg(`Đã ghi Đủ: ${a.ma||'STT '+a.stt}. Quét món tiếp theo.`); return; }
+  const n=roomOf(a); const h=b.dataset.sa==='room'?'phong-'+(n?slugify(n):NOROOM):'dv-'+a.unit;
+  SD.close();
+  if(location.hash==='#'+h){ ui.q=a.ma||''; render(); } else { pendingQ=a.ma||''; location.hash=h; }
+});
+
+(function(){
+  const dd=document.getElementById('navOv');
+  dd.querySelectorAll('.dd-p a').forEach(a=>a.addEventListener('click',()=>{ dd.classList.remove('open'); dd.classList.add('shut'); a.blur(); }));
+  dd.addEventListener('mouseleave',()=>dd.classList.remove('shut'));
+  dd.querySelector('.dd-t').addEventListener('click',e=>{ if(matchMedia('(hover:none)').matches){ e.preventDefault(); dd.classList.remove('shut'); dd.classList.toggle('open'); } });
+  document.addEventListener('click',e=>{ if(!dd.contains(e.target)) dd.classList.remove('open'); });
+  dd.addEventListener('keydown',e=>{ if(e.key==='Escape'){ dd.classList.add('shut'); document.activeElement.blur(); } });
+  dd.addEventListener('focusin',()=>dd.classList.remove('shut'));
+})();
 function setTopH(){document.documentElement.style.setProperty('--toph',document.getElementById('top').offsetHeight+'px');}
 window.addEventListener('resize',setTopH);
 window.addEventListener('hashchange',route);
 app.addEventListener('focusout',()=>setTimeout(()=>{ if(RQ.wait&&!busyEditing()) flushRemote(); },60));
 window.addEventListener('beforeunload',e=>{ if(WR.busy.size||WR.next.size){ e.preventDefault(); e.returnValue=''; } });
-setTopH(); refreshRooms(); init();
+fillIcons(document); setTopH(); refreshRooms(); init();
 </script>
 
 </body></html>

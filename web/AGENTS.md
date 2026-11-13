@@ -8,6 +8,9 @@
   (chỉ gắn vào `globalThis`, không dùng DOM).
 - Giao diện, thông báo, chú thích: **tiếng Việt**. Màu dùng biến CSS trong `:root` (có bản tối), trang phải dùng được
   trên điện thoại (bề ngang 360px).
+- Giao diện theo phong cách trang daihoc.fpt.edu.vn: màu chủ đạo cam FPT (`--brand:#f37021`, chữ/viền dùng `--accent`),
+  ảnh campus Đà Nẵng ở `web/img/` (bản 1024px lấy từ daihoc.fpt.edu.vn, giữ dòng ghi nguồn ảnh). Ảnh dưới màn hình đầu
+  để `loading="lazy"`. Menu "Tổng quan" xổ ra 3 trang: `#tong-quan`, `#don-vi`, `#vi-tri`.
 - Chèn chữ do người dùng nhập vào HTML luôn qua `esc()`.
 - Trạng thái kiểm kê nằm trong `S`; sau khi đổi `S` phải gọi `save()` rồi làm mới giao diện (`refreshRow`/`render`).
   Không gọi `save()` trong hàm render.
