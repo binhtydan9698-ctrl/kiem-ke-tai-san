@@ -1,0 +1,49 @@
+{
+  // Terminal → Run Task… (hoặc Ctrl+Shift+P → "Tasks: Run Task")
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Kiểm tra (npm test)",
+      "type": "npm",
+      "script": "test",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build",
+      "type": "npm",
+      "script": "build",
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Xem thử trên máy (npm run dev)",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "kiem-ke",
+        "pattern": { "regexp": "^__khong_khop__$" },
+        "background": { "activesBegin": true, "beginsPattern": "^Đọc dữ liệu", "endsPattern": "^Xem thử: http" }
+      }
+    },
+    {
+      "label": "Đẩy dữ liệu Excel lên web",
+      "type": "npm",
+      "script": "day-len-web",
+      "problemMatcher": []
+    },
+    {
+      "label": "Kiểm tra trang trên Vercel",
+      "type": "npm",
+      "script": "kiem-tra-web",
+      "problemMatcher": []
+    },
+    {
+      "label": "Sao lưu kết quả Supabase",
+      "type": "npm",
+      "script": "sao-luu",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -5,3 +5,9 @@ dist
 Thumbs.db
 # file tạm của Excel khi đang mở
 ~$*
+# bản sao lưu kết quả Supabase (chỉ để trên máy, repo công khai)
+sao-luu/
+# lịch sử hội thoại / artifact của Antigravity, Gemini CLI (chỉ để trên máy)
+.gemini/
+.env
+.env.*

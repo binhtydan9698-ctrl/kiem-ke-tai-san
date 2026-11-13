@@ -57,32 +57,68 @@ web/                   Mã nguồn trang
   export.js            Xuất Excel cho kế toán (ExcelJS)
   supabase-db.js       Bộ nối Supabase: đọc/ghi + thời gian thực
   config.js            Địa chỉ Supabase + khoá publishable (công khai)
+  AGENTS.md            Quy ước riêng cho mã nguồn trang (cho trợ lý AI)
 scripts/
   build.mjs            Excel → dist/data/assets.js, chép web/ → dist/
+  kiem-tra.mjs         npm test: soát dữ liệu + chạy thử xuất Excel kế toán
+  kiem-tra-web.mjs     Kiểm tra trang trên Vercel sau khi đẩy
+  sao-luu-supabase.mjs Sao lưu kết quả kiểm về sao-luu/
+  cau-hinh.mjs         Địa chỉ web + đọc cấu hình Supabase cho các script
   watch-excel.mjs      Theo dõi thư mục dữ liệu, tự commit + push
+  excel-file.mjs       Tìm file Excel trong thư mục dữ liệu
   serve.mjs            Máy chủ xem thử cục bộ
 supabase/schema.sql    Bảng kiemke_docs (chạy một lần trong Supabase)
+.agents/skills/        Quy trình cho trợ lý AI của Antigravity
+.vscode/               F5, Run Task, cài đặt editor
+AGENTS.md              Quy tắc chung cho trợ lý AI
 vercel.json            Vercel chạy `npm run build`, phục vụ thư mục dist/
 ```
 
-## Lập trình tiếp (Antigravity IDE hoặc VS Code)
+## Lập trình tiếp trong Antigravity IDE
 
-1. **File → Open Folder…** → chọn thư mục `kiem-ke-tai-san`. Trên máy khác thì chạy:
-   `git clone https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san.git`
-2. Mở Terminal trong IDE:
-   ```bash
-   npm install
-   npm run dev
-   ```
-   Mở http://localhost:3000. Mỗi lần sửa code, chạy lại `npm run dev` rồi tải lại trang.
-3. Sửa xong thì đẩy lên, Vercel sẽ tự triển khai lại:
-   ```bash
-   git add -A
-   git commit -m "Mô tả thay đổi"
-   git push
-   ```
+### Mở dự án
 
-Xem [AGENTS.md](AGENTS.md) để biết các quy ước quan trọng (cũng là hướng dẫn cho trợ lý AI trong IDE).
+1. Mở **Antigravity IDE** → **File → Open Folder…** → chọn `C:\Users\OS\Desktop\kiem-ke-tai-san`
+   (đúng thư mục này, không phải thư mục cha). Trên máy khác: `git clone https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san.git`.
+2. Lần đầu: mở Terminal (<kbd>Ctrl</kbd>+<kbd>`</kbd>) → `npm install`.
+
+### Những gì đã chuẩn bị sẵn cho Antigravity
+
+| File | Tác dụng |
+|---|---|
+| `AGENTS.md`, `web/AGENTS.md` | Quy tắc trợ lý AI luôn đọc: dự án làm gì, lệnh nào, điều gì không được làm (khoá Supabase, repo công khai…) |
+| `.agents/skills/` | 4 quy trình trợ lý AI tự dùng khi phù hợp: **xem-thu-cuc-bo**, **cap-nhat-du-lieu-excel**, **trien-khai-len-web**, **du-lieu-ket-qua-supabase** |
+| `.vscode/launch.json` | Bấm **F5** → build và mở trang xem thử trên trình duyệt |
+| `.vscode/tasks.json` | **Terminal → Run Task…**: Kiểm tra, Build, Xem thử, Đẩy dữ liệu Excel, Kiểm tra trang Vercel, Sao lưu Supabase |
+| `.vscode/settings.json`, `.editorconfig` | UTF-8, thụt lề 2 dấu cách, ẩn `dist/`, `node_modules/` khỏi tìm kiếm |
+
+### Cách nhờ trợ lý AI (Agent) trong Antigravity
+
+Mở khung **Agent** ở thanh bên, gõ yêu cầu bằng tiếng Việt, ví dụ:
+- "Thêm nút in biên bản cho từng đơn vị, xem thử rồi đẩy lên web."
+- "Tôi vừa sửa file Excel, đưa lên web giúp tôi."
+- "Sao lưu kết quả kiểm kê hôm nay."
+
+Trợ lý đã được dặn: chạy `npm test` sau mỗi thay đổi, hỏi bạn trước khi đẩy lên GitHub hay sửa/xoá dữ liệu Supabase.
+
+### Lệnh hay dùng
+
+| Lệnh | Việc |
+|---|---|
+| `npm test` | Kiểm tra toàn bộ: đọc Excel, soát dữ liệu, chạy thử xuất file kế toán |
+| `npm run dev` | Xem thử ở http://localhost:3000 (sửa code thì chạy lại) |
+| `npm run kiem-tra-web` | Sau khi đẩy lên: kiểm tra trang trên Vercel |
+| `npm run sao-luu` | Sao lưu kết quả kiểm kê về thư mục `sao-luu/` (không lên GitHub) |
+
+Đẩy thay đổi code lên (Vercel tự triển khai lại):
+```bash
+git add -A
+git commit -m "Mô tả thay đổi"
+git push
+```
+
+> **Lưu ý:** bản xem thử trên máy dùng **chung dữ liệu Supabase** với trang thật. Bấm thử "Đủ"/"Không thấy" sẽ hiện
+> ngay trên máy của các tổ khác. Lỡ bấm thì bấm "Kiểm lại" để trả về như cũ.
 
 ## Lưu ý
 

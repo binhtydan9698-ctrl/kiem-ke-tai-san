@@ -1,0 +1,29 @@
+{
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.exclude": {
+    "**/node_modules": true
+  },
+  "search.exclude": {
+    "dist": true,
+    "node_modules": true,
+    "sao-luu": true,
+    "package-lock.json": true
+  },
+  "files.watcherExclude": {
+    "**/dist/**": true,
+    "**/node_modules/**": true
+  },
+  "files.readonlyInclude": {
+    "dist/**": true
+  },
+  "[bat]": {
+    "files.eol": "\r\n"
+  },
+  "npm.packageManager": "npm",
+  "git.inputValidation": false
+}

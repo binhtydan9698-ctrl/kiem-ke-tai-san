@@ -1,0 +1,40 @@
+{
+  // Bấm F5 (Run and Debug) để build và mở trang xem thử
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Xem thử trang (mở trình duyệt)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "serverReadyAction": {
+        "pattern": "Xem thử: (https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      }
+    },
+    {
+      "name": "Gỡ lỗi trang trong Chrome",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "console": "integratedTerminal",
+      "serverReadyAction": {
+        "pattern": "Xem thử: (https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome",
+        "webRoot": "${workspaceFolder}/dist"
+      }
+    },
+    {
+      "name": "Chạy kiểm tra (npm test)",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/kiem-tra.mjs",
+      "console": "integratedTerminal"
+    }
+  ]
+}

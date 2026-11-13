@@ -99,7 +99,7 @@ const meta = { version, file: path.basename(file), sheets, count: rows.length, b
 
 fs.rmSync(DIST, { recursive: true, force: true });
 fs.mkdirSync(path.join(DIST, 'data'), { recursive: true });
-fs.cpSync(path.join(ROOT, 'web'), DIST, { recursive: true });
+fs.cpSync(path.join(ROOT, 'web'), DIST, { recursive: true, filter: s => !/\.md$/i.test(s) });   // không phát hành AGENTS.md
 fs.writeFileSync(path.join(DIST, 'data', 'assets.js'),
   `// Sinh tự động từ "${path.relative(ROOT, file).replace(/\\/g, '/')}" — đừng sửa tay, sửa file Excel.\n` +
   `window.KIEMKE_DATA=${JSON.stringify({ ...meta, rows })};\n`);
