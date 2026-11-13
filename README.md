@@ -10,7 +10,7 @@ chung trên Supabase, danh sách tài sản lấy từ **một file Excel** tron
 
 | Muốn làm | Cách làm |
 |---|---|
-| Sửa danh sách tài sản | Mở `dữ liệu cập nhật/Kiểm kê tài sản 2026.xlsx`, sửa, **Lưu** |
+| Sửa danh sách tài sản | Mở `dữ liệu cập nhật/BBKK_FPTU_2026_ver01_capnhat.xlsx`, sửa, **Lưu** |
 | Web tự cập nhật mỗi lần lưu Excel | Bấm đúp **`Tự động cập nhật.bat`**, để cửa sổ đó mở |
 | Đẩy lên web một lần (không để cửa sổ chạy) | Bấm đúp **`Cập nhật lên web.bat`** sau khi lưu Excel |
 | Xem thử trên máy trước khi đẩy | Bấm đúp **`Xem thử trên máy.bat`** → http://localhost:3000 |
@@ -20,18 +20,29 @@ Sau khi đẩy, khoảng 1 phút sau web có dữ liệu mới. Ai đang mở tr
 
 ### Quy tắc file Excel
 
-- Trang đọc mọi sheet có dòng tiêu đề chứa **Mã TSCĐ** và **Tên TSCĐ**. Cột nhận diện theo **tên tiêu đề**, không theo vị trí:
-  `STT`, `Mã TSCĐ`, `Tên TSCĐ`, `Sổ sách` (hoặc `Số lượng`), `Thực tế`, `Ngày bắt đầu SD`, `Nguyên giá`, `Ghi chú` (đơn vị quản lý), `Vị trí`.
+File hiện tại là biên bản gốc 2026: mỗi đơn vị một sheet (GD, AI, MC, Phòng CNTT…), cộng với sheet **Xem lại** và sheet **Tổng hợp**.
+
+- Trang đọc **mọi sheet** có dòng tiêu đề chứa **Mã TSCĐ** và **Tên TSCĐ**. Tiêu đề 1 dòng hay 2 dòng đều được
+  (VD: "Số lượng" ở trên, bên dưới tách thành "Sổ sách" và "Thực tế"). Cột nhận diện theo **tên tiêu đề**, không theo vị trí:
+  `STT`, `Mã TSCĐ`, `Tên TSCĐ`, `Sổ sách`, `Thực tế`, `Ngày bắt đầu SD`, `Nguyên giá`, `Ghi chú` (đơn vị quản lý), `Vị trí`.
+- Cùng một tài sản có mặt ở nhiều sheet được **gộp theo Mã TSCĐ**. Sheet **Tổng hợp là gốc**; ô nào ở Tổng hợp để trống
+  (VD: Vị trí) thì trang lấy từ sheet đơn vị. Nếu hai sheet ghi khác nhau, trang dùng số ở Tổng hợp và
+  `Cập nhật lên web.bat` sẽ liệt kê các ô lệch để bạn biết.
+  → **Thêm tài sản mới:** thêm vào Tổng hợp (và sheet đơn vị nếu muốn). **Sửa thông tin:** sửa ở Tổng hợp,
+  hoặc chỉ ở sheet đơn vị nếu ô đó ở Tổng hợp đang trống.
 - Mỗi tài sản được nhận diện bằng **Mã TSCĐ**. Kết quả đã kiểm gắn với mã, nên thêm, xoá hay đổi thứ tự dòng đều an toàn.
   **Đừng đổi mã của tài sản đã kiểm.**
+- Dòng **TỔNG CỘNG** và dòng chỉ có phần tên bị xuống dòng (không mã, không số lượng, không nguyên giá) không bị tính là tài sản.
+  Phần tên đó được nối vào tài sản có STT liền trước.
 - Đơn vị mới trong cột `Ghi chú` sẽ tự xuất hiện trên web.
 - Chỉ để **một** file `.xlsx` trong thư mục. Nếu có nhiều file, trang dùng file sửa gần nhất.
 - Nếu file Excel lỗi (không đọc được), script **không** đẩy lên, nên web vẫn giữ bản cũ.
 
 ### File cho kế toán
 
-File tải về là **chính file Excel gốc**, giữ nguyên các sheet, cột và định dạng. Trang chỉ:
-- điền cột `Thực tế` / `SL thực tế` (nếu file có cột đó),
+File tải về là **chính file Excel gốc**, giữ nguyên các sheet, cột, công thức và định dạng. Ở **mọi sheet** danh sách
+(từng đơn vị, Xem lại, Tổng hợp), trang chỉ:
+- điền cột `Thực tế` (nếu file có cột đó; tài sản dùng chung chia nhiều đơn vị chỉ điền ở dòng có số sổ sách khớp),
 - thêm 3 cột cuối: **Kết quả kiểm kê** (Chưa kiểm / Đủ / Thiếu n / Thừa n / Chưa tìm thấy / Xác nhận mất…),
   **Vị trí thực tế**, **Ghi chú kiểm kê** (tình trạng hỏng, ghi chú tại chỗ, câu trả lời của đại diện),
 - thêm sheet **Tài sản phát sinh** nếu có tài sản ngoài sổ.
@@ -42,6 +53,7 @@ File tải về là **chính file Excel gốc**, giữ nguyên các sheet, cột
 dữ liệu cập nhật/      File Excel nguồn (sửa ở đây)
 web/                   Mã nguồn trang
   index.html           Giao diện + logic kiểm kê
+  excel-rules.js       Quy tắc đọc Excel (tiêu đề, dòng tổng, khoá) — dùng chung cho build và xuất
   export.js            Xuất Excel cho kế toán (ExcelJS)
   supabase-db.js       Bộ nối Supabase: đọc/ghi + thời gian thực
   config.js            Địa chỉ Supabase + khoá publishable (công khai)

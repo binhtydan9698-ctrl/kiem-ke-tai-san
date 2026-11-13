@@ -11,6 +11,7 @@
 <script src="supabase-db.js"></script>
 <!-- Danh sách tài sản (sinh khi build từ file Excel) và chức năng xuất Excel cho kế toán -->
 <script src="data/assets.js"></script>
+<script src="excel-rules.js"></script>
 <script src="export.js"></script>
 </head>
 <body>
@@ -1021,7 +1022,7 @@ function ketQuaKeToan(a){
   else if(r!=='chua'||s.phong!=null) vt=roomOf(a);
   const cond=s.cond&&s.cond!=='tot'?(COND.find(c=>c[0]===s.cond)||[])[1]:'';
   const gc=[cond, s.note, x&&x.phanhoi?'Đại diện trả lời: '+x.phanhoi:''].filter(Boolean).join('; ');
-  return {kq, vt, gc, thucTe: cellE(a), r};
+  return {kq, vt, gc, thucTe: cellE(a), sl: a.sl, r};
 }
 function viewXuat(){
   const rows=exportRows(); const c=count(rows);

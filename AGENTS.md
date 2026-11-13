@@ -20,8 +20,11 @@ dữ liệu chung trên Supabase. Người dùng làm việc bằng **tiếng Vi
 
 - **Khoá lưu trên máy chủ của `rows` và `xm` là `a.key` (= Mã TSCĐ), không phải STT.** Ánh xạ qua `docId()` / `localKey()`.
   Không đổi cách tạo `key` nếu không viết kèm bước chuyển dữ liệu cũ trên Supabase.
-- Cách nhận diện tiêu đề và tạo `key` phải **giống hệt nhau** ở `scripts/build.mjs` và `web/export.js`.
-  Sửa một bên thì sửa cả bên kia.
+- Nhận diện tiêu đề (1 hoặc 2 dòng, ô gộp), dòng TỔNG CỘNG, dòng tên bị xuống dòng và cách tạo `key` nằm DUY NHẤT trong
+  `web/excel-rules.js` (`globalThis.KIEMKE_EXCEL`), được cả `scripts/build.mjs` (Node) và `web/export.js` (trình duyệt) dùng.
+  Đừng chép logic này sang chỗ khác.
+- File Excel gốc có nhiều sheet chứa cùng một tài sản; build gộp theo `key`, sheet có tên "Tổng hợp" được ưu tiên,
+  ô trống lấy từ sheet khác. Export điền kết quả vào MỌI lần xuất hiện của tài sản.
 - Không sửa tay `dist/`; thư mục này sinh khi build và đã nằm trong `.gitignore`.
 - `web/config.js` chỉ chứa khoá **publishable/anon** (công khai). Không bao giờ đưa khoá `secret`/`service_role` vào repo.
 - Thư viện ngoài nạp từ CDN với phiên bản cố định (supabase-js 2.118.0, exceljs 4.4.0). Không dùng tag `@latest`.
