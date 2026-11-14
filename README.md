@@ -1,7 +1,10 @@
-# Kiểm kê tài sản FPTU ĐN — bản web
+# Quản lý tài sản FPTU ĐN — bản web
 
-Trang kiểm kê tài sản 2026 (Phòng Hành chính): nhiều tổ cùng kiểm trên điện thoại hoặc máy tính, kết quả lưu
-chung trên Supabase, danh sách tài sản lấy từ **một file Excel** trong thư mục `dữ liệu cập nhật/`.
+Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở trang chủ hoặc nút tên ở góc trái:
+
+- **Kiểm kê tài sản 2026** (đang dùng): nhiều tổ cùng kiểm trên điện thoại hoặc máy tính, kết quả lưu chung trên
+  Supabase, danh sách tài sản lấy từ **một file Excel** trong thư mục `dữ liệu cập nhật/`.
+- **Quản lý mã QR tài sản**: đang xây dựng.
 
 - Web: https://kiem-ke-tai-san-sigma.vercel.app
 - Mã nguồn: https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san

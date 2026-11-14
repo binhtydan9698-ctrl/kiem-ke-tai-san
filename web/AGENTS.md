@@ -17,6 +17,11 @@
 - Giao diện theo phong cách trang daihoc.fpt.edu.vn: màu chủ đạo cam FPT (chữ/viền dùng `--accent`),
   ảnh campus Đà Nẵng ở `web/img/` (bản 1024px lấy từ daihoc.fpt.edu.vn; người dùng yêu cầu không hiện dòng ghi nguồn ảnh trên trang). Ảnh dưới màn hình đầu
   để `loading="lazy"`. Menu "Tổng quan" xổ ra 3 trang: `#tong-quan`, `#don-vi`, `#vi-tri`.
+- Trang gồm 2 phần ngang hàng dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
+  **Kiểm kê** (mọi trang còn lại) và **Mã QR** (`#ma-qr`, `viewQR` trong `ma-qr.js`). `setMod()` đổi tên/biểu tượng ở
+  góc trái (`#mods`) và `body[data-mod=hub|kk|qr]`; menu `#nav` và nút Quét mã chỉ hiện ở phần Kiểm kê.
+  Mã của phần Mã QR viết trong `ma-qr.js` (dùng lại `ASSETS`, `banner()`, `ic()`, `esc()`… của `index.html`); thêm
+  file `.js` mới thì thêm vào `MA_TRANG` trong `scripts/kiem-tra-web.mjs`.
 - Chèn chữ do người dùng nhập vào HTML luôn qua `esc()`.
 - Trạng thái kiểm kê nằm trong `S`; sau khi đổi `S` phải gọi `save()` rồi làm mới giao diện (`refreshRow`/`render`).
   Không gọi `save()` trong hàm render.

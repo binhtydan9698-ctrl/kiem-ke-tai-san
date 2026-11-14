@@ -5,8 +5,14 @@ Quy ước riêng cho mã nguồn trang: [web/AGENTS.md](web/AGENTS.md). Quy tr�
 
 ## Dự án
 
-Trang kiểm kê tài sản 2026 của Phòng Hành chính, Phân hiệu ĐH FPT Đà Nẵng. Trang tĩnh (HTML + JS thuần) trên Vercel,
-kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel biên bản trong `dữ liệu cập nhật/`.
+Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT Đà Nẵng, gồm 2 phần ngang hàng (trang chủ `#trang-chu`
+chọn phần, nút tên ở góc trái chuyển phần):
+- **Kiểm kê tài sản 2026** (đang dùng): mọi trang `#tong-quan`, `#don-vi`, `#vi-tri`, `#dv-…`, `#phong-…`, `#xac-minh`,
+  `#xuat`, `#lich-su`; mã trong `web/index.html`.
+- **Quản lý mã QR tài sản** (đang xây dựng, `#ma-qr`): mã viết trong `web/ma-qr.js`.
+
+Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
+biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 
 - Web: https://kiem-ke-tai-san-sigma.vercel.app · Repo (công khai): https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
 - Người dùng là cán bộ hành chính, **không phải lập trình viên**, làm việc bằng **tiếng Việt**: trả lời, giao diện,
