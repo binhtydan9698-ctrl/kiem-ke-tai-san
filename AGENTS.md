@@ -22,7 +22,7 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
 Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
 biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 
-- Web: https://kiem-ke-tai-san-sigma.vercel.app · Repo (công khai): https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
+- Web: https://quan-ly-tai-san-fptudn.vercel.app (tên cũ kiem-ke-tai-san-sigma.vercel.app vẫn mở được) · Repo (công khai): https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
 - Người dùng là cán bộ hành chính, **không phải lập trình viên**, làm việc bằng **tiếng Việt**: trả lời, giao diện,
   chú thích code, thông điệp commit đều bằng tiếng Việt; giải thích bằng lời thường, tránh thuật ngữ khi không cần.
 
@@ -36,6 +36,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
 | `npm run sao-luu` | Sao lưu kết quả Supabase về `sao-luu/` (chỉ đọc) |
+| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
+| `npm run theo-doi-supabase` | Đọc thử Supabase (chỉ đọc). GitHub Actions chạy mỗi sáng 8h (`.github/workflows/theo-doi-supabase.yml`): giữ Supabase không bị tạm dừng; không đọc được thì lần chạy báo lỗi → GitHub gửi mail tới email nhận thông báo của tài khoản chủ repo (người dùng muốn nhận ở địa chỉ email công việc, không ghi địa chỉ vào repo công khai). |
 
 ## Skills trong `.agents/skills/`
 
@@ -56,7 +58,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
    sổ, ai mua): trang xếp vào 3 nhóm riêng (id `XLPB`, `XL`, `CBG`), luôn để "Chưa có vị trí" (bỏ qua cột Vị trí Excel,
    chỉ hiện làm gợi ý) cho tới khi cán bộ kiểm trực tiếp rồi phân bổ vào các sheet đơn vị GD … FSC3.
 3. `web/index.html` dựng `ASSETS` từ `KIEMKE_DATA.rows`. Trạng thái kiểm kê trong `S = {rows, xm, units, ps}`:
-   - `S.rows[stt]`: kết quả từng tài sản `{tt, nf, hs, phong, cond, note, at, by}`
+   - `S.rows[stt]`: kết quả từng tài sản `{tt, nf, hs, phong, cond, sd, note, at, by}` — `cond` = Tình trạng (hư hỏng ra sao,
+     `COND`), `sd` = Trạng thái sử dụng (`SUDUNG`: '' Đang sử dụng, kho, sua, muon, cho_tl, da_tl, bg), hai mục TÁCH RIÊNG.
    - `S.xm[stt]`: mục "Tài sản thất lạc" (`#xac-minh`, hỏi đại diện phòng ban) `{kq, cach, phanhoi, phong}`
    - `S.units[id]`: buổi kiểm của đơn vị · `S.ps[key]`: tài sản phát sinh
 4. Đồng bộ: `save()` so `S` với `LAST` rồi ghi từng tài liệu qua `DB.doc(path).set()`; `listen(col)` nhận thay đổi.
@@ -77,7 +80,7 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
   `web/export.js` (trình duyệt) dùng. Đừng chép logic này sang chỗ khác.
 - Tài sản có mặt ở nhiều sheet: build gộp theo `key`, sheet tên "Tổng hợp" được ưu tiên, ô trống lấy từ sheet khác.
   Export điền kết quả vào MỌI lần xuất hiện của tài sản.
-- **Quy tắc mã QR (người dùng đặt):** mỗi mã QR là đường link `https://kiem-ke-tai-san-sigma.vercel.app/#ts-<a.key>` mở thẳng
+- **Quy tắc mã QR (người dùng đặt):** mỗi mã QR là đường link `https://quan-ly-tai-san-fptudn.vercel.app/#ts-<a.key>` mở thẳng
   trang của đúng một tài sản trong phần Kiểm kê (không có kiểu "chỉ Mã TSCĐ"). Nội dung mã và cách đọc lại nằm DUY NHẤT trong
   `web/qr-rules.js` (`globalThis.KIEMKE_QR`), dùng chung cho trang và `npm test` (bước 4). Không đổi dạng link, không bỏ
   đường dẫn `#ts-`, không đổi cách tạo `key`: tem đã dán sẽ không còn khớp. Tài sản chưa có Mã TSCĐ thì chưa cấp mã QR.
@@ -86,6 +89,11 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
   cũ vào `cu`); tài sản bị xoá khỏi file BBKK vẫn giữ (có ngày `xoa`), quét tem cũ mở trang "đã xoá khỏi BBKK". **Không xoá
   dòng nào trong sổ, không sửa tay**; commit cùng file Excel (`npm run day-len-web` commit cả thư mục). `npm test` bước 5
   soát sổ không mất mã nào so với bản trên GitHub.
+- **Quy tắc lệch 1 chữ (người dùng đặt):** mã QR đi theo thông tin tài sản. Hai dòng lệch dù 1 chữ (tên, ngày ghi sổ, nguyên
+  giá) là 2 tài sản khác nhau, bắt buộc khác mã QR; tài sản số lượng lớn (cùng một dòng) dùng chung 1 mã QR. Cùng Mã TSCĐ mà
+  lệch thông tin giữa các sheet → build báo ✗ và chặn in tem mã đó (`chan` trong `dist/data/so-ma-qr.js`), `npm test` ✗;
+  khác chỉ ở khoảng trắng thì không tính. Thông tin một mã đổi so với lần trước → Sổ mã QR cảnh báo, cất thông tin cũ vào `cu`.
+- Tem in mặc định chỉ có tiêu đề, Mã TSCĐ, tên (không in phòng, đơn vị vì có thể thay đổi).
 - Không sửa tay `dist/` (sinh khi build, đã `.gitignore`). Không tự sửa file Excel trừ khi người dùng yêu cầu.
 - `web/config.js` chỉ chứa khoá **publishable/anon** (công khai). Không bao giờ đưa khoá `secret`/`service_role` vào repo.
 - Repo **công khai**: không commit `sao-luu/`, `.gemini/`, `.env`, dữ liệu cá nhân hay khoá bí mật.
@@ -95,6 +103,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 ## Trước khi báo "xong"
 
 1. `npm test` → "✓ Tất cả đều đạt".
-2. Thay đổi giao diện: xem thử bằng `npm run dev` (skill `xem-thu-cuc-bo`).
+2. Thay đổi giao diện: `npm run thu-giao-dien` → "✓ Giao diện: tất cả đều đạt" (thêm kịch bản vào
+   `scripts/thu-giao-dien-kich-ban.js` cho chức năng mới); xem thử bằng `npm run dev` (skill `xem-thu-cuc-bo`).
+   Lỗi nhỏ tự tìm thấy thì tự sửa (chỉ hỏi khi quan trọng); không tự làm các gợi ý người dùng chưa yêu cầu.
 3. Đã push: `npm run kiem-tra-web`.
 4. Nói rõ cho người dùng điều gì đã làm, điều gì chưa kiểm tra được.

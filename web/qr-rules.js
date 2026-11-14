@@ -3,14 +3,14 @@
  * Chỉ gắn vào globalThis.KIEMKE_QR, không dùng DOM.
  *
  * QUY TẮC: mỗi mã QR là đường link mở thẳng trang của đúng một tài sản trong phần Kiểm kê:
- *   https://kiem-ke-tai-san-sigma.vercel.app/#ts-<khoá>
+ *   https://quan-ly-tai-san-fptudn.vercel.app/#ts-<khoá>
  *   → quét bằng nút Quét mã của app hay camera điện thoại thường đều mở đúng tài sản.
  * <khoá> là a.key (= Mã TSCĐ), đúng khoá lưu kết quả trên Supabase và khoá của Sổ mã QR (scripts/so-ma-qr.mjs):
  * mã đã cấp không cấp lại cho tài sản khác; tài sản bị xoá khỏi file BBKK vẫn giữ trong sổ.
  * Đổi dạng link hoặc cách tạo khoá thì tem đã in sẽ không còn khớp.
  */
 (function (g) {
-  const WEB = 'https://kiem-ke-tai-san-sigma.vercel.app/';
+  const WEB = 'https://quan-ly-tai-san-fptudn.vercel.app/';
   const PRE = 'ts-';
 
   function payload(key) {

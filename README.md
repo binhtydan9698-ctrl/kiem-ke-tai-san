@@ -12,7 +12,7 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 
 Đầu trang có 3 phần chính **Kiểm kê · Mã QR · Lịch sử** (trên điện thoại nằm ở thanh dưới cùng, nút Quét mã ở giữa).
 
-- Web: https://kiem-ke-tai-san-sigma.vercel.app
+- Web: https://quan-ly-tai-san-fptudn.vercel.app
 - Mã nguồn: https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
 
 ## Dùng hằng ngày
@@ -27,6 +27,10 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | Lấy file cho kế toán | Trên web: **Xuất cho kế toán → Tải file Excel cho kế toán** |
 | In tem mã QR | Trên web: **Quản lý mã QR tài sản** → chọn tài sản, chỉnh tem → **Tải PDF để in** (nhà in, máy in tem), ảnh PNG, Excel/CSV (phần mềm máy in tem) hoặc **In ngay** |
 | Quét tem để kiểm | Bấm **Quét mã**, đưa tem vào camera → trang mở thẳng tài sản đó để bấm Đủ / Không thấy |
+| Đứng trong phòng quét liên tục | Trang phòng → **Quét liên tục ở phòng này**: quét tem nào ghi Đủ tem đó; tài sản phòng khác, số lượng > 1 thì hỏi trước; mỗi món có Hoàn tác |
+| Ghi tài sản cất kho, cho mượn, chờ thanh lý, đã bàn giao… | Dòng tài sản → **Chi tiết, ghi chú** → ô **Trạng thái sử dụng** (tách riêng với Tình trạng hư hỏng) |
+| Biết khi Supabase bị tạm dừng | GitHub tự đọc thử mỗi sáng 8h; không đọc được thì gửi mail báo (tới email nhận thông báo của tài khoản GitHub) |
+| Thử giao diện tự động | `npm run thu-giao-dien` (không đụng dữ liệu chung) |
 | Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử → Thao tác trên app** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |
 | Tài sản vào sổ khi nào, từ đâu | **Lịch sử → Nhập sổ** (kế toán qua file BBKK hay cán bộ Hành chính ghi nhận; **Tải Excel**) |
 | Tra một tài sản có từ khi nào, đã làm gì | **Lịch sử → Lý lịch tài sản**, hoặc nút **Lý lịch tài sản** ở trang của tài sản |

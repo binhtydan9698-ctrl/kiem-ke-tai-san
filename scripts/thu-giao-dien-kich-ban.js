@@ -1,0 +1,167 @@
+/*
+ * Kịch bản thử giao diện — chạy TRONG trình duyệt. scripts/thu-giao-dien.mjs chép file này vào dist/ và mở trang thử
+ * ở chế độ CHỈ LƯU TRÊN MÁY (không đọc, không ghi Supabase). Mỗi kịch bản chọn bằng ?<tên>, kết quả ghi vào #dump.
+ */
+(async () => {
+  const W = ms => new Promise(r => setTimeout(r, ms));
+  const kq = [], err = [];
+  const ok = (dk, msg) => kq.push([!!dk, msg]);
+  window.addEventListener('error', e => err.push(String(e.message)));
+  window.addEventListener('unhandledrejection', e => err.push('promise: ' + String(e.reason && e.reason.message || e.reason)));
+  const xong = () => { const d = document.createElement('script'); d.type = 'application/json'; d.id = 'dump'; d.textContent = JSON.stringify({ done: true, kq, err }); document.body.appendChild(d); };
+  const go = async h => { location.hash = h; await W(450); };
+  const until = async (f, ms = 15000) => { const t = Date.now(); while (Date.now() - t < ms) { try { if (f()) return true; } catch (e) { } await W(100); } return false; };
+  const txt = id => (document.getElementById(id) || {}).textContent || '';
+  const hd = () => ({ mod: document.body.dataset.mod, sec: [...document.querySelectorAll('.sec a[aria-current]:not(.sec-home)')].map(a => a.id).join(), sub: [...document.querySelectorAll('.top2 a[aria-current]')].map(a => a.dataset.r).join(), top2: getComputedStyle(document.querySelector('.top2')).display });
+  const loadScript = src => new Promise((ok2, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok2; s.onerror = () => no(new Error('không tải được ' + src)); document.head.appendChild(s); });
+  const KB = {};
+
+  KB['dau-trang'] = async () => {
+    await go('trang-chu'); let h = hd();
+    ok(h.mod === 'hub' && h.top2 === 'none', 'trang chủ: ẩn hàng menu con');
+    ok([...document.querySelectorAll('#app .tile b')].map(b => b.textContent).join('|') === 'Kiểm kê tài sản 2026|Quản lý mã QR tài sản|Lịch sử', 'trang chủ có đủ 3 phần');
+    ok(document.querySelector('.lgo img') && document.querySelector('.lgo img').naturalWidth === 960, 'logo FPT University tải được (960×375)');
+    for (const [hash, mod, sec, sub] of [['tong-quan', 'kk', 'swKK', 'tong-quan'], ['vi-tri', 'kk', 'swKK', 'vi-tri'], ['xac-minh', 'kk', 'swKK', 'xac-minh'], ['xuat', 'kk', 'swKK', 'xuat'],
+      ['ma-qr', 'qr', 'swQR', 'ma-qr'], ['so-ma-qr', 'qr', 'swQR', 'so-ma-qr'], ['lich-su', 'ls', 'swLS', 'lich-su'], ['nhap-so', 'ls', 'swLS', 'nhap-so'], ['ly-lich', 'ls', 'swLS', 'ly-lich']]) {
+      await go(hash); h = hd();
+      ok(h.mod === mod && h.sec === sec && h.sub === sub && h.top2 !== 'none', `#${hash}: tô đúng phần và mục con`);
+    }
+    await go('dv-GD'); document.getElementById('swLS').click(); await W(400); document.getElementById('swKK').click(); await W(400);
+    ok(location.hash === '#dv-GD', 'bấm lại phần Kiểm kê: về đúng trang đang xem dở');
+    await go('ts-6497474'); const ab = [...document.querySelectorAll('.tsx-go a.btn')].find(a => !a.classList.contains('pri'));
+    ok(ab && getComputedStyle(ab).color === getComputedStyle(document.body).color, 'nút dạng đường link dùng đúng màu chữ của trang');
+  };
+
+  KB['quet-ma'] = async () => {
+    const quet = async (t, cam) => { await go('tong-quan'); document.getElementById('scanRes').innerHTML = ''; scanShow(t, cam); await W(400); return decodeURIComponent(location.hash); };
+    ok(KIEMKE_QR.payload('1').startsWith('https://quan-ly-tai-san-fptudn.vercel.app/#ts-'), 'mã QR dùng tên miền quan-ly-tai-san-fptudn.vercel.app');
+    ok(await quet(KIEMKE_QR.payload('5467321'), true) === '#ts-5467321', 'quét tem (đường link) mở thẳng trang tài sản');
+    ok(await quet('5467321', true) === '#ts-5467321', 'mã chỉ có số (gõ tay, mã vạch) khớp đúng → mở tài sản');
+    ok(await quet('http://localhost:3000/#ts-5457865', true) === '#ts-5457865', 'tem có tên miền khác vẫn mở đúng tài sản');
+    let h = await quet(KIEMKE_QR.WEB + '#ts-9999999', true);
+    ok(h === '#tong-quan' && /không có tài sản này/.test(txt('scanMsg')), 'tem mã không có trong sổ: báo rõ, không mở nhầm');
+    h = await quet('546732', true);
+    ok(h === '#tong-quan' && /không khớp/.test(txt('scanMsg')), 'camera đọc mã gần giống: không đoán');
+    await quet('máy chiếu', false);
+    ok(document.querySelectorAll('#scanRes .shit').length > 0, 'gõ tay một phần tên: hiện danh sách để chọn');
+    h = await quet(KIEMKE_QR.payload('1234567'), true);
+    ok(h === '#ts-1234567' && !!document.querySelector('.tsx-xoa'), 'tem của tài sản đã xoá khỏi BBKK: mở trang lưu trong sổ');
+  };
+
+  KB['in-tem'] = async () => {
+    await go('ma-qr');
+    await until(() => TEMV.fontOK && /ok|bad/.test(document.getElementById('qrTest').className), 20000);
+    ok(/ok/.test(document.getElementById('qrTest').className), 'xem trước: đọc thử mã trên tem ra đúng tài sản');
+    ok(TEM.room === false && TEM.unit === false, 'tem mặc định không in phòng, đơn vị');
+    const L = temAssets(), G = temGeo(L), it0 = temItems(L)[0], chu = temOps(it0, G).filter(o => o.t === 'text').map(o => o.str);
+    ok(chu.includes(String(it0.a.ma)) && !chu.some(c => roomOf(it0.a) && c.includes(roomOf(it0.a))) && !chu.some(c => /^Đơn vị|· [A-Z]{2,}$/.test(c)), 'tem mặc định chỉ có tiêu đề, mã, tên: ' + chu.join(' | ').slice(0, 90));
+    const u = document.getElementById('qrU'); u.value = 'GD'; u.dispatchEvent(new Event('change', { bubbles: true })); await W(400);
+    const files = []; window.temDown = (blob, name) => files.push({ name, blob });
+    await temExport('pdf'); await temExport('png'); await temExport('csv');
+    const pdf = files.find(f => f.name.endsWith('.pdf')), zip = files.find(f => f.name.endsWith('.zip')), csv = files.find(f => f.name.endsWith('.csv'));
+    ok(pdf && zip && csv, 'tạo được file PDF, ảnh PNG (.zip), CSV');
+    const jsQR = await temLoad('jsqr'), list = temAssets();
+    if (pdf) {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await pdf.blob.arrayBuffer()) }).promise, pg = await doc.getPage(1), vp = pg.getViewport({ scale: 300 / 72 });
+      const cv = document.createElement('canvas'); cv.width = vp.width; cv.height = vp.height; await pg.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+      const g = temGeo(list), P = temPage(g), k = 300 / 25.4, ctx = cv.getContext('2d'); let dung = 0, n = Math.min(P.per, list.length);
+      for (let j = 0; j < n; j++) { const [x, y] = P.pos[j]; const im = ctx.getImageData(Math.round(x * k), Math.round(y * k), Math.round(g.W * k), Math.round(g.H * k)); const r = jsQR(im.data, im.width, im.height); if (r && KIEMKE_QR.parse(r.data) === list[j].key) dung++; }
+      ok(dung === n, `mở file PDF, đọc lại ${dung}/${n} mã QR ở trang 1: đúng tài sản`);
+    }
+    if (zip) {
+      const JSZip = await temLoad('jszip'), z = await JSZip.loadAsync(zip.blob), names = Object.keys(z.files); let dung = 0, dpi = 0;
+      for (const nm of names) {
+        const buf = await z.files[nm].async('uint8array'); if (String.fromCharCode(...buf.subarray(37, 41)) === 'pHYs') dpi++;
+        const bmp = await createImageBitmap(new Blob([buf], { type: 'image/png' })), c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+        const x = c.getContext('2d'); x.drawImage(bmp, 0, 0); const im = x.getImageData(0, 0, c.width, c.height), r = jsQR(im.data, im.width, im.height);
+        if (r && KIEMKE_QR.parse(r.data) === nm.split('_')[1].replace('.png', '')) dung++;
+      }
+      ok(dung === names.length && dpi === names.length, `${names.length} ảnh PNG: đọc lại đúng ${dung}, có ghi độ phân giải ${dpi}`);
+    }
+    if (csv) { const t = await csv.blob.text(); ok(t.split('\r\n').length - 1 === list.length, `CSV có đủ ${list.length} dòng tem`); }
+    await temExport('print'); await W(900);
+    const fr = [...document.querySelectorAll('iframe')].pop();
+    ok(fr && fr.contentDocument.querySelectorAll('.pg').length >= 1, 'In ngay: dựng được trang in');
+    await go('so-ma-qr'); await W(300);
+    ok(document.querySelectorAll('.qr-rule li').length >= 5, 'Sổ mã QR: có đủ quy tắc (gồm quy tắc lệch 1 chữ là 2 tài sản)');
+  };
+
+  KB['lich-su'] = async () => {
+    await go('nhap-so');
+    const coMa = ASSETS.filter(a => a.ma && String(a.ma) === String(a.key)).length;
+    ok(document.querySelectorAll('.ns-sum b')[0].textContent === nf.format(coMa), `Nhập sổ: đếm đúng ${nf.format(coMa)} tài sản từ sổ kế toán`);
+    ok(document.querySelectorAll('.ns-dot li').length >= 1, 'Nhập sổ: có các đợt vào sổ');
+    await go('ts-6497474');
+    const stt = +app.querySelector('.row[data-stt]').dataset.stt;
+    if (res(BY_STT[stt]) !== 'chua') { app.querySelector('.row[data-stt] [data-act="clr"]').click(); await W(300); }
+    app.querySelector('.row[data-stt] [data-act="du"]').click(); await W(350);
+    const sd = document.getElementById('sd-' + stt);
+    ok(!!sd, 'trang tài sản: có ô Trạng thái sử dụng (tách khỏi Tình trạng)');
+    sd.value = 'kho'; sd.dispatchEvent(new Event('change', { bubbles: true })); await W(450);
+    ok(/Cất kho/.test(app.querySelector('.row[data-stt]').textContent) && (S.rows[stt] || {}).sd === 'kho', 'trạng thái sử dụng: lưu và hiện nhãn "Cất kho"');
+    ok((S.rows[stt] || {}).cond === 'tot', 'Tình trạng giữ nguyên (Tốt), không bị trạng thái sử dụng ghi đè');
+    ok(ketQuaKeToan(BY_STT[stt]).gc.includes('Trạng thái sử dụng: Cất kho'), 'trạng thái sử dụng: có trong file cho kế toán');
+    await go('ly-lich-6497474'); await W(400);
+    const ev = [...document.querySelectorAll('.llist.ly > li')].map(li => li.textContent);
+    ok(/Kế toán ghi sổ/.test(ev[0] || '') && /Vào sổ trên app/.test(ev[1] || ''), 'lý lịch: bắt đầu từ kế toán ghi sổ, vào sổ trên app');
+    ok(ev.some(t => /Kết quả: Chưa kiểm → Đủ/.test(t)), 'lý lịch: có lần kiểm Đủ');
+    ok(ev.some(t => /Trạng thái sử dụng: Đang sử dụng → Cất kho/.test(t)), 'lý lịch: có lần đổi trạng thái sử dụng');
+  };
+
+  KB['quet-lien-tuc'] = async () => {
+    await go('phong-108-gamma'); const name = ROOMNAME['108-gamma'];
+    const btn = app.querySelector('[data-act="quetlt"]');
+    ok(!!btn, 'trang phòng có nút "Quét liên tục ở phòng này"');
+    btn.click(); await W(500);
+    ok(SD.open && SC.cont && /Quét liên tục/.test(txt('scanTitle')), 'mở chế độ quét liên tục của phòng');
+    const trong = ASSETS.filter(a => roomOf(a) === name && res(a) === 'chua' && !a.hoso);
+    const a1 = trong.find(a => a.sl === 1), a3 = trong.find(a => a.sl > 1);
+    const ngoai = ASSETS.find(a => roomOf(a) && roomOf(a) !== name && res(a) === 'chua' && a.sl === 1 && !a.hoso);
+    scanShow(KIEMKE_QR.payload(a1.key), true); await W(250);
+    ok(res(a1) === 'du' && roomOf(a1) === name, 'quét tài sản của phòng: ghi Đủ ngay, giữ phòng');
+    const n1 = SC.cont.items.length; scanShow(KIEMKE_QR.payload(a1.key), true); await W(200);
+    ok(SC.cont.items.length === n1, 'quét lại cùng tem: không ghi thêm');
+    scanShow(KIEMKE_QR.payload(ngoai.key), true); await W(250);
+    ok(res(ngoai) === 'chua' && SC.cont.items[0].act === 'move', 'tài sản ghi ở phòng khác: hỏi trước, chưa ghi');
+    document.querySelector(`#scanRes [data-ci="${SC.cont.items[0].id}"] [data-cs="move"]`).click(); await W(300);
+    ok(res(ngoai) === 'du' && roomOf(ngoai) === name && /Thấy ở/.test(S.rows[ngoai.stt].note || ''), 'bấm "Chuyển vào phòng này": ghi Đủ, đổi phòng, ghi chú nơi thấy');
+    if (a3) {
+      scanShow(KIEMKE_QR.payload(a3.key), true); await W(250);
+      const it = SC.cont.items[0], box = document.querySelector(`#scanRes [data-ci="${it.id}"]`);
+      ok(it.act === 'sl' && res(a3) === 'chua', 'tài sản số lượng > 1: hỏi số đếm được');
+      box.querySelector('input[data-csn]').value = String(a3.sl - 1); box.querySelector('[data-cs="sl"]').click(); await W(300);
+      ok(res(a3) === 'thieu', 'nhập số đếm được ít hơn sổ: ghi Thiếu đúng');
+    } else ok(true, 'phòng thử không có tài sản số lượng > 1 chưa kiểm (bỏ qua bước này)');
+    const itA1 = SC.cont.items.find(x => x.a === a1);
+    document.querySelector(`#scanRes [data-ci="${itA1.id}"] [data-cs="undo"]`).click(); await W(300);
+    ok(res(a1) === 'chua', 'Hoàn tác từng món trong lượt quét');
+    scanShow('999999999', true); await W(200);
+    ok(SC.cont.items[0].kind === 'bad', 'mã lạ: báo không khớp, không ghi');
+    ok(/đã ghi/.test(txt('csSum')) && /đã kiểm/.test(txt('csSum')), 'có dòng tổng kết lượt quét');
+    ok(LOGMINE.filter(e => e.tag === 'Quét liên tục').length >= 2, 'lịch sử gắn nhãn "Quét liên tục"');
+    SD.close(); await W(500);
+    ok(!SC.cont && V.type === 'room' && !SD.open, 'đóng lại: về trang phòng, đã vẽ lại');
+  };
+
+  KB['dien-thoai'] = async () => {
+    await go('phong-108-gamma'); await W(300);
+    const sc = document.getElementById('scanBtn').getBoundingClientRect();
+    ok(Math.abs((sc.left + sc.right) / 2 - innerWidth / 2) < 3, 'điện thoại: nút Quét mã nằm giữa thanh dưới');
+    const kk = document.getElementById('swKK').getBoundingClientRect(), qr = document.getElementById('swQR').getBoundingClientRect();
+    ok(kk.right <= sc.left + 1 && qr.left >= sc.right - 1, 'điện thoại: nút Quét mã không đè chữ Kiểm kê / Mã QR');
+    for (const h of ['trang-chu', 'tong-quan', 'phong-108-gamma', 'ma-qr', 'nhap-so', 'ly-lich-6497474', 'ts-6497474']) {
+      await go(h); await W(300);
+      ok(document.documentElement.scrollWidth <= innerWidth + 1, `điện thoại: #${h} không bị tràn ngang`);
+    }
+  };
+
+  try {
+    while (typeof READY === 'undefined' || !READY) await W(50);
+    await W(300);
+    const ten = location.search.slice(1);
+    if (!KB[ten]) ok(false, 'không có kịch bản ' + ten); else await KB[ten]();
+  } catch (e) { ok(false, 'kịch bản dừng giữa chừng: ' + String(e && e.stack || e).slice(0, 300)); }
+  xong();
+})();

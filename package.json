@@ -9,7 +9,9 @@
     "kiem-tra-web": "node scripts/kiem-tra-web.mjs",
     "sao-luu": "node scripts/sao-luu-supabase.mjs",
     "tu-dong-cap-nhat": "node scripts/watch-excel.mjs",
-    "day-len-web": "node scripts/watch-excel.mjs --once"
+    "day-len-web": "node scripts/watch-excel.mjs --once",
+    "thu-giao-dien": "node scripts/thu-giao-dien.mjs",
+    "theo-doi-supabase": "node scripts/theo-doi-supabase.mjs"
   },
   "dependencies": {
     "exceljs": "4.4.0"

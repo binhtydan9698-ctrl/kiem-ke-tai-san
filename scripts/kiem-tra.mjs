@@ -209,6 +209,9 @@ console.log('5. Sổ mã QR ("dữ liệu cập nhật/so-ma-qr.json")');
   const dist = fs.readFileSync(path.join(DIST, 'data', 'so-ma-qr.js'), 'utf8');
   const dctx = { window: {} }; vm.runInNewContext(dist, dctx); const ds = dctx.window.KIEMKE_SO_QR;
   ok(Object.keys(ds.dang).length + Object.keys(ds.xoa).length === Object.keys(so.ma).length, 'trang web nhận đủ sổ mã QR (dist/data/so-ma-qr.js)');
+  const chanQR = Object.entries(ds.chan || {});
+  ok(!chanQR.length, 'mỗi Mã TSCĐ chỉ có một bộ thông tin (tên, ngày ghi sổ, nguyên giá) ở mọi sheet — quy tắc lệch 1 chữ là 2 tài sản'
+    + (chanQR.length ? `: ${chanQR.length} mã bị chặn in tem, sửa trong Excel: ${chanQR.slice(0, 3).map(([k, l]) => k + ' (' + l + ')').join('; ')}` : ''));
   // chạy thử quy tắc trên một bản sao (không ghi file): xoá, thêm lại, thêm mới, dùng lại mã, tài sản chưa có mã
   const a = coMa[0], b = coMa[1];
   const b1 = capNhatSo(rows.filter(r => r !== a), so, '2027-01-02');
@@ -225,6 +228,10 @@ console.log('5. Sổ mã QR ("dữ liệu cập nhật/so-ma-qr.json")');
   ok(b3.moi.length === 1 && b3.so.ma['9999998'].tu === '2027-03-04' && Object.keys(b3.so.ma).length === Object.keys(so.ma).length + 1, 'thử: thêm tài sản mới → cấp thêm 1 mã, không đụng mã cũ');
   ok(b4.canhBao.length === 1 && b4.so.ma[b[8]].cu && b4.so.ma[b[8]].cu[0].ten === so.ma[b[8]].ten, 'thử: Mã TSCĐ bị dùng lại cho tài sản khác → cảnh báo, giữ thông tin cũ');
   ok(b5.khongMa.length === 1 && !b5.so.ma['stt:99999'], 'thử: tài sản chưa có Mã TSCĐ → chưa cấp mã QR');
+  const motChu = [...b]; motChu[2] = String(b[2]) + 'x';
+  const b6 = capNhatSo(rows.map(r => r === b ? motChu : r), so, '2027-06-07');
+  const b7 = capNhatSo(rows.map(r => r === b ? Object.assign([...b], { 2: '  ' + String(b[2]).replace(/ /g, '  ') + ' ' }) : r), so, '2027-06-07');
+  ok(b6.canhBao.length === 1 && b7.canhBao.length === 0, 'thử: tên lệch 1 chữ → cảnh báo; chỉ khác khoảng trắng → không tính là lệch');
 }
 
 console.log(loi ? `\n✗ ${loi} mục KHÔNG đạt` : '\n✓ Tất cả đều đạt');

@@ -4,8 +4,8 @@
 //   - Tài sản không còn trong file Excel → ghi ngày phát hiện bị xoá ("xoa"), vẫn giữ thông tin để quét tem cũ vẫn ra.
 //   - Tài sản quay lại file Excel → bỏ "xoa".
 //   - "tu": lúc tài sản vào sổ trên app (ngày, từ 15/11/2026 có cả giờ), "file": file BBKK (sổ kế toán) đưa tài sản vào.
-//   - Cùng Mã TSCĐ nhưng ngày ghi sổ VÀ nguyên giá đều khác lần trước → cảnh báo (có thể mã bị dùng lại cho tài sản khác),
-//     thông tin cũ cất vào "cu".
+//   - Cùng Mã TSCĐ nhưng tên / ngày ghi sổ / nguyên giá khác lần trước (dù 1 chữ) → cảnh báo (theo quy tắc lệch thông tin là
+//     tài sản khác: cần kiểm tra với kế toán), thông tin cũ cất vào "cu".
 // build.mjs gọi capNhatSo(); trên Vercel chỉ tính trong bộ nhớ, không ghi file (sổ được commit từ máy cùng file Excel).
 import fs from 'node:fs';
 import path from 'node:path';
@@ -47,8 +47,10 @@ export function capNhatSo(rows, cu, ngay = homNay(), opt = {}) {
     if (!e) { ma[k] = { ...snap, tu: opt.luc || ngay, ...(opt.file ? { file: opt.file } : {}) }; moi.push(k); continue; }
     if (e.xoa) { delete e.xoa; quayLai.push(k); }
     if (opt.file && !e.file) e.file = opt.file;
-    if (e.ngay && snap.ngay && e.ngay !== snap.ngay && e.gia && snap.gia && e.gia !== snap.gia) {
-      canhBao.push(`Mã ${k}: trước là "${e.ten}" (${e.ngay}, ${e.gia}), nay là "${snap.ten}" (${snap.ngay}, ${snap.gia}) — có thể mã bị dùng lại cho tài sản khác`);
+    const gon = s => String(s || '').replace(/\s+/g, ' ').trim();
+    const lech = [gon(e.ten) !== gon(snap.ten) && 'tên', e.ngay && snap.ngay && e.ngay !== snap.ngay && 'ngày ghi sổ', e.gia && snap.gia && e.gia !== snap.gia && 'nguyên giá'].filter(Boolean);
+    if (lech.length) {
+      canhBao.push(`Mã ${k}: ${lech.join(', ')} khác lần trước — trước là "${e.ten}" (${e.ngay}, ${e.gia}), nay là "${snap.ten}" (${snap.ngay}, ${snap.gia}). Theo quy tắc lệch thông tin là tài sản khác: kiểm tra với kế toán (tem đã in vẫn mở mã này)`);
       (e.cu = e.cu || []).push({ ten: e.ten, ngay: e.ngay, gia: e.gia, den: ngay });
     }
     Object.assign(e, snap);

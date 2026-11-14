@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-export const WEB_URL = (process.env.KIEMKE_WEB_URL || 'https://kiem-ke-tai-san-sigma.vercel.app').replace(/\/$/, '');
+export const WEB_URL = (process.env.KIEMKE_WEB_URL || 'https://quan-ly-tai-san-fptudn.vercel.app').replace(/\/$/, '');
 
 export function supabaseConfig() {
   const ctx = { window: {} };

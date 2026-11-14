@@ -1,0 +1,25 @@
+# Theo dõi Supabase mỗi ngày lúc 8 giờ sáng (giờ Việt Nam) — chỉ ĐỌC thử 1 dòng dữ liệu chung.
+# Đọc đều đặn giúp dự án Supabase gói miễn phí không bị tạm dừng vì lâu không dùng.
+# Không đọc được → lần chạy báo lỗi → GitHub gửi mail báo tới email nhận thông báo của tài khoản GitHub chủ repo
+# (Settings → Notifications → Default notifications email). Chạy tay: tab Actions → Theo dõi Supabase → Run workflow.
+name: Theo dõi Supabase
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  doc-thu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Đọc thử dữ liệu chung trên Supabase
+        run: node scripts/theo-doi-supabase.mjs

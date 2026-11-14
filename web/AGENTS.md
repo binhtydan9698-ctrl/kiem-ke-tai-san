@@ -33,6 +33,12 @@
 - In tem (`ma-qr.js`): một bố cục `temOps()` (mm) vẽ ra cả 4 nơi: xem trước và In ngay (SVG), PDF (jsPDF, nhúng phông
   `fonts/BeVietnamPro-*.ttf`), ảnh PNG (canvas, ghi dpi). Sửa bố cục chỉ sửa `temGeo`/`temOps`. Trước khi xuất luôn chạy
   `temVerify` (giải mã lại mọi mã bằng jsQR). Thư viện jsPDF/JSZip/jsQR chỉ tải khi cần (`temLoad`).
+- Quét liên tục trong phòng (nút `data-act="quetlt"` ở trang phòng → `contOpen`): `SC.cont` bật thì `scanShow` chuyển sang
+  `contScan`: tài sản của phòng ghi Đủ ngay (`contDu`, qua `save()`, lịch sử gắn nhãn "Quét liên tục"); phòng khác / số lượng
+  > 1 / hồ sơ → hỏi (`contAct`); mỗi món có Hoàn tác riêng; đóng hộp quét thì vẽ lại phòng.
+- Trạng thái sử dụng: ô `data-f="sd"` trong phần "Chi tiết, ghi chú" của dòng tài sản (trang tài sản mở sẵn); nhãn trên dòng,
+  câu lịch sử trong `logRowLines`, cột Ghi chú kiểm kê trong `ketQuaKeToan`. Không gộp vào `COND`.
+- Nút dạng đường link dùng `a.btn` (màu chữ của trang). Thử giao diện: `npm run thu-giao-dien`.
 - Quét mã (`scanShow`): tem của app → `KIEMKE_QR.parse` → tra đúng `BY_KEY`; mã khớp nguyên văn → mở `#ts-…`; camera không
   bao giờ đoán gần đúng; mã vạch (không phải QR) phải đọc giống nhau 2 lần mới nhận.
 - Chèn chữ do người dùng nhập vào HTML luôn qua `esc()`.

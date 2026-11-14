@@ -85,17 +85,19 @@ function qrSvg(text, px) {
 const TEM_KEY = 'kiemke2026.v1.tem';
 const TEM_DEF = {
   mode: 'a4', size: '50x30', w: 50, h: 30, orient: 'p', mt: 10, ml: 8, gx: 2, gy: 2, center: true, pad: 2, border: true,
-  head: true, headText: 'TRƯỜNG ĐH FPT ĐÀ NẴNG', ma: true, name: true, nameLines: 3, nameFull: false, room: true, unit: true,
+  head: true, headText: 'TRƯỜNG ĐH FPT ĐÀ NẴNG', ma: true, name: true, nameLines: 3, nameFull: false, room: false, unit: false, v: 2,
   seq: true, font: 0, qrPos: 'auto', qrSize: 0, ecc: 'M', copies: 'one', sort: 'phong', dpi: 300,
 };
 let TEM = (() => { try { return Object.assign({}, TEM_DEF, JSON.parse(localStorage.getItem(TEM_KEY) || '{}')); } catch (e) { return Object.assign({}, TEM_DEF); } })();
+if ((+TEM.v || 1) < 2) { TEM.room = false; TEM.unit = false; TEM.v = 2; }   // 11/2026: mặc định không in phòng, đơn vị (tài sản đổi chỗ, đổi đơn vị)
 function temSave() { try { localStorage.setItem(TEM_KEY, JSON.stringify(TEM)); } catch (e) { } }
 const TEM_SIZES = [['30x20', '30 × 20 mm'], ['40x25', '40 × 25 mm'], ['40x30', '40 × 30 mm'], ['50x25', '50 × 25 mm'], ['50x30', '50 × 30 mm'],
   ['60x40', '60 × 40 mm'], ['70x50', '70 × 50 mm'], ['100x50', '100 × 50 mm'], ['tuy', 'Tự nhập cỡ khác']];
 const TEMV = { unit: '', room: '', q: '', off: new Set(), idx: 0, page: 0, view: 'tem', busy: false, fontOK: false, checked: '', checkMsg: '', bound: false };
 
 /* ---------- chọn tài sản ---------- */
-const temCoMa = a => !!a.ma && String(a.ma) === String(a.key);   // chưa có Mã TSCĐ thì chưa cấp mã QR
+const temChan = k => { const c = (window.KIEMKE_SO_QR || {}).chan; return !!(c && c[k]); };   // cùng mã mà thông tin lệch giữa các sheet
+const temCoMa = a => !!a.ma && String(a.ma) === String(a.key) && !temChan(a.key);   // chưa có Mã TSCĐ, hoặc bị chặn → chưa in tem
 function temPool() {
   const q = TEMV.q.trim().toLowerCase();
   return ASSETS.filter(a => temCoMa(a) && (!TEMV.unit || a.unit === TEMV.unit)
@@ -354,6 +356,7 @@ function viewQR() {
       <li>Mỗi mã QR là đường link <b>mở thẳng trang của đúng một tài sản trong phần Kiểm kê</b>, quét bằng nút Quét mã hay camera điện thoại đều được.</li>
       <li>Mã QR gắn với <b>Mã TSCĐ</b>. Mã đã cấp <b>không bao giờ cấp lại</b> cho tài sản khác; thêm tài sản mới vào file BBKK thì có mã mới, không trùng mã cũ.</li>
       <li>Tài sản <b>bị xoá khỏi file BBKK vẫn được giữ trong Sổ mã QR</b>: quét tem cũ vẫn xem được thông tin và biết tài sản đã bị xoá ngày nào.</li>
+      <li>Hai dòng tài sản <b>lệch thông tin dù 1 chữ</b> (tên, ngày ghi sổ, nguyên giá) là <b>2 tài sản khác nhau, bắt buộc khác mã QR</b>. Tài sản số lượng lớn (cùng một dòng trong sổ) dùng chung 1 mã QR. Mã TSCĐ nào có các dòng lệch thông tin sẽ bị chặn in tem cho tới khi kế toán sửa cho thống nhất.</li>
       <li>Sổ tự cập nhật mỗi lần đưa file Excel lên web và được lưu riêng cùng file Excel (file <span class="mono">so-ma-qr.json</span> trong thư mục “dữ liệu cập nhật”).</li>
     </ol>
     <div id="qrSoBody"></div>
@@ -365,12 +368,13 @@ function viewQR() {
 /* Sổ mã QR: số mã đã cấp, mã của tài sản đã xoá khỏi BBKK (lưu riêng, sinh khi build) */
 function temSoDraw() {
   const box = document.getElementById('qrSoBody'); if (!box) return;
-  const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} }, xoa = Object.entries(so.xoa || {}), nDang = Object.keys(so.dang || {}).length;
+  const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} }, xoa = Object.entries(so.xoa || {}), nDang = Object.keys(so.dang || {}).length, chan = Object.entries(so.chan || {});
   box.innerHTML = `<div class="qr-sof">
       <div><small>Mã đã cấp</small><b class="num">${nf.format(nDang + xoa.length)}</b></div>
       <div><small>Đang dùng</small><b class="num">${nf.format(nDang)}</b></div>
       <div><small>Tài sản đã xoá khỏi BBKK</small><b class="num">${nf.format(xoa.length)}</b></div>
     </div>
+    ${chan.length ? `<div class="qr-chan"><b>${chan.length} Mã TSCĐ bị chặn in tem</b> (cùng mã nhưng thông tin lệch giữa các sheet):<ul>${chan.map(([k, l]) => `<li><span class="mono">${esc(k)}</span>: ${esc(l)}</li>`).join('')}</ul></div>` : ''}
     ${xoa.length ? `<div class="tblwrap qr-sot"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Vị trí theo sổ</th><th>Cấp mã</th><th>Xoá khỏi BBKK</th></tr></thead><tbody>${xoa.sort((a, b) => (b[1].xoa || '').localeCompare(a[1].xoa || '')).map(([k, e]) => `<tr><td class="mono"><a href="#ts-${encodeURIComponent(k)}">${esc(k)}</a></td><td>${esc(e.ten)}</td><td>${esc(e.vt || '—')}</td><td class="num">${dmy(e.tu)}</td><td class="num">${dmy(e.xoa)}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="qr-info">Chưa có tài sản nào bị xoá khỏi file BBKK. Khi có, mã QR của chúng vẫn được giữ và liệt kê ở đây.</p>'}
     <div class="qr-btns"><button type="button" class="btn" data-qa="soxlsx">${ic('FileSpreadsheet')}Tải Sổ mã QR (Excel)</button><span class="qr-info">Sổ cập nhật ngày ${dmy(so.capNhat)}</span></div>`;
@@ -414,8 +418,8 @@ function temRefresh(keepList) {
   const off = pool.length - list.length;
   const kk = TEMV.room ? `<a class="lnk qrkk" href="#phong-${esc(TEMV.room)}">Mở ${TEMV.room === NOROOM ? 'nhóm Chưa có vị trí' : esc(ROOMNAME[TEMV.room] || TEMV.room)} trong Kiểm kê →</a>`
     : TEMV.unit ? `<a class="lnk qrkk" href="#dv-${esc(TEMV.unit)}">Mở sheet ${esc(UNIT[TEMV.unit].sheet)} trong Kiểm kê →</a>` : '';
-  const khongMa = ASSETS.filter(a => !temCoMa(a)).length;
-  document.getElementById('qrCount').innerHTML = `Sẽ in <b class="num">${nf.format(nTem)}</b> tem cho <b class="num">${nf.format(list.length)}</b> tài sản${off ? ` (đã bỏ chọn ${nf.format(off)})` : ''}${kk ? '<br>' + kk : ''}${khongMa ? `<br><span class="qr-warn">${khongMa} tài sản chưa có Mã TSCĐ nên chưa cấp mã QR.</span>` : ''}${TEM.copies === 'sl' && nTem > 3000 ? '<br><span class="qr-warn">Rất nhiều tem: file PDF sẽ được chia thành nhiều phần.</span>' : ''}`;
+  const khongMa = ASSETS.filter(a => !(a.ma && String(a.ma) === String(a.key))).length, chan = ASSETS.filter(a => temChan(a.key)).length;
+  document.getElementById('qrCount').innerHTML = `Sẽ in <b class="num">${nf.format(nTem)}</b> tem cho <b class="num">${nf.format(list.length)}</b> tài sản${off ? ` (đã bỏ chọn ${nf.format(off)})` : ''}${kk ? '<br>' + kk : ''}${khongMa ? `<br><span class="qr-warn">${khongMa} tài sản chưa có Mã TSCĐ nên chưa cấp mã QR.</span>` : ''}${chan ? `<br><span class="qr-warn">${chan} tài sản bị chặn in tem: cùng Mã TSCĐ nhưng thông tin lệch giữa các sheet (xem Sổ mã QR).</span>` : ''}${TEM.copies === 'sl' && nTem > 3000 ? '<br><span class="qr-warn">Rất nhiều tem: file PDF sẽ được chia thành nhiều phần.</span>' : ''}`;
   if (!keepList && document.getElementById('qrPick').open) temListDraw(pool);
   if (!TEMV.fontOK) return;
   const stage = document.getElementById('qrStage'), info = document.getElementById('qrGrid'), mod = document.getElementById('qrMod');

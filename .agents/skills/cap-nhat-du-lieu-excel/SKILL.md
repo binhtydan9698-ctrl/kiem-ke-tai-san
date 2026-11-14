@@ -19,7 +19,7 @@ Nguồn duy nhất của danh sách tài sản: **một** file `.xlsx` trong `d�
    - Đọc kỹ các dòng `!` của build: "ô ghi khác nhau giữa các sheet" (Tổng hợp được ưu tiên),
      "STT trống hoặc trùng" (nếu xuất hiện là bất thường với biên bản này). Báo lại cho người dùng.
    - So số tài sản ("Xong: N tài sản") với lần trước (`git show HEAD:...` hoặc bản trên web
-     `https://kiem-ke-tai-san-sigma.vercel.app/data/version.json`). Chênh lệch lớn → hỏi người dùng trước khi đẩy.
+     `https://quan-ly-tai-san-fptudn.vercel.app/data/version.json`). Chênh lệch lớn → hỏi người dùng trước khi đẩy.
    - Đọc dòng "Sổ mã QR" của build: "mới cấp" (tài sản mới), "vừa xoá khỏi BBKK" (tài sản bị bỏ khỏi file, mã vẫn giữ),
      cảnh báo "có thể mã bị dùng lại cho tài sản khác" → báo người dùng. Sổ `dữ liệu cập nhật/so-ma-qr.json` do build ghi,
      không sửa tay, không xoá dòng; phải commit cùng file Excel.

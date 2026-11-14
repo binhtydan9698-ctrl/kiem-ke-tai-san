@@ -47,6 +47,8 @@ async function readAssets(file) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(file);
   const sheets = []; const items = new Map(); const conflicts = [];
+  const chan = [];   // cùng Mã TSCĐ nhưng tên / ngày ghi sổ / nguyên giá lệch giữa các sheet → theo quy tắc là 2 tài sản, chặn in tem
+  const gon = s => String(s).replace(/\s+/g, ' ').trim();
   const order = wb.worksheets.map((ws, i) => ({ ws, i }))
     .sort((a, b) => (X.isPrimarySheet(b.ws.name) - X.isPrimarySheet(a.ws.name)) || a.i - b.i);
   for (const { ws } of order) {
@@ -70,7 +72,8 @@ async function readAssets(file) {
         if (empty(cur[f]) && !empty(v[f])) cur[f] = v[f];
         else if (f === 'ten' && String(cur.ten).startsWith(String(v.ten))) continue;   // tên đã được nối phần xuống dòng
         else if (!empty(cur[f]) && !empty(v[f]) && String(cur[f]) !== String(v[f]))
-          conflicts.push(`Mã ${x.ma || x.key} · ${f}: "${cur[f]}" (sheet ${cur.sheet}) khác "${v[f]}" (sheet ${ws.name}) → dùng "${cur[f]}"`);
+        { conflicts.push(`Mã ${x.ma || x.key} · ${f}: "${cur[f]}" (sheet ${cur.sheet}) khác "${v[f]}" (sheet ${ws.name}) → dùng "${cur[f]}"`);
+          if (['ten', 'ngay', 'gia'].includes(f) && !(f === 'ten' && gon(cur.ten) === gon(v.ten))) chan.push({ key: x.key, f, a: cur[f], sa: cur.sheet, b: v[f], sb: ws.name }); }
       }
     }
   }
@@ -83,13 +86,17 @@ async function readAssets(file) {
   // Nhóm lẻ (chưa rõ vị trí): tên sheet lẻ đầu tiên theo thứ tự X.REVIEW_SHEETS mà tài sản có mặt
   const nhomLe = x => { const ds = x.sheets.map(X.reviewSheet).filter(Boolean); return X.REVIEW_SHEETS.find(s => ds.includes(s)) || ''; };
   const rows = list.map((x, i) => [useX ? x.stt : i + 1, x.ma, x.ten, x.sl ?? 1, x.ngay, x.gia ?? 0, x.gc, x.vt, x.key, x.sheet, x.r, nhomLe(x)]);
-  return { rows, sheets, conflicts, useX };
+  return { rows, sheets, conflicts, useX, chan };
 }
 
 /* ---------- dựng dist/ ---------- */
 const file = findExcel();
 console.log(`Đọc dữ liệu: ${path.relative(ROOT, file)}`);
-const { rows, sheets, conflicts, useX } = await readAssets(file);
+const { rows, sheets, conflicts, useX, chan } = await readAssets(file);
+const TRUONG = { ten: 'Tên', ngay: 'Ngày ghi sổ', gia: 'Nguyên giá' };
+const soChan = {};
+chan.forEach(c => { (soChan[c.key] = soChan[c.key] || []).push(`${TRUONG[c.f]} "${c.a}" (sheet ${c.sa}) khác "${c.b}" (sheet ${c.sb})`); });
+for (const k in soChan) soChan[k] = soChan[k].join('; ');
 if (conflicts.length) {
   console.warn(`  ! ${conflicts.length} ô ghi khác nhau giữa các sheet (đã ưu tiên sheet Tổng hợp):`);
   conflicts.slice(0, 8).forEach(c => console.warn('    ' + c));
@@ -120,7 +127,7 @@ const fileSo = f => { if (!f) return -1; let i = soFile.indexOf(f); if (i < 0) {
 for (const [k, e] of Object.entries(SQ.so.ma)) { if (e.xoa) soXoa[k] = e; else soDang[k] = [e.tu, fileSo(e.file)]; }
 fs.writeFileSync(path.join(DIST, 'data', 'so-ma-qr.js'),
   '// Sinh tự động từ "dữ liệu cập nhật/so-ma-qr.json" — đừng sửa tay.\n' +
-  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, files: soFile, dang: soDang, xoa: soXoa })};\n`);
+  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, files: soFile, dang: soDang, xoa: soXoa, chan: soChan })};\n`);
 
 const le = X.REVIEW_SHEETS.map(s => `${s} ${rows.filter(r => r[11] === s).length}`).join(', ');
 console.log(`Xong: ${rows.length} tài sản từ ${sheets.length} sheet · phiên bản ${version}`);
@@ -129,4 +136,8 @@ console.log(`  Sổ mã QR: ${Object.keys(SQ.so.ma).length} mã đã cấp (đan
   + (SQ.moi.length ? ` · mới cấp ${SQ.moi.length}` : '') + (SQ.xoa.length ? ` · vừa xoá khỏi BBKK ${SQ.xoa.length}: ${SQ.xoa.slice(0, 10).join(', ')}` : '')
   + (SQ.quayLai.length ? ` · quay lại ${SQ.quayLai.length}` : '') + (SQ.doi && process.env.VERCEL ? ' (chưa ghi sổ: đang chạy trên Vercel)' : ''));
 SQ.canhBao.forEach(c => console.warn('  ! ' + c));
+if (Object.keys(soChan).length) {
+  console.warn(`  ✗ ${Object.keys(soChan).length} Mã TSCĐ có thông tin lệch giữa các sheet: theo quy tắc là 2 tài sản khác nhau, phải khác mã QR → đã chặn in tem, cần kế toán sửa cho thống nhất:`);
+  Object.entries(soChan).slice(0, 10).forEach(([k, l]) => console.warn(`    Mã ${k}: ${l}`));
+}
 if (SQ.khongMa.length) console.warn(`  ! ${SQ.khongMa.length} tài sản chưa có Mã TSCĐ: chưa cấp mã QR được (STT ${SQ.khongMa.slice(0, 10).map(r => r[0]).join(', ')})`);
