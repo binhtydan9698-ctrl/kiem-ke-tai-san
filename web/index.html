@@ -484,10 +484,6 @@ dialog.scan::backdrop{background:rgba(8,16,14,.55)}
 @media (max-width:860px){
   /* thanh trên gọn: 1 hàng thương hiệu + quét + người dùng, 1 hàng menu cuộn ngang */
   .top .wrap{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px;padding-block:8px 6px}
-  .mods{grid-column:1;grid-row:1}
-  .mods .logo{width:30px;height:30px;border-radius:8px} .mods .logo svg{width:17px;height:17px}
-  .mods .bt-h{display:none}
-  .sw a{padding:5px 10px}
   .brand>.bt>span{display:none}
   .brand .logo{width:30px;height:30px;border-radius:8px}
   .brand .logo svg{width:17px;height:17px}
@@ -616,22 +612,7 @@ a.btn{text-decoration:none}
   #whoN{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 .nav .dd-p a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);box-shadow:none;border-radius:8px}
-/* Quản lý tài sản: logo về trang chủ + nút chuyển qua lại giữa 2 phần [Kiểm kê | Mã QR] */
-.mods{display:flex;align-items:center;gap:10px;min-width:0}
-.mods .logo{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:var(--brand);color:#fff;flex:0 0 auto}
-.mods .logo svg{width:20px;height:20px}
-.mods .bt{display:flex;flex-direction:column;gap:3px;min-width:0}
-.mods .bt-h{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--top-muted);text-decoration:none;line-height:1}
-.mods .bt-h:hover{color:var(--accent)}
-.sw{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line)}
-.sw a{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--top-fg);text-decoration:none;white-space:nowrap}
-.sw a svg{width:15px;height:15px}
-.sw a:hover{background:var(--surface);color:var(--accent)}
-.sw a[aria-current="page"]{background:var(--brand);color:#fff}
-.sw a:focus-visible,.mods .logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* menu và nút Quét mã chỉ thuộc phần Kiểm kê */
-body:not([data-mod="kk"]) #nav,body[data-mod="hub"] #scanBtn{display:none}
-body:not([data-mod="kk"]) .who{margin-left:auto}
 /* trang một tài sản (#ts-…) */
 .tsx{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin:6px 0 18px;box-shadow:var(--shadow-sm)}
 .tsx-qr{display:grid;justify-items:center;gap:4px;padding:6px;border:1px solid var(--line);border-radius:8px;background:#fff}
@@ -977,36 +958,118 @@ body:not([data-mod="kk"]) .who{margin-left:auto}
   .lg .li{display:none}
   .ltools select.in{max-width:none;flex:1 1 140px}
 }
+
+/* ===== Đầu trang 2 tầng (11/2026): logo FPT University · 3 phần chính [Kiểm kê | Mã QR | Lịch sử] · menu con của phần đang mở.
+   Điện thoại: 3 phần chính + nút Quét mã nằm ở thanh dưới cùng. ===== */
+.top .top1{display:flex;align-items:center;gap:14px;flex-wrap:nowrap;padding-block:8px}
+.lgo{display:flex;align-items:center;flex:0 0 auto;border-radius:6px}
+.lgo img{display:block;height:44px;width:auto}
+.app{display:flex;flex-direction:column;line-height:1.2;text-decoration:none;color:var(--top-fg);padding-left:14px;border-left:1px solid var(--line);flex:0 0 auto}
+.app b{font-size:15px;font-weight:700;letter-spacing:-.01em}
+.app small{font-size:11.5px;color:var(--top-muted)}
+.sec{display:flex;gap:4px;margin-left:10px}
+.sec a{display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:9px;font-size:14.5px;font-weight:600;color:var(--top-fg);text-decoration:none;white-space:nowrap}
+.sec a svg{width:18px;height:18px}
+.sec a:hover{background:var(--surface-2);color:var(--accent)}
+.sec a[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+.sec a:focus-visible,.lgo:focus-visible,.app:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sec-home{display:none!important}
+.top .top1 .scanbtn{margin-left:auto}
+.top .top1 .who{margin-left:0}
+.top2{border-top:1px solid var(--line)}
+.top .top2 .wrap{display:flex;align-items:center;gap:0;flex-wrap:nowrap;padding-block:0}
+.top2 .nav{margin:0;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:2px;align-items:center;width:100%}
+.top2 .nav::-webkit-scrollbar{display:none}
+.top2 .s-lb{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--top-muted);white-space:nowrap;padding-right:14px;margin-right:6px;border-right:1px solid var(--line)}
+.top .top2 .nav a{padding:10px 12px;font-size:14px;white-space:nowrap;border-radius:0;background:transparent;box-shadow:none;color:var(--top-fg)}
+.top .top2 .nav a:hover{color:var(--accent);background:transparent}
+.top .top2 .nav a[aria-current="page"]{color:var(--accent);box-shadow:inset 0 -3px 0 var(--brand)}
+body[data-mod="hub"] .top2,body:not([data-mod]) .top2{display:none}
+body:not([data-mod="kk"]) #nav,body:not([data-mod="qr"]) #navQR,body:not([data-mod="ls"]) #navLS{display:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .lgo{background:#fff;padding:3px 7px}}
+:root[data-theme="dark"] .lgo{background:#fff;padding:3px 7px}
+@media (max-width:1180px) and (min-width:861px){.sec-x{display:none}.app small{display:none}}
+@media (max-width:1020px) and (min-width:861px){.app{display:none}#whoN{display:none}.lgo img{height:38px}}
+@media (max-width:860px){
+  .top .top1{display:flex;gap:10px;padding-block:6px}
+  .lgo img{height:32px}
+  .app{padding-left:10px}.app b{font-size:14px}.app small{display:none}
+  .top .top1 .who{margin-left:auto}
+  /* thanh dưới cùng: Kiểm kê · Mã QR · [Quét mã] · Lịch sử */
+  .sec{position:fixed;left:0;right:0;bottom:0;z-index:30;margin:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;background:var(--top-bg);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(0,0,0,.07);
+    padding:4px max(6px,env(safe-area-inset-right,0px)) calc(4px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  .sec a{flex-direction:column;gap:2px;padding:6px 2px;font-size:11.5px;border-radius:9px;justify-content:center}
+  .sec a svg{width:21px;height:21px}
+  .sec-x{display:none}
+  .sec .sec-home{display:flex!important}
+  #swHub{grid-column:1}#swKK{grid-column:2}#swQR{grid-column:4}#swLS{grid-column:5}
+  .top .top1 .scanbtn{position:fixed;z-index:31;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));margin:0;width:60px;height:60px;border-radius:50%;padding:0;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+  .top .top1 .scanbtn svg{width:26px;height:26px}
+  body{padding-bottom:calc(74px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+  .top2 .s-lb{display:none}
+  .top .top2 .nav a{padding:9px 10px;font-size:13.5px}
+  .top2 .nav a svg.lucide{display:none}
+}
+#qrSo{scroll-margin-top:calc(var(--toph,100px) + 12px)}
+.mwide{margin-top:12px}.mwide .tile{height:150px}
+/* Lịch sử › Nhập sổ */
+.ns-sum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:4px 0 6px}
+.ns-sum>div{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:2px;box-shadow:var(--shadow-sm)}
+.ns-sum small{color:var(--muted);font-size:12.5px} .ns-sum b{font-size:24px} .ns-sum span{font-size:12.5px;color:var(--muted)}
+.ns-dot{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.ns-dot li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px}
+.ns-dot time{font-weight:600;min-width:118px}
+.ns-chip{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.ns-chip.kt{background:var(--info-soft);color:var(--info)} .ns-chip.hc{background:var(--accent-soft);color:var(--accent)} .ns-chip.xoa{background:var(--warn-soft);color:var(--warn)}
+.ns-tools{flex-wrap:wrap}.ns-tools select.in{width:auto;max-width:240px}
+.ns-tbl{max-height:none}
+.ns-tbl td small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.ns-tbl td a{color:var(--accent);font-weight:600;text-decoration:none;white-space:nowrap}
+.ns-count{color:var(--muted);font-size:13px;margin:6px 0}
+@media (max-width:640px){.ns-sum{grid-template-columns:1fr}}
+/* Lịch sử › Lý lịch tài sản */
+.ly-res{display:grid;gap:4px;margin:6px 0 12px}
+.ly-res a{display:grid;grid-template-columns:76px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;color:var(--fg);text-decoration:none;font-size:14px}
+.ly-res a:hover{border-color:var(--accent)}
+.ly-res small{color:var(--muted);font-size:12px;white-space:nowrap}
+.llist.ly .lg{grid-template-columns:96px 32px minmax(0,1fr)}
+.llist.ly .lt{line-height:1.35}
+.llist.ly .lg.k-kt .li,.llist.ly .lg.k-vao .li{color:var(--info)} .llist.ly .lg.k-xoa .li{color:var(--warn)}
+@media (max-width:560px){.llist.ly .lg{grid-template-columns:78px minmax(0,1fr)}.llist.ly .lg .li{display:none}}
 </style>
 
 <header class="top" id="top">
-  <div class="wrap">
-    <div class="mods" id="mods">
-      <a class="logo" href="#trang-chu" title="Trang chủ Quản lý tài sản" aria-label="Trang chủ Quản lý tài sản"><span data-ic="LayoutGrid"></span></a>
-      <div class="bt">
-        <a class="bt-h" href="#trang-chu">Quản lý tài sản</a>
-        <nav class="sw" aria-label="Chuyển qua lại giữa Kiểm kê và Mã QR">
-          <a href="#tong-quan" id="swKK" data-m="kk" title="Kiểm kê tài sản 2026 (về đúng trang đang kiểm dở)"><span data-ic="ClipboardCheck"></span>Kiểm kê</a>
-          <a href="#ma-qr" id="swQR" data-m="qr" title="Quản lý mã QR tài sản: in tem, sổ mã QR"><span data-ic="QrCode"></span>Mã QR</a>
-        </nav>
-      </div>
-    </div>
-    <nav class="nav" id="nav">
-      <div class="dd" id="navOv">
-        <a href="#tong-quan" class="dd-t" aria-haspopup="true"><span data-ic="LayoutDashboard"></span>Tổng quan<span class="chev"><span data-ic="ChevronDown"></span></span></a>
-        <div class="dd-m"><div class="dd-p" role="menu">
-          <a href="#tong-quan" data-r="tong-quan" role="menuitem"><span class="mi"><span data-ic="LayoutDashboard"></span></span><span class="mt"><b class="full">Bảng tổng quan</b><b class="short">Tổng quan</b><small>Số liệu, biểu đồ tiến độ, tìm nhanh tài sản</small></span></a>
-          <a href="#don-vi" data-r="don-vi" role="menuitem"><span class="mi"><span data-ic="Users"></span></span><span class="mt"><b class="full">Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</b><b class="short">Phòng ban</b><small>Theo sheet của kế toán, từng phòng ban</small></span></a>
-          <a href="#vi-tri" data-r="vi-tri" role="menuitem"><span class="mi"><span data-ic="MapPin"></span></span><span class="mt"><b class="full">Kiểm theo số phòng</b><b class="short">Số phòng</b><small>Đi từng phòng, kiểm tại chỗ mọi tài sản</small></span></a>
-        </div></div>
-      </div>
-      <a href="#xac-minh" data-r="xac-minh"><span data-ic="MessageCircleQuestion"></span><span class="full">Tài sản thất lạc</span><span class="short">Thất lạc</span> <span class="pill" id="xmCount" hidden>0</span></a>
-      <a href="#xuat" data-r="xuat"><span data-ic="FileSpreadsheet"></span><span class="full">Xuất cho kế toán</span><span class="short">Xuất Excel</span></a>
-      <a href="#lich-su" data-r="lich-su" title="Lịch sử thao tác: ai làm gì, lúc nào"><span data-ic="History"></span>Lịch sử</a>
+  <div class="wrap top1">
+    <a class="lgo" href="#trang-chu" title="Trang chủ Quản lý tài sản"><img src="img/logo-fpt-university.png" alt="FPT Education · FPT University" width="960" height="375"></a>
+    <a class="app" href="#trang-chu" title="Trang chủ Quản lý tài sản"><b>Quản lý tài sản</b><small>Phòng Hành chính · Đà Nẵng</small></a>
+    <nav class="sec" aria-label="Các phần chính">
+      <a href="#trang-chu" id="swHub" class="sec-home" title="Trang chủ Quản lý tài sản"><span data-ic="House"></span><span>Trang chủ</span></a>
+      <a href="#tong-quan" id="swKK" data-s="kk" title="Kiểm kê tài sản 2026 (về đúng trang đang xem dở)"><span data-ic="ClipboardCheck"></span><span>Kiểm kê<span class="sec-x"> tài sản</span></span></a>
+      <a href="#ma-qr" id="swQR" data-s="qr" title="Mã QR tài sản: in tem, Sổ mã QR"><span data-ic="QrCode"></span><span>Mã QR<span class="sec-x"> tài sản</span></span></a>
+      <a href="#lich-su" id="swLS" data-s="ls" title="Lịch sử: thao tác trên app, nhập sổ, lý lịch từng tài sản"><span data-ic="History"></span><span>Lịch sử</span></a>
     </nav>
     <button type="button" class="scanbtn" id="scanBtn" title="Quét mã QR / mã vạch trên tem tài sản, hoặc gõ mã"><span data-ic="ScanLine"></span><span>Quét mã</span></button>
     <div class="who"><span class="sync idle" id="sync" role="status">Đang kết nối…</span><i id="whoI">HC</i><span id="whoN">Cán bộ Phòng HC</span></div>
   </div>
+  <div class="top2"><div class="wrap">
+    <nav class="nav" id="nav" aria-label="Kiểm kê tài sản 2026"><span class="s-lb">Kiểm kê tài sản 2026</span>
+      <a href="#tong-quan" data-r="tong-quan"><span data-ic="LayoutDashboard"></span><span class="full">Bảng tổng quan</span><span class="short">Tổng quan</span></a>
+      <a href="#don-vi" data-r="don-vi"><span data-ic="Users"></span><span class="full">Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</span><span class="short">Phòng ban</span></a>
+      <a href="#vi-tri" data-r="vi-tri"><span data-ic="MapPin"></span><span class="full">Kiểm theo số phòng</span><span class="short">Số phòng</span></a>
+      <a href="#xac-minh" data-r="xac-minh"><span data-ic="MessageCircleQuestion"></span><span class="full">Tài sản thất lạc</span><span class="short">Thất lạc</span> <span class="pill" id="xmCount" hidden>0</span></a>
+      <a href="#xuat" data-r="xuat"><span data-ic="FileSpreadsheet"></span><span class="full">Xuất cho kế toán</span><span class="short">Xuất Excel</span></a>
+    </nav>
+    <nav class="nav" id="navQR" aria-label="Mã QR tài sản"><span class="s-lb">Mã QR tài sản</span>
+      <a href="#ma-qr" data-r="ma-qr"><span data-ic="Printer"></span>In tem mã QR</a>
+      <a href="#so-ma-qr" data-r="so-ma-qr"><span data-ic="BookOpen"></span>Sổ mã QR</a>
+    </nav>
+    <nav class="nav" id="navLS" aria-label="Lịch sử"><span class="s-lb">Lịch sử</span>
+      <a href="#lich-su" data-r="lich-su"><span data-ic="MousePointerClick"></span><span class="full">Thao tác trên app</span><span class="short">Thao tác</span></a>
+      <a href="#nhap-so" data-r="nhap-so"><span data-ic="BookPlus"></span>Nhập sổ</a>
+      <a href="#ly-lich" data-r="ly-lich"><span data-ic="ScrollText"></span><span class="full">Lý lịch tài sản</span><span class="short">Lý lịch</span></a>
+    </nav>
+  </div></div>
 </header>
 <main class="wrap" id="app"></main>
 <datalist id="dl-phong"></datalist>
@@ -1221,6 +1284,7 @@ function logPut(d,reuse){
   clearTimeout(logPut._t); logPut._t=setTimeout(logKeep,400);
   if(MODE==='shared'&&DB&&!READONLY) WR.next.set('log/'+id,JSON.stringify(e));
   if(V.type==='log') logDrawSoon();
+  if(V.type==='lylich'&&V.id&&(e.key===V.id||(e.keys||[]).includes(V.id))) llDrawSoon();
   return e;
 }
 function logKeep(){ clearTimeout(logPut._t); try{ localStorage.setItem(LOGK,JSON.stringify(LOGMINE)); }catch(e){} }
@@ -2098,6 +2162,164 @@ function viewLog(){
   logDraw();
   if(LV.need){ LV.need=false; logFetch(); }
 }
+/* ---------- Lịch sử › Nhập sổ: tài sản vào sổ khi nào, từ đâu (kế toán hay cán bộ Hành chính) ---------- */
+const NS={nguon:'',nam:'',q:'',sap:'ghiso',lim:200};
+function soCua(key){ const d=SOQR.dang&&SOQR.dang[key]; return Array.isArray(d)?{tu:d[0]||'',file:(SOQR.files||[])[d[1]]||''}:{tu:d||'',file:''}; }
+function tuText(tu){ if(!tu) return '—'; const [d,t]=String(tu).split(' '); return dmy(d)+(t?' '+t:''); }
+const isoMin=t=>{ const d=new Date(t),p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
+function nsRows(){
+  const r=[];
+  ASSETS.forEach(a=>{ if(!a.ma||String(a.ma)!==String(a.key)) return; const so=soCua(a.key); r.push({loai:'kt',key:a.key,ma:String(a.ma),ten:a.ten,ghiSo:a.ngay,tu:so.tu,file:so.file,trang:'dang'}); });
+  Object.entries(SOQR.xoa||{}).forEach(([k,e])=>r.push({loai:'kt',key:k,ma:k,ten:e.ten,ghiSo:e.ngay,tu:e.tu,file:e.file||'',trang:'xoa',xoa:e.xoa}));
+  Object.entries(S.ps||{}).forEach(([pk,l])=>(l||[]).forEach((p,i)=>r.push({loai:'hc',key:'',ma:'',ten:p.mo_ta||'',sl:p.sl,ghiSo:'',tu:p.at?isoMin(p.at):'',by:p.by||'',noi:psPlace(pk),phong:p.phong||'',trang:'ps'})));
+  return r;
+}
+function nsList(){
+  let l=nsRows();
+  if(NS.nguon) l=l.filter(x=>x.loai===NS.nguon);
+  if(NS.nam) l=l.filter(x=>(x.ghiSo||'').slice(0,4)===NS.nam);
+  const q=fold(NS.q.trim()); if(q) l=l.filter(x=>fold([x.ma,x.ten,x.file,x.by,x.noi,x.phong].join(' ')).includes(q));
+  const k=NS.sap==='vao'?(x=>x.tu||''):(x=>x.ghiSo||''), asc=NS.sap==='ghiso-cu';
+  return l.sort((a,b)=>{ const x=k(a),y=k(b); if(x===y) return String(a.ma).localeCompare(String(b.ma)); if(!x) return 1; if(!y) return -1; return (x<y?-1:1)*(asc?1:-1); });
+}
+function nsNguon(x){ return x.loai==='kt'?`<span class="ns-chip kt">Kế toán</span><small>Sổ kế toán (file BBKK)</small>`
+  :`<span class="ns-chip hc">Cán bộ Hành chính</span><small>${esc(x.by||'Chưa nhập tên')} · ghi nhận tại ${esc(x.noi)}${x.phong?' · '+esc(x.phong):''}</small>`; }
+function nsTrang(x){ return x.trang==='xoa'?`<span class="tag warn">Đã xoá khỏi BBKK ${dmy(x.xoa)}</span>`:x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ'; }
+function viewNhapSo(){
+  const all=nsRows(), kt=all.filter(x=>x.loai==='kt'), hc=all.filter(x=>x.loai==='hc'), xoa=kt.filter(x=>x.trang==='xoa');
+  const nams=[...new Set(kt.map(x=>(x.ghiSo||'').slice(0,4)).filter(Boolean))].sort().reverse();
+  // các đợt vào sổ: theo ngày + file (kế toán), theo ngày (cán bộ HC ghi nhận), theo ngày xoá khỏi BBKK
+  const m=new Map(), add=(k,o)=>{ const v=m.get(k)||Object.assign({n:0},o); v.n++; m.set(k,v); };
+  kt.forEach(x=>{ const d=(x.tu||'').slice(0,10); add('kt|'+d+'|'+x.file,{loai:'kt',d,file:x.file,gio:(x.tu||'').slice(11)}); if(x.xoa) add('xoa|'+x.xoa,{loai:'xoa',d:x.xoa}); });
+  hc.forEach(x=>add('hc|'+(x.tu||'').slice(0,10),{loai:'hc',d:(x.tu||'').slice(0,10)}));
+  const dots=[...m.values()].sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:0);
+  app.innerHTML=`${demoBanner()}
+  ${banner('thu-vien','Lịch sử','Nhập sổ tài sản','Tài sản vào sổ khi nào và từ đâu: kế toán ghi sổ (file BBKK) rồi cán bộ Hành chính đưa lên app, hay cán bộ Hành chính ghi nhận tài sản phát sinh khi đi kiểm.')}
+  <div class="ns-sum">
+    <div><small>Từ sổ kế toán (file BBKK)</small><b class="num">${nf.format(kt.length-xoa.length)}</b><span>tài sản đang trong sổ</span></div>
+    <div><small>Cán bộ Hành chính ghi nhận</small><b class="num">${nf.format(hc.length)}</b><span>tài sản phát sinh, chưa có Mã TSCĐ</span></div>
+    <div><small>Đã xoá khỏi file BBKK</small><b class="num">${nf.format(xoa.length)}</b><span>vẫn giữ trong Sổ mã QR</span></div>
+  </div>
+  <div class="stitle"><h2>Các đợt <strong>vào sổ</strong></h2></div>
+  <ol class="ns-dot">${dots.map(o=>`<li><time class="num">${o.d?dmy(o.d):'Chưa rõ ngày'}${o.gio?' '+o.gio:''}</time>${
+      o.loai==='kt'?`<span class="ns-chip kt">Kế toán</span><span><b class="num">${nf.format(o.n)}</b> tài sản vào sổ từ file <span class="mono">${esc(o.file||'BBKK')}</span>, cán bộ Hành chính đưa lên app</span>`
+      :o.loai==='hc'?`<span class="ns-chip hc">Cán bộ Hành chính</span><span><b class="num">${nf.format(o.n)}</b> tài sản phát sinh được ghi nhận khi đi kiểm</span>`
+      :`<span class="ns-chip xoa">Xoá khỏi sổ</span><span><b class="num">${nf.format(o.n)}</b> tài sản không còn trong file BBKK (mã QR vẫn giữ)</span>`}</li>`).join('')||'<li>Chưa có đợt nào.</li>'}</ol>
+  <div class="stitle"><h2>Danh sách <strong>tài sản</strong></h2></div>
+  <div class="tools ns-tools">
+    <select class="in" id="nsn" aria-label="Nguồn"><option value="">Mọi nguồn</option><option value="kt" ${NS.nguon==='kt'?'selected':''}>Kế toán (file BBKK)</option><option value="hc" ${NS.nguon==='hc'?'selected':''}>Cán bộ Hành chính</option></select>
+    <select class="in" id="nsy" aria-label="Năm kế toán ghi sổ"><option value="">Mọi năm ghi sổ</option>${nams.map(y=>`<option value="${y}" ${NS.nam===y?'selected':''}>Ghi sổ năm ${y}</option>`).join('')}</select>
+    <select class="in" id="nss" aria-label="Sắp xếp"><option value="ghiso" ${NS.sap==='ghiso'?'selected':''}>Ghi sổ mới nhất trước</option><option value="ghiso-cu" ${NS.sap==='ghiso-cu'?'selected':''}>Ghi sổ cũ nhất trước</option><option value="vao" ${NS.sap==='vao'?'selected':''}>Vào app mới nhất trước</option></select>
+    <label class="sbox search">${ic('Search')}<input class="in" id="nsq" type="search" placeholder="Tìm mã, tên tài sản, người ghi…" value="${esc(NS.q)}" aria-label="Tìm tài sản"></label>
+    <button class="btn" data-act="nsxlsx">${ic('Download')}Tải Excel</button>
+  </div>
+  <div id="nsBody"></div>
+  <p class="lfoot">Ngày kế toán ghi sổ lấy từ cột Ngày của file BBKK. Ngày vào sổ trên app là lúc file BBKK có tài sản đó được đưa lên app (tài sản vào trước 15/11/2026 chỉ ghi ngày). Tài sản phát sinh ghi nhận từ 15/11/2026 có tên người ghi và giờ ghi.</p>`;
+  nsDraw();
+}
+function nsDraw(){
+  const box=document.getElementById('nsBody'); if(!box) return;
+  const l=nsList(), show=l.slice(0,NS.lim);
+  box.innerHTML=`<p class="ns-count">${nf.format(l.length)} tài sản khớp bộ lọc${l.length>show.length?` · đang hiện ${nf.format(show.length)}`:''}</p>
+  ${l.length?`<div class="tblwrap ns-tbl"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Kế toán ghi sổ</th><th>Vào sổ trên app</th><th>Nguồn · người nhập</th><th>Hiện trạng</th><th></th></tr></thead><tbody>${show.map(x=>`<tr>
+    <td class="mono">${esc(x.ma||'—')}</td><td>${esc(x.ten)}${x.sl>1?` <small>SL ${nf.format(x.sl)}</small>`:''}</td><td class="num">${x.ghiSo?dmy(x.ghiSo):'—'}</td>
+    <td class="num">${tuText(x.tu)}${x.file?`<small>${esc(x.file)}</small>`:''}</td><td>${nsNguon(x)}</td><td>${nsTrang(x)}</td>
+    <td>${x.key?`<a href="#ly-lich-${encodeURIComponent(x.key)}">Lý lịch →</a>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Không có tài sản nào khớp bộ lọc.</div>'}
+  ${l.length>show.length?`<div class="lmorebtn"><button class="btn" data-act="nsmore">Xem thêm ${nf.format(Math.min(200,l.length-show.length))} tài sản</button></div>`:''}`;
+}
+async function nsXlsx(b){
+  const l=nsList(); if(!l.length){ toast('Không có tài sản nào để tải'); return; }
+  const old=b.innerHTML; b.disabled=true; b.textContent='Đang tạo file…';
+  const cot=[['Mã TSCĐ',12],['Tên tài sản',55],['Kế toán ghi sổ',14],['Vào sổ trên app',17],['File BBKK',34],['Nguồn',20],['Người ghi nhận',20],['Nơi ghi nhận',26],['Hiện trạng',28]];
+  const dong=l.map(x=>[x.ma,x.ten,x.ghiSo?dmy(x.ghiSo):'',x.tu?tuText(x.tu):'',x.file||'',x.loai==='kt'?'Kế toán (file BBKK)':'Cán bộ Hành chính',x.by||'',x.noi?(x.noi+(x.phong?' · '+x.phong:'')):'',x.trang==='xoa'?'Đã xoá khỏi BBKK '+dmy(x.xoa):x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ']);
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  try{ await window.xuatBangExcel('Nhập sổ tài sản',cot,dong,`Nhap so tai san ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`); toast(`Đã tải ${nf.format(dong.length)} tài sản`); }
+  catch(e){ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); }
+  finally{ b.disabled=false; b.innerHTML=old; }
+}
+
+/* ---------- Lịch sử › Lý lịch tài sản: có từ khi nào, vào sổ ra sao, đã làm gì trên app, lúc nào, ai làm ---------- */
+const LL={key:'',q:'',srv:[],loading:false,err:'',tok:0};
+const LL_KIND={kt:['Kế toán ghi sổ','BookPlus'],vao:['Vào sổ trên app','QrCode'],xoa:['Xoá khỏi sổ','Archive']};
+function llAsset(key){
+  const a=BY_KEY[key]; if(a) return {a,key,ma:String(a.ma||key),ten:a.ten,ngay:a.ngay,gia:a.gia,sl:a.sl,donVi:UNIT[a.unit].ten,vt0:a.vt0,so:soCua(key)};
+  const e=SOQR.xoa&&SOQR.xoa[key]; if(e) return {xoa:e,key,ma:key,ten:e.ten,ngay:e.ngay,gia:e.gia,donVi:e.donVi,vt0:e.vt,so:{tu:e.tu,file:e.file||''}};
+  return null;
+}
+async function llFetch(){
+  const tok=++LL.tok; LL.srv=[]; LL.err='';
+  if(!logOnline()||!LL.key){ LL.loading=false; llDraw(); return; }
+  LL.loading=true; llDraw();
+  try{ const r=await DB.recent('log',{key:LL.key,limit:500}); if(tok!==LL.tok) return; r.forEach(x=>{ if(x&&x.data&&typeof x.data==='object') LL.srv.push(Object.assign({},x.data,{id:x.id})); }); }
+  catch(e){ if(tok!==LL.tok) return; LL.err='Chưa tải được lịch sử chung (kiểm tra mạng). Đang hiện các thao tác lưu trên máy này.'; }
+  LL.loading=false; llDraw();
+}
+function llEvents(A){
+  const ev=[], key=A.key;
+  if(A.ngay) ev.push({t:Date.parse(A.ngay+'T00:00:00'),day:true,who:'Kế toán',kind:'kt',title:'Kế toán ghi sổ tài sản',
+    lines:['Theo file BBKK: ngày ghi sổ '+dmy(A.ngay),A.gia?'Nguyên giá: '+money(A.gia):'',A.sl!=null?'Số lượng theo sổ: '+nf.format(A.sl):'',A.donVi?'Đơn vị: '+A.donVi:'',A.vt0?'Vị trí theo sổ: '+A.vt0:''].filter(Boolean)});
+  if(A.so.tu){ const [d,h]=String(A.so.tu).split(' '); ev.push({t:Date.parse(d+'T'+(h||'00:00')+':00'),day:!h,who:'Cán bộ Hành chính',kind:'vao',title:'Vào sổ trên app, cấp mã QR',
+    lines:['Từ file '+(A.so.file||'BBKK')+' (sổ kế toán)','Mã QR: '+KIEMKE_QR.payload(key)]}); }
+  const m=new Map(); LL.srv.forEach(e=>m.set(e.id,e)); LOGMINE.forEach(e=>m.set(e.id,e));
+  [...m.values()].filter(e=>e.key===key||(e.keys||[]).includes(key)).forEach(e=>{
+    let lines=e.lines||[];
+    if(e.bulk&&e.key!==key){ const pre=A.ma+' · '; lines=lines.filter(x=>String(x).startsWith(pre)).map(x=>String(x).slice(pre.length)); }
+    ev.push({t:e.t0||e.t,who:e.by||'Chưa nhập tên',kind:e.kind||'khac',title:e.title||'',lines,tag:e.tag||''});
+  });
+  if(A.xoa) ev.push({t:Date.parse(A.xoa.xoa+'T23:59:00'),day:true,who:'Kế toán',kind:'xoa',title:'Không còn trong file BBKK (xoá khỏi sổ)',lines:['Mã QR vẫn giữ trong Sổ mã QR, quét tem cũ vẫn xem được']});
+  return ev.sort((a,b)=>a.t-b.t);
+}
+function viewLyLich(key){
+  if(key!==LL.key){ LL.key=key; LL.srv=[]; LL.err=''; if(key) llFetch(); }
+  app.innerHTML=`${demoBanner()}
+  ${banner('vuon','Lịch sử','Lý lịch tài sản','Tài sản có từ khi nào, vào sổ ra sao, đã được kiểm, chuyển phòng, ghi tình trạng, xác minh, in tem… lúc nào và ai làm. Dùng để quản lý và truy cứu khi tài sản đổi chỗ, bàn giao, hư hỏng hay thanh lý.')}
+  <div class="tools"><label class="sbox search">${ic('Search')}<input class="in" id="llq" type="search" placeholder="Gõ Mã TSCĐ hoặc tên tài sản để xem lý lịch…" value="${esc(LL.q)}" aria-label="Tìm tài sản"></label></div>
+  <div class="ly-res" id="llRes"></div>
+  <div id="llBody"></div>`;
+  llResDraw(); llDraw();
+}
+function llResDraw(){
+  const box=document.getElementById('llRes'); if(!box) return; const q=fold(LL.q.trim());
+  if(q.length<2){ box.innerHTML=''; return; }
+  const hits=ASSETS.filter(a=>fold(a.ma+' '+a.ten).includes(q)).slice(0,10).map(a=>({key:a.key,ma:a.ma,ten:a.short,sub:roomOf(a)||'Chưa có vị trí'}))
+    .concat(Object.entries(SOQR.xoa||{}).filter(([k,e])=>fold(k+' '+e.ten).includes(q)).slice(0,5).map(([k,e])=>({key:k,ma:k,ten:e.ten,sub:'Đã xoá khỏi BBKK'})));
+  box.innerHTML=hits.length?hits.map(x=>`<a href="#ly-lich-${encodeURIComponent(x.key)}"><span class="mono">${esc(x.ma)}</span><span>${esc(x.ten)}</span><small>${esc(x.sub)}</small></a>`).join(''):'<div class="empty">Không có tài sản nào khớp.</div>';
+}
+function llDraw(){
+  const box=document.getElementById('llBody'); if(!box||V.type!=='lylich') return;
+  if(!LL.key){ box.innerHTML='<div class="empty">Gõ Mã TSCĐ hoặc tên tài sản ở ô trên, hoặc bấm “Lý lịch tài sản” ở trang của một tài sản.</div>'; return; }
+  const A=llAsset(LL.key);
+  if(!A){ box.innerHTML=`<div class="empty">Không có tài sản mã “${esc(LL.key)}” trong sổ.</div>`; return; }
+  const a=A.a, s=a?S.rows[a.stt]||{}:{}, r=a?res(a):'', cond=a&&(s.cond||a.cond0)?((COND.find(c=>c[0]===(s.cond||a.cond0))||[])[1]||''):'';
+  const who=a&&s.at?`${esc(whoLabel(s.by)||'Chưa nhập tên')} · ${ddmmyy(s.at)}`:'';
+  const ev=llEvents(A), tIcon=e=>(LL_KIND[e.kind]||LOG_KIND[e.kind]||LOG_KIND.khac), lis=l=>l.map(x=>`<li>${logLine(x)}</li>`).join('');
+  box.innerHTML=`<section class="tsx">
+    <div class="tsx-qr">${qrSvg(KIEMKE_QR.payload(A.key),96)}<small>Mã QR trên tem</small></div>
+    <div class="tsx-in">
+      <div class="tsx-k">Mã TSCĐ <b class="mono">${esc(A.ma)}</b>${a?' · STT '+a.stt:''}${A.xoa?' · <span class="tag warn">Đã xoá khỏi BBKK</span>':''}</div>
+      <h1>${esc(A.ten)}</h1>
+      <dl class="tsx-dl">
+        <div><dt>Có từ (kế toán ghi sổ)</dt><dd class="num">${dmy(A.ngay)}</dd></div>
+        <div><dt>Vào sổ trên app</dt><dd class="num">${tuText(A.so.tu)}</dd></div>
+        <div><dt>Vị trí hiện tại</dt><dd>${esc(a?(roomOf(a)||'Chưa có vị trí'):(A.vt0||'—'))}</dd></div>
+        ${a?`<div><dt>Kết quả kiểm</dt><dd>${esc(RES_LABEL[r])}${cond?' · '+esc(cond):''}</dd></div>`:''}
+        ${who?`<div><dt>Ghi kết quả gần nhất</dt><dd>${who}</dd></div>`:''}
+      </dl>
+    </div>
+  </section>
+  <div class="tsx-go">${a?`<a class="btn pri" href="#ts-${encodeURIComponent(A.key)}">${ic('ClipboardCheck')}Mở trang kiểm tài sản</a><a class="btn" href="#ma-qr" data-act="qrin" data-qk="${esc(A.key)}">${ic('QrCode')}In tem mã QR</a>`:`<a class="btn" href="#ts-${encodeURIComponent(A.key)}">${ic('Archive')}Xem thông tin lưu trong sổ</a>`}</div>
+  <div class="stitle"><h2>Dòng <strong>thời gian</strong></h2></div>
+  ${LL.err?`<div class="demo">${esc(LL.err)}</div>`:''}
+  <ol class="llist ly">${ev.map(e=>{ const [kn,icn]=tIcon(e), d=new Date(e.t); return `<li class="lg k-${esc(e.kind)}">
+      <time class="lt num" datetime="${isNaN(d)?'':d.toISOString()}">${isNaN(d)?'—':dmy(isoMin(e.t).slice(0,10))}${e.day?'':'<br>'+hh(e.t)}</time>
+      <span class="li" title="${esc(kn)}">${ic(icn)}</span>
+      <div class="lb"><div class="lh"><b>${esc(e.title||kn)}</b>${e.tag?`<span class="tag warn">${esc(e.tag)}</span>`:''}<span class="lwho">${ic('UserRound')}${esc(e.who)}</span></div>
+        ${e.lines.length?`<ul class="ll">${lis(e.lines.slice(0,6))}</ul>`:''}${e.lines.length>6?`<details class="lmore"><summary>Xem thêm ${e.lines.length-6} dòng</summary><ul class="ll">${lis(e.lines.slice(6))}</ul></details>`:''}</div></li>`; }).join('')}</ol>
+  ${LL.loading?'<p class="lfoot">Đang tải lịch sử chung…</p>':''}
+  <p class="lfoot">Thao tác trên app được ghi từ 14/11/2026. Trước ngày đó chỉ có ngày kế toán ghi sổ, ngày vào sổ trên app và kết quả kiểm gần nhất.${logOnline()?'':' Trang đang lưu trên máy này nên chỉ có thao tác trên trình duyệt này.'}</p>`;
+}
+function llDrawSoon(){ clearTimeout(llDrawSoon._t); llDrawSoon._t=setTimeout(llDraw,250); }
+
 async function logXlsx(b){
   const l=logItems(); if(!l.length){ toast('Không có thao tác nào để tải'); return; }
   if(!window.xuatBangExcel){ toast('Chưa tải được chức năng xuất Excel'); return; }
@@ -2139,6 +2361,7 @@ function viewTS(key){
   <div class="tsx-go">
     <button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét tem tiếp</button>
     <a class="btn" href="#ma-qr" data-act="qrin" data-qk="${esc(a.key)}">${ic('QrCode')}In tem mã QR tài sản này</a>
+    <a class="btn" href="#ly-lich-${encodeURIComponent(a.key)}">${ic('History')}Lý lịch tài sản</a>
     <a class="btn" href="#phong-${rs}" data-act="goto" data-q="${esc(a.ma||'')}">${ic('MapPin')}Mở ${n?'phòng '+esc(n):'nhóm Chưa có vị trí'}</a>
     <a class="btn" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma||'')}">${ic('Users')}Mở sheet ${esc(u.sheet)}</a>
   </div>`;
@@ -2166,7 +2389,7 @@ function viewTSXoa(key,e){
       </dl>
     </div>
   </section>
-  <div class="tsx-go"><button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét tem tiếp</button><a class="btn" href="#ma-qr" data-act="qrso">${ic('BookOpen')}Xem Sổ mã QR</a></div>`;
+  <div class="tsx-go"><button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét tem tiếp</button><a class="btn" href="#ly-lich-${encodeURIComponent(key)}">${ic('History')}Lý lịch tài sản</a><a class="btn" href="#so-ma-qr">${ic('BookOpen')}Xem Sổ mã QR</a></div>`;
 }
 
 /* ---------- trang chủ Quản lý tài sản: 2 phần ngang hàng ---------- */
@@ -2184,34 +2407,35 @@ function viewHub(){
   <div class="mbig">
     ${tile('#tong-quan','hoi-truong','Kiểm kê tài sản 2026',`${pct}% đã kiểm · ${nf.format(all.da)}/${nf.format(all.tong)} dòng · số liệu chốt sổ đến hết 31/10/2026`,'big')}
     ${tile('#ma-qr','phong-lab','Quản lý mã QR tài sản','In tem mã QR cho từng tài sản · quét tem bằng nút Quét mã mở thẳng tài sản','big')}
-  </div>`;
+  </div>
+  <div class="mwide">${tile('#lich-su','vuon','Lịch sử','Thao tác trên app · nhập sổ · lý lịch từng tài sản (có từ khi nào, đã làm gì, lúc nào)','big')}</div>`;
 }
-/* phần đang mở: hub = trang chủ, kk = Kiểm kê tài sản, qr = Mã QR tài sản */
-const MODS={hub:'Quản lý tài sản FPTU ĐN',kk:'Kiểm kê tài sản FPTU ĐN',qr:'Mã QR tài sản FPTU ĐN'};
-const MODLAST={kk:'#tong-quan',qr:'#ma-qr'};   // nút Kiểm kê / Mã QR quay về đúng trang đang xem dở của phần đó
+/* phần đang mở: hub = trang chủ, kk = Kiểm kê tài sản, qr = Mã QR tài sản, ls = Lịch sử (chung cho cả app) */
+const MODS={hub:'Quản lý tài sản FPTU ĐN',kk:'Kiểm kê tài sản FPTU ĐN',qr:'Mã QR tài sản FPTU ĐN',ls:'Lịch sử · Quản lý tài sản FPTU ĐN'};
+const MODLAST={kk:'#tong-quan',qr:'#ma-qr',ls:'#lich-su'};   // bấm lại một phần → về đúng trang đang xem dở của phần đó
 function setMod(m){
   if(m!=='hub') MODLAST[m]=location.hash||MODLAST[m];
-  document.getElementById('swKK').href=MODLAST.kk; document.getElementById('swQR').href=MODLAST.qr;
+  [['swKK','kk'],['swQR','qr'],['swLS','ls']].forEach(([id,k])=>{ const a=document.getElementById(id); a.href=MODLAST[k]; if(k===m) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  const hub=document.getElementById('swHub'); if(m==='hub') hub.setAttribute('aria-current','page'); else hub.removeAttribute('aria-current');
   if(document.body.dataset.mod===m) return;
   document.body.dataset.mod=m; document.title=MODS[m];
-  document.querySelectorAll('.sw a').forEach(a=>{ if(a.dataset.m===m) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   setTopH();
 }
 
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else viewOverview(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else viewOverview(); }
 function route(){
   const h=(location.hash||'#trang-chu').slice(1);
-  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:{type:'ov'};
+  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
-  V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':'kk');
-  document.querySelectorAll('#nav a').forEach(a=>a.toggleAttribute('aria-current',false));
-  const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':V.type==='ov'?'tong-quan':h;
-  document.getElementById('navOv').classList.toggle('on',['tong-quan','don-vi','vi-tri'].includes(cur));
-  const nav=document.querySelector(`#nav a[data-r="${cur}"]`); if(nav) nav.setAttribute('aria-current','page');
+  V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':'kk');
+  document.querySelectorAll('.top2 a[data-r]').forEach(a=>a.removeAttribute('aria-current'));
+  const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':V.type==='ov'?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
+  const nav=document.querySelector(`.top2 a[data-r="${cur}"]`); if(nav) nav.setAttribute('aria-current','page');
   render(); updateBadge();
+  if(V.type==='qr'&&V.id==='so') setTimeout(()=>document.getElementById('qrSo')?.scrollIntoView({block:'start'}),60);
 }
 function updateBadge(){const n=xmPending();const b=document.getElementById('xmCount');b.textContent=n;b.hidden=!n;}
 
@@ -2251,6 +2475,8 @@ app.addEventListener('click',e=>{
   const act=b.dataset.act; const row=b.closest('[data-stt]'); const stt=row?+row.dataset.stt:null; const a=stt?BY_STT[stt]:null;
   if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
   if(act==='qrin'||act==='qrso'){ e.preventDefault(); qrOpen(act==='qrso'?{so:true}:{unit:b.dataset.qu,room:b.dataset.qr,key:b.dataset.qk}); return; }
+  if(act==='nsmore'){ NS.lim+=200; nsDraw(); return; }
+  if(act==='nsxlsx'){ nsXlsx(b); return; }
   if(act==='logwho'){ if(LV.who!==b.dataset.v){ LV.who=b.dataset.v; LV.need=true; render(); } return; }
   if(act==='logrefresh'){ LV.need=true; render(); return; }
   if(act==='logmore'){ b.disabled=true; b.textContent='Đang tải…'; LV.loading=true; logPage(LV.tok); return; }
@@ -2337,10 +2563,13 @@ app.addEventListener('change',e=>{
   if(t.id==='xu'){ xuatUnit=t.value; viewXuat(); return; }
   if(t.id==='selU'){ OV.sel=t.value; render(); return; }
   if(t.id==='hideDone'){ OV.hideDone=t.checked; document.getElementById('roomgrid').innerHTML=ovRoomsHTML(); return; }
+  if(t.id==='nsn'||t.id==='nsy'||t.id==='nss'){ NS[{nsn:'nguon',nsy:'nam',nss:'sap'}[t.id]]=t.value; NS.lim=200; nsDraw(); return; }
   if(t.id==='lk'){ LV.kind=t.value; LV.need=true; render(); document.getElementById('lk')?.focus(); return; }
 });
 app.addEventListener('input',e=>{
   const t=e.target;
+  if(t.id==='nsq'){ NS.q=t.value; NS.lim=200; clearTimeout(app._n); app._n=setTimeout(nsDraw,200); }
+  if(t.id==='llq'){ LL.q=t.value; clearTimeout(app._ll); app._ll=setTimeout(llResDraw,150); }
   if(t.id==='lq'){ LV.q=t.value; clearTimeout(app._l); app._l=setTimeout(logDraw,200); }
   if(t.id==='q'){ ui.q=t.value; ui.bulkArm=false; clearTimeout(app._q); app._q=setTimeout(()=>refocusAfter('q',()=>{ const l=currentList(); document.getElementById('rows').innerHTML=l.length?listBody(l,V.type==='unit'?'room':'unit'):''; refreshRow(-1); }),200); }
   if(t.id==='gq'){ OV.gq=t.value; clearTimeout(app._g); app._g=setTimeout(()=>document.getElementById('gres').innerHTML=ovSearchHTML(),200); }
@@ -2358,7 +2587,7 @@ app.addEventListener('keydown',e=>{
 });
 app.addEventListener('submit',e=>{
   if(e.target.id!=='psForm') return; e.preventDefault();
-  const k=psKey(); (S.ps[k]=S.ps[k]||[]).push({mo_ta:document.getElementById('ps-mt').value.trim(),sl:+document.getElementById('ps-sl').value||1,phong:document.getElementById('ps-ph').value.trim(),cond:document.getElementById('ps-cd').value});
+  const k=psKey(); (S.ps[k]=S.ps[k]||[]).push({mo_ta:document.getElementById('ps-mt').value.trim(),sl:+document.getElementById('ps-sl').value||1,phong:document.getElementById('ps-ph').value.trim(),cond:document.getElementById('ps-cd').value,at:Date.now(),by:ME||''});
   save(); render(); toast('Đã thêm tài sản phát sinh');
 });
 
@@ -2457,15 +2686,6 @@ document.getElementById('scanRes').addEventListener('click',e=>{
   if(location.hash==='#'+h){ ui.q=a.ma||''; render(); } else { pendingQ=a.ma||''; location.hash=h; }
 });
 
-(function(){
-  const dd=document.getElementById('navOv');
-  dd.querySelectorAll('.dd-p a').forEach(a=>a.addEventListener('click',()=>{ dd.classList.remove('open'); dd.classList.add('shut'); a.blur(); }));
-  dd.addEventListener('mouseleave',()=>dd.classList.remove('shut'));
-  dd.querySelector('.dd-t').addEventListener('click',e=>{ if(matchMedia('(hover:none)').matches){ e.preventDefault(); dd.classList.remove('shut'); dd.classList.toggle('open'); } });
-  document.addEventListener('click',e=>{ if(!dd.contains(e.target)) dd.classList.remove('open'); });
-  dd.addEventListener('keydown',e=>{ if(e.key==='Escape'){ dd.classList.add('shut'); document.activeElement.blur(); } });
-  dd.addEventListener('focusin',()=>dd.classList.remove('shut'));
-})();
 function setTopH(){document.documentElement.style.setProperty('--toph',document.getElementById('top').offsetHeight+'px');}
 window.addEventListener('resize',setTopH);
 window.addEventListener('hashchange',route);

@@ -10,7 +10,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import ExcelJS from 'exceljs';
 import { findExcel } from './excel-file.mjs';
-import { SO_FILE, docSo, vietSo, capNhatSo } from './so-ma-qr.mjs';
+import { SO_FILE, docSo, vietSo, capNhatSo, homNay, bayGio } from './so-ma-qr.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -111,14 +111,16 @@ fs.writeFileSync(path.join(DIST, 'data', 'version.json'), JSON.stringify(meta));
 fs.copyFileSync(file, path.join(DIST, 'data', 'goc.xlsx'));
 
 /* ---------- Sổ mã QR: mã đã cấp không bao giờ mất, tài sản bị xoá vẫn giữ ---------- */
-const SQ = capNhatSo(rows, docSo());
+const SQ = capNhatSo(rows, docSo(), homNay(), { file: path.basename(file), luc: bayGio() });
 // Trên Vercel chỉ tính trong bộ nhớ (sổ được commit từ máy cùng file Excel); trên máy thì ghi lại sổ khi có thay đổi
 if (SQ.doi && !process.env.VERCEL) fs.writeFileSync(SO_FILE, vietSo(SQ.so));
-const soDang = {}, soXoa = {};
-for (const [k, e] of Object.entries(SQ.so.ma)) { if (e.xoa) soXoa[k] = e; else soDang[k] = e.tu; }
+// cho trang: đang dùng {khoá: [lúc vào sổ, số thứ tự file]}, đã xoá {khoá: thông tin lúc còn trong sổ}
+const soDang = {}, soXoa = {}, soFile = [];
+const fileSo = f => { if (!f) return -1; let i = soFile.indexOf(f); if (i < 0) { soFile.push(f); i = soFile.length - 1; } return i; };
+for (const [k, e] of Object.entries(SQ.so.ma)) { if (e.xoa) soXoa[k] = e; else soDang[k] = [e.tu, fileSo(e.file)]; }
 fs.writeFileSync(path.join(DIST, 'data', 'so-ma-qr.js'),
   '// Sinh tự động từ "dữ liệu cập nhật/so-ma-qr.json" — đừng sửa tay.\n' +
-  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, dang: soDang, xoa: soXoa })};\n`);
+  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, files: soFile, dang: soDang, xoa: soXoa })};\n`);
 
 const le = X.REVIEW_SHEETS.map(s => `${s} ${rows.filter(r => r[11] === s).length}`).join(', ');
 console.log(`Xong: ${rows.length} tài sản từ ${sheets.length} sheet · phiên bản ${version}`);

@@ -38,7 +38,7 @@ for (let i = 0; i < 30; i++) {
 ok(!khac.length, !khac.length ? `Mã trang trên Vercel giống bản trên máy (${MA_TRANG.join(', ')})`
   : `Sau 5 phút trên Vercel vẫn khác bản trên máy: ${khac.join(', ')} (chưa push, hoặc Vercel build lỗi — xem Deployments trên vercel.com)`);
 
-for (const f of ['', 'ma-qr.js', 'qr-rules.js', 'fonts/BeVietnamPro-Regular.ttf', 'fonts/BeVietnamPro-Bold.ttf', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js', 'data/assets.js', 'data/so-ma-qr.js', 'data/goc.xlsx']) {
+for (const f of ['', 'img/logo-fpt-university.png', 'ma-qr.js', 'qr-rules.js', 'fonts/BeVietnamPro-Regular.ttf', 'fonts/BeVietnamPro-Bold.ttf', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js', 'data/assets.js', 'data/so-ma-qr.js', 'data/goc.xlsx']) {
   const r = await fetch(`${WEB_URL}/${f}`);
   ok(r.ok, `/${f} → ${r.status}`);
 }

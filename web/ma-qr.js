@@ -359,7 +359,6 @@ function viewQR() {
     <div id="qrSoBody"></div>
   </section>`;
   temBind(); temSync(); temSoDraw();
-  if (TEMV.soOpen) { TEMV.soOpen = false; setTimeout(() => document.getElementById('qrSo')?.scrollIntoView({ block: 'start' }), 60); }
   temFonts().then(() => { TEMV.fontOK = true; temRefresh(); }).catch(e => { const st = document.getElementById('qrStage'); if (st) st.innerHTML = `<div class="empty">${esc('Lỗi: ' + e.message)}</div>`; });
 }
 
@@ -380,19 +379,17 @@ function temSoXlsx() {
   const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} };
   const cot = [['Mã TSCĐ', 12], ['Tên tài sản', 55], ['Đơn vị', 30], ['Vị trí', 18], ['Ngày ghi sổ', 12], ['Nguyên giá', 14], ['Cấp mã QR', 12], ['Trạng thái', 26], ['Nội dung mã QR', 55]];
   const dong = [];
-  ASSETS.filter(temCoMa).forEach(a => dong.push([String(a.ma), a.ten, UNIT[a.unit] ? UNIT[a.unit].ten : a.unit, roomOf(a), dmy(a.ngay), a.gia || 0, dmy(so.dang[a.key] || ''), 'Đang dùng', KIEMKE_QR.payload(a.key)]));
+  ASSETS.filter(temCoMa).forEach(a => dong.push([String(a.ma), a.ten, UNIT[a.unit] ? UNIT[a.unit].ten : a.unit, roomOf(a), dmy(a.ngay), a.gia || 0, dmy(String((Array.isArray(so.dang[a.key]) ? so.dang[a.key][0] : so.dang[a.key]) || '').slice(0, 10)), 'Đang dùng', KIEMKE_QR.payload(a.key)]));
   Object.entries(so.xoa || {}).forEach(([k, e]) => dong.push([k, e.ten, e.donVi, e.vt, dmy(e.ngay), e.gia || 0, dmy(e.tu), 'Đã xoá khỏi BBKK ngày ' + dmy(e.xoa), KIEMKE_QR.payload(k)]));
   return window.xuatBangExcel('Sổ mã QR', cot, dong, 'So ma QR - ' + new Date().toLocaleDateString('vi-VN').replace(/\//g, '-'));
 }
 // Mở phần Mã QR đúng tài sản / sheet / phòng đang xem ở phần Kiểm kê (hoặc mở Sổ mã QR)
 function qrOpen(o) {
   o = o || {};
-  if (!o.so) {
-    TEMV.unit = o.unit || ''; TEMV.room = o.room || ''; TEMV.q = '';
-    if (o.key) { const a = BY_KEY[o.key]; TEMV.q = a ? String(a.ma || a.key) : String(o.key); TEMV.off.delete(o.key); }
-    TEMV.idx = 0; TEMV.page = 0; TEMV.view = 'tem';
-  }
-  TEMV.soOpen = !!o.so;
+  if (o.so) { if (location.hash === '#so-ma-qr') document.getElementById('qrSo')?.scrollIntoView({ block: 'start' }); else location.hash = 'so-ma-qr'; return; }
+  TEMV.unit = o.unit || ''; TEMV.room = o.room || ''; TEMV.q = '';
+  if (o.key) { const a = BY_KEY[o.key]; TEMV.q = a ? String(a.ma || a.key) : String(o.key); TEMV.off.delete(o.key); }
+  TEMV.idx = 0; TEMV.page = 0; TEMV.view = 'tem';
   const w = document.getElementById('qrw'); if (w) app.innerHTML = '';   // dựng lại trang với bộ lọc mới
   if (location.hash === '#ma-qr') render(); else location.hash = 'ma-qr';
 }
@@ -574,7 +571,7 @@ async function temExport(kind) {
     else temData(items, kind, name);
     const what = { pdf: 'file PDF', print: 'lệnh in', png: 'ảnh PNG', xlsx: 'file Excel dữ liệu tem', csv: 'file CSV dữ liệu tem' }[kind];
     temMsg(`${ok}<br>${kind === 'print' ? 'Đã mở hộp thoại in.' : 'Đã tạo ' + what + '.'} ${nf.format(items.length)} tem.`);
-    if (typeof logEvent === 'function') logEvent({ kind: 'xuat', title: `In tem mã QR: ${what}`, lines: [`${nf.format(items.length)} tem cho ${nf.format(list.length)} tài sản`, `Tem ${TEM.w}×${TEM.h} mm · ${TEM.mode === 'a4' ? 'tờ A4 ' + P.per + ' tem/trang' : 'máy in tem'}`] });
+    if (typeof logEvent === 'function') logEvent({ kind: 'xuat', title: `In tem mã QR: ${what}`, keys: list.map(a => a.key), lines: [`${nf.format(items.length)} tem cho ${nf.format(list.length)} tài sản`, `Tem ${TEM.w}×${TEM.h} mm · ${TEM.mode === 'a4' ? 'tờ A4 ' + P.per + ' tem/trang' : 'máy in tem'}`] });
   } catch (e) { console.error(e); temMsg(esc('Lỗi: ' + e.message), true); }
   finally { TEMV.busy = false; const w = document.getElementById('qrw'); if (w) w.classList.remove('busy'); }
 }

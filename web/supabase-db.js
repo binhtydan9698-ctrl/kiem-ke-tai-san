@@ -85,7 +85,7 @@
         };
       },
       // Đọc các tài liệu mới nhất của một loại, mới trước cũ sau (id tăng theo thời gian).
-      // o = {limit, before: id (lấy cũ hơn id này), kind, who: {by, dev} (lọc theo tên HOẶC máy)}
+      // o = {limit, before: id (lấy cũ hơn id này), kind, who: {by, dev} (lọc theo tên HOẶC máy), key: Mã TSCĐ (thao tác của 1 tài sản)}
       async recent(col, o = {}) {
         const qt = s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';   // đặt giá trị trong ngoặc kép
         let q = sb.from(TABLE).select('id,data').eq('col', col);
@@ -95,6 +95,10 @@
           if (o.who.by) f.push('data->>by.eq.' + qt(o.who.by));
           if (o.who.dev) f.push('data->>dev.eq.' + qt(o.who.dev));
           if (f.length) q = q.or(f.join(','));
+        }
+        if (o.key != null) {   // dòng của đúng tài sản này, hoặc dòng gộp nhiều tài sản có chứa nó (data.keys)
+          const k = String(o.key);
+          q = q.or('data->>key.eq.' + qt(k) + ',data->keys.cs.' + JSON.stringify([k]));
         }
         if (o.before) q = q.lt('id', o.before);
         const { data, error } = await q.order('id', { ascending: false }).limit(o.limit || 200);

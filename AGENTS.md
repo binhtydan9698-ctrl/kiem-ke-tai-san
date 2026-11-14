@@ -5,15 +5,19 @@ Quy ước riêng cho mã nguồn trang: [web/AGENTS.md](web/AGENTS.md). Quy tr�
 
 ## Dự án
 
-Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT Đà Nẵng, gồm 2 phần ngang hàng (trang chủ `#trang-chu`
-chọn phần, nút tên ở góc trái chuyển phần):
+Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT Đà Nẵng, gồm 3 phần chính (trang chủ `#trang-chu`):
 - **Kiểm kê tài sản 2026** (đang dùng): mọi trang `#tong-quan`, `#don-vi`, `#vi-tri`, `#dv-…`, `#phong-…`, `#xac-minh`,
-  `#xuat`, `#lich-su`; mã trong `web/index.html`.
+  `#xuat`, trang một tài sản `#ts-…`; mã trong `web/index.html`.
 - **Quản lý mã QR tài sản** (`#ma-qr`, mã trong `web/ma-qr.js`): in tem mã QR (chọn tài sản, chỉnh mẫu tem, xem trước,
   tải PDF / ảnh PNG / Excel, CSV / In ngay) và **Sổ mã QR**. Quét tem bằng nút Quét mã mở thẳng trang tài sản `#ts-<khoá>`
   trong phần Kiểm kê.
-- Đầu trang: logo về trang chủ, nút chuyển qua lại **[Kiểm kê | Mã QR]** (mỗi phần nhớ trang đang xem dở). Trang tài sản,
-  sheet, phòng có nút "In tem mã QR…" mở phần Mã QR lọc sẵn (`qrOpen()`); phần Mã QR có link ngược về Kiểm kê.
+- **Lịch sử** (chung cho cả app): `#lich-su` Thao tác trên app (ai làm gì, lúc nào) · `#nhap-so` Nhập sổ (tài sản vào sổ
+  khi nào, từ kế toán qua file BBKK hay cán bộ Hành chính ghi nhận phát sinh) · `#ly-lich` / `#ly-lich-<khoá>` Lý lịch tài sản
+  (dòng thời gian: kế toán ghi sổ → vào sổ trên app → mọi thao tác → xoá khỏi BBKK).
+- Đầu trang 2 tầng: logo FPT University (`web/img/logo-fpt-university.png`, về trang chủ) · 3 phần chính [Kiểm kê | Mã QR |
+  Lịch sử] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
+  thanh dưới cùng [Trang chủ · Kiểm kê · Quét mã · Mã QR · Lịch sử]. Trang tài sản, sheet, phòng có nút "In tem mã QR…"
+  mở phần Mã QR lọc sẵn (`qrOpen()`); phần Mã QR và Lịch sử có link ngược về Kiểm kê.
 
 Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
 biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
@@ -60,7 +64,9 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 5. "Xuất cho kế toán" (`web/export.js`) mở `data/goc.xlsx`, điền cột Thực tế và thêm 3 cột kết quả ở mọi sheet danh sách.
 6. Lịch sử thao tác (trang `#lich-su`): `save()` → `logChanges()` so `S` với lần lưu trước, ghi mỗi thao tác 1 bản ghi
    `col='log'` (ai, máy nào, lúc nào, trước → sau) qua hàng đợi `WR`, kèm bản sao 1000 dòng trong localStorage.
-   Trang chỉ đọc `log` khi mở trang Lịch sử (`DB.recent()`), không tải lúc mở trang.
+   Trang chỉ đọc `log` khi mở trang Lịch sử (`DB.recent()`), không tải lúc mở trang. Lý lịch tài sản đọc `log` theo đúng
+   một khoá (`DB.recent('log',{key})`: dòng có `key` hoặc dòng gộp có `keys` chứa khoá). Thao tác nhiều tài sản (gộp, in tem)
+   phải ghi `keys` để lý lịch từng tài sản thấy được. Tài sản phát sinh lưu thêm `at`, `by` (trang Nhập sổ).
 
 ## Quy ước BẮT BUỘC
 

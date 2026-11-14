@@ -7,7 +7,10 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 - **Quản lý mã QR tài sản**: in tem mã QR cho từng tài sản; quét tem bằng nút **Quét mã** mở thẳng tài sản đó.
   **Sổ mã QR** (`dữ liệu cập nhật/so-ma-qr.json`) giữ mọi mã đã cấp, kể cả tài sản đã bị xoá khỏi file BBKK. Không xoá file này.
 
-Nút **[Kiểm kê | Mã QR]** ở góc trái trên cùng để qua lại giữa 2 phần.
+- **Lịch sử** (chung cho cả app): thao tác trên app, nhập sổ (tài sản vào sổ khi nào, từ kế toán hay cán bộ Hành chính),
+  lý lịch từng tài sản.
+
+Đầu trang có 3 phần chính **Kiểm kê · Mã QR · Lịch sử** (trên điện thoại nằm ở thanh dưới cùng, nút Quét mã ở giữa).
 
 - Web: https://kiem-ke-tai-san-sigma.vercel.app
 - Mã nguồn: https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
@@ -24,7 +27,9 @@ Nút **[Kiểm kê | Mã QR]** ở góc trái trên cùng để qua lại giữa
 | Lấy file cho kế toán | Trên web: **Xuất cho kế toán → Tải file Excel cho kế toán** |
 | In tem mã QR | Trên web: **Quản lý mã QR tài sản** → chọn tài sản, chỉnh tem → **Tải PDF để in** (nhà in, máy in tem), ảnh PNG, Excel/CSV (phần mềm máy in tem) hoặc **In ngay** |
 | Quét tem để kiểm | Bấm **Quét mã**, đưa tem vào camera → trang mở thẳng tài sản đó để bấm Đủ / Không thấy |
-| Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |
+| Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử → Thao tác trên app** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |
+| Tài sản vào sổ khi nào, từ đâu | **Lịch sử → Nhập sổ** (kế toán qua file BBKK hay cán bộ Hành chính ghi nhận; **Tải Excel**) |
+| Tra một tài sản có từ khi nào, đã làm gì | **Lịch sử → Lý lịch tài sản**, hoặc nút **Lý lịch tài sản** ở trang của tài sản |
 
 Sau khi đẩy, khoảng 1 phút sau web có dữ liệu mới. Ai đang mở trang sẽ thấy thông báo **"Tải lại trang"**.
 

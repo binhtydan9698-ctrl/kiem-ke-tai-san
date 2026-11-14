@@ -17,10 +17,14 @@
 - Giao diện theo phong cách trang daihoc.fpt.edu.vn: màu chủ đạo cam FPT (chữ/viền dùng `--accent`),
   ảnh campus Đà Nẵng ở `web/img/` (bản 1024px lấy từ daihoc.fpt.edu.vn; người dùng yêu cầu không hiện dòng ghi nguồn ảnh trên trang). Ảnh dưới màn hình đầu
   để `loading="lazy"`. Menu "Tổng quan" xổ ra 3 trang: `#tong-quan`, `#don-vi`, `#vi-tri`.
-- Trang gồm 2 phần ngang hàng dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
-  **Kiểm kê** (mọi trang còn lại, gồm trang một tài sản `#ts-<khoá>` = `viewTS`) và **Mã QR** (`#ma-qr`, `viewQR` trong `ma-qr.js`). Góc trái (`#mods`): logo về trang chủ +
-  nút chuyển `.sw` [Kiểm kê | Mã QR]; `setMod()` đặt `body[data-mod=hub|kk|qr]`, đánh dấu nút đang ở, và nhớ trang đang xem dở
-  của mỗi phần (`MODLAST`). Menu `#nav` chỉ hiện ở phần Kiểm kê; nút Quét mã ẩn ở trang chủ. Nút `data-act="qrin"`
+- Trang gồm 3 phần dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
+  **Kiểm kê** (mọi trang còn lại, gồm trang một tài sản `#ts-<khoá>` = `viewTS`), **Mã QR** (`#ma-qr`, `#so-ma-qr`, `viewQR`
+  trong `ma-qr.js`) và **Lịch sử** (`#lich-su` = `viewLog`, `#nhap-so` = `viewNhapSo`, `#ly-lich[-khoá]` = `viewLyLich`).
+  Đầu trang 2 tầng (khối CSS "Đầu trang 2 tầng" cuối `<style>`): `.top1` = logo `.lgo` + tên `.app` + 3 phần `.sec`
+  (`#swKK`, `#swQR`, `#swLS`; `#swHub` chỉ hiện ở thanh dưới điện thoại) + Quét mã + người dùng; `.top2` = menu con
+  (`#nav` Kiểm kê, `#navQR`, `#navLS`, mục `a[data-r]`). `setMod()` đặt `body[data-mod=hub|kk|qr|ls]`, đánh dấu phần đang ở
+  và nhớ trang đang xem dở của mỗi phần (`MODLAST`). Điện thoại (≤860px): `.sec` thành thanh dưới 5 ô, nút Quét mã nổi ở giữa.
+  Nút `data-act="qrin"`
   (`data-qk` tài sản / `data-qu` sheet / `data-qr` phòng) gọi `qrOpen()` mở phần Mã QR lọc sẵn; `data-act="qrso"` mở Sổ mã QR.
 - Sổ mã QR trên trang: `SOQR = window.KIEMKE_SO_QR` (sinh khi build). Tài sản đã xoá khỏi BBKK: `viewTSXoa`; quét tem của nó
   (`scanGoXoa`) vẫn mở trang này.
