@@ -18,9 +18,8 @@ description: >-
    file `~$*.xlsx`, khoá Supabase loại `secret`/`service_role`. (`.gitignore` đã chặn phần lớn, vẫn phải nhìn lại.)
 3. Hỏi người dùng trước khi commit/push nếu họ chưa yêu cầu rõ. Commit bằng tiếng Việt, mô tả ngắn gọn thay đổi.
 4. `git push` (tài khoản GitHub đã đăng nhập sẵn trên máy qua Git Credential Manager).
-5. `npm run kiem-tra-web` — đợi Vercel có đúng phiên bản dữ liệu của bản build trên máy, soát file và Supabase.
-   Chỉ sửa code (dữ liệu không đổi) thì phiên bản dữ liệu giữ nguyên; khi đó mở trang và xác nhận thay đổi bằng mắt
-   (tải lại với Ctrl+F5).
+5. `npm run kiem-tra-web` — đợi Vercel có đúng phiên bản dữ liệu **và** đúng mã trang (index.html, *.js) của bản build
+   trên máy, soát file và Supabase. Sửa giao diện thì vẫn nên mở trang xem bằng mắt (tải lại với Ctrl+F5).
 
 ## Nếu Vercel build lỗi
 

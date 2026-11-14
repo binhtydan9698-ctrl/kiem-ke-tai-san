@@ -814,6 +814,44 @@ a.btn{text-decoration:none}
   .ring{width:40px;height:40px} .ring i{width:31px;height:31px;font-size:9.5px}
 }
 @media (prefers-reduced-motion:reduce){.room,.ring{animation:none}.room,.room:hover{transform:none;transition:none}.room::before{display:none}}
+
+/* ---------- Lịch sử thao tác (#lich-su) ---------- */
+.ltools select.in{width:auto;max-width:210px}
+.ltools input[type=search]{flex:1 1 220px;min-width:0;width:auto}
+.lnote{font-size:13.5px;color:var(--muted);margin:-2px 0 12px}
+.lsum{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline;font-size:13.5px;color:var(--muted);margin:6px 0 14px}
+.lsum b{color:var(--fg);font-size:18px;font-weight:700;margin-right:4px}
+.lload{color:var(--accent);font-weight:500}
+.lday{margin:0 0 18px}
+.lday h2{font-size:14px;font-weight:700;margin:0 0 8px}
+.llist{list-style:none;margin:0;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.lg{display:grid;grid-template-columns:44px 32px minmax(0,1fr);gap:10px;padding:11px 14px;border-top:1px solid var(--line);align-items:start}
+.lg:first-child{border-top:0}
+.lt{font-size:13px;color:var(--muted);padding-top:6px}
+.li{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);color:var(--muted)}
+.li svg{width:17px;height:17px}
+.k-kiem .li{background:var(--ok-soft);color:var(--ok)}
+.k-hoi .li{background:var(--warn-soft);color:var(--warn)}
+.k-buoi .li,.k-xuat .li{background:var(--info-soft);color:var(--info)}
+.k-ps .li{background:var(--accent-soft);color:var(--accent)}
+.lh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;line-height:1.4}
+.lh b{font-weight:600;overflow-wrap:anywhere}
+.lh .mono{font-size:12.5px;color:var(--muted)}
+.lwho{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);background:var(--surface-2);padding:1px 8px;border-radius:10px}
+.lwho svg{width:12px;height:12px}
+.ll{list-style:none;margin:3px 0 0;padding:0;font-size:13.5px;line-height:1.55}
+.ll li{overflow-wrap:anywhere}
+.ll .lk,.ll .was{color:var(--muted)}
+.ll .ar{color:var(--accent);font-weight:700}
+.lmore summary{cursor:pointer;color:var(--accent);font-size:13px;margin-top:3px;width:max-content}
+.lm{font-size:12.5px;color:var(--muted);margin-top:5px}
+.lmorebtn{text-align:center;margin:4px 0 16px}
+.lfoot{font-size:12.5px;color:var(--muted);margin:8px 0}
+@media (max-width:560px){
+  .lg{grid-template-columns:40px minmax(0,1fr);padding:10px 12px;gap:8px}
+  .lg .li{display:none}
+  .ltools select.in{max-width:none;flex:1 1 140px}
+}
 </style>
 
 <header class="top" id="top">
@@ -830,6 +868,7 @@ a.btn{text-decoration:none}
       </div>
       <a href="#xac-minh" data-r="xac-minh"><span data-ic="MessageCircleQuestion"></span>Hỏi đại diện <span class="pill" id="xmCount" hidden>0</span></a>
       <a href="#xuat" data-r="xuat"><span data-ic="FileSpreadsheet"></span><span class="full">Xuất cho kế toán</span><span class="short">Xuất Excel</span></a>
+      <a href="#lich-su" data-r="lich-su" title="Lịch sử thao tác: ai làm gì, lúc nào"><span data-ic="History"></span>Lịch sử</a>
     </nav>
     <button type="button" class="scanbtn" id="scanBtn" title="Quét mã QR / mã vạch trên tem tài sản, hoặc gõ mã"><span data-ic="ScanLine"></span><span>Quét mã</span></button>
     <div class="who"><span class="sync idle" id="sync" role="status">Đang kết nối…</span><i id="whoI">HC</i><span id="whoN">Cán bộ Phòng HC</span></div>
@@ -942,13 +981,129 @@ function docId(c,k){ if(!KEYED[c]) return k; const a=BY_STT[k]; return a?a.key:n
 function localKey(c,id){ if(!KEYED[c]) return id; const a=BY_KEY[id]; return a?String(a.stt):null; }
 function desired(){ const m={}; COLS.forEach(c=>Object.entries(S[c]||{}).forEach(([k,v])=>{ const id=docId(c,k); if(v!=null&&id!=null) m[c+'/'+id]=JSON.stringify(docBody(c,v)); })); return m; }
 function restoreFromLast(){ S=blank(); for(const p in LAST){ const i=p.indexOf('/'), c=p.slice(0,i), k=localKey(c,p.slice(i+1)); if(k!=null) S[c][k]=fromBody(c,JSON.parse(LAST[p])); } }
+/* ---------- lịch sử thao tác ----------
+   Mỗi thay đổi kết quả (Đủ, Không thấy, đổi phòng, tình trạng, ghi chú, hỏi đại diện, buổi kiểm, phát sinh) và mỗi lần
+   xuất file được ghi 1 dòng: ai (tên nhập trên máy), máy nào, lúc nào, tài sản nào, trước → sau.
+   Lưu chung trên Supabase: col 'log', mỗi thao tác một tài liệu, id = thời gian (cơ số 36) + mã máy + số ngẫu nhiên,
+   nên xếp theo id là xếp theo thời gian. Trang KHÔNG tải lịch sử lúc mở, chỉ đọc khi vào trang #lich-su.
+   Máy này giữ thêm bản sao 1000 thao tác gần nhất của mình (localStorage) để xem được cả khi mất mạng.
+   Lịch sử sinh ra từ save(): so S với lần lưu trước (LAST, hoặc LOGPREV khi chỉ lưu trên máy) nên thay đổi do người
+   khác gửi tới (listen) không bị tính là của mình. */
+const LOGK=KEY+'.log', LOG_TEXT={rows:['note'],xm:['phanhoi'],units:['ketoan','daidien']};
+const DEV=(()=>{ const r=()=>Math.random().toString(36).slice(2,8); try{ let d=localStorage.getItem(KEY+'.dev'); if(!d){ d=r(); localStorage.setItem(KEY+'.dev',d); } return d; }catch(e){ return r(); } })();
+let LOGMINE=(()=>{ try{ const v=JSON.parse(localStorage.getItem(LOGK)||'[]'); return Array.isArray(v)?v:[]; }catch(e){ return []; } })();
+let LOGPREV=null, LOGCTX=null, LOGTAIL=null;
+const lbl=(L,v)=>(L.find(x=>x[0]===v)||[])[1]||v||'';
+const cut=(s,n=120)=>{ s=String(s??'').replace(/\s+/g,' ').trim(); return s.length>n?s.slice(0,n-1)+'…':s; };
+function logRes(r,a){
+  if(!r) return 'Chưa kiểm'; if(r.hs) return 'Theo hồ sơ'; if(r.nf) return 'Không thấy';
+  if(r.tt==null||r.tt==='') return 'Chưa kiểm'; const t=+r.tt;
+  return t==a.sl?'Đủ'+(a.sl>1?` ${t}/${a.sl}`:''):`${t<a.sl?'Thiếu':'Thừa'}: thấy ${t}/${a.sl}`;
+}
+function logRowLines(a,o,n){
+  const L=[], ro=logRes(o,a), rn=logRes(n,a); if(ro!==rn) L.push(`Kết quả: ${ro} → ${rn}`);
+  const po=((o&&o.phong!=null)?o.phong:a.vt0)||'', pn=((n&&n.phong!=null)?n.phong:a.vt0)||'';
+  if(po!==pn) L.push(`Vị trí: ${po||'chưa có'} → ${pn||'chưa có'}`);
+  const co=(o&&o.cond)||'', cn=(n&&n.cond)||''; if(co!==cn) L.push(cn?`Tình trạng: ${co?lbl(COND,co)+' → ':''}${lbl(COND,cn)}`:`Bỏ tình trạng: ${lbl(COND,co)}`);
+  const no=cut(o&&o.note), nn=cut(n&&n.note); if(no!==nn) L.push(nn?`Ghi chú: “${nn}”`:'Xoá ghi chú');
+  return L;
+}
+function logXmLines(o,n){
+  if(!n) return o?['Bỏ khỏi danh sách hỏi đại diện']:[];
+  const x=o||{}, L=[];
+  if(!o) L.push(`Đưa vào danh sách hỏi đại diện (${lbl(XM_KQ,n.kq||'cho')})`);
+  else if((x.kq||'cho')!==(n.kq||'cho')) L.push(`Hỏi đại diện: ${lbl(XM_KQ,x.kq||'cho')} → ${lbl(XM_KQ,n.kq||'cho')}`);
+  if((x.cach||'')!==(n.cach||'')) L.push(n.cach?`Cách liên hệ: ${lbl(XM_CACH,n.cach)}`:'Bỏ cách liên hệ');
+  const po=cut(x.phanhoi), pn=cut(n.phanhoi); if(po!==pn) L.push(pn?`Đại diện trả lời: “${pn}”`:'Xoá câu trả lời');
+  if((x.phong||'')!==(n.phong||'')&&n.phong) L.push(`Phòng được chỉ: ${n.phong}`);
+  return L;
+}
+function logUnitLines(o,n){
+  const a=o||{}, b=n||{}, L=[];
+  if((a.ngay||'')!==(b.ngay||'')) L.push(b.ngay?`Ngày kiểm: ${dmy(b.ngay)}`:'Xoá ngày kiểm');
+  [['ketoan','Kế toán đi cùng'],['daidien','Đại diện đơn vị']].forEach(([f,t])=>{ const x=cut(a[f],80), y=cut(b[f],80); if(x!==y) L.push(y?`${t}: ${y}`:`Xoá ${t.toLowerCase()}`); });
+  const ca=a.canbo||[], cb=b.canbo||[];
+  cb.filter(x=>!ca.includes(x)).forEach(x=>L.push(`Thêm cán bộ có mặt: ${cut(x,80)}`));
+  ca.filter(x=>!cb.includes(x)).forEach(x=>L.push(`Bỏ cán bộ có mặt: ${cut(x,80)}`));
+  if(!!a.ended!==!!b.ended) L.push(b.ended?'Kết thúc buổi kiểm kê':'Mở lại buổi kiểm kê');
+  if(!!a.signed!==!!b.signed) L.push(b.signed?'Đánh dấu đã ký':'Bỏ đánh dấu đã ký');
+  return L;
+}
+function logPsLines(o,n){
+  const k=p=>JSON.stringify([p.mo_ta,p.sl,p.phong,p.cond]);
+  const minus=(A,B)=>{ const r=B.map(k); return A.filter(p=>{ const i=r.indexOf(k(p)); if(i<0) return true; r.splice(i,1); return false; }); };
+  const L=minus(n||[],o||[]).map(p=>`Thêm tài sản phát sinh: ${cut(p.mo_ta,80)||'(không mô tả)'} · SL ${p.sl}${p.phong?' · '+cut(p.phong,40):''}`);
+  minus(o||[],n||[]).forEach(p=>L.push(`Xoá tài sản phát sinh: ${cut(p.mo_ta,80)||'(không mô tả)'}`));
+  return L;
+}
+function psPlace(k){ return k.startsWith('p:')?(ROOMNAME[k.slice(2)]||k.slice(2)):(UNIT[k]?.ten||k); }
+/* e = {id, rows:[cũ,mới], xm:[…], units:[…], ps:[…]} của một "đối tượng": tài sản (a:mã), buổi kiểm (u:id), phát sinh (p:id) */
+function logDescribe(sk,e){
+  if(sk[0]==='a'){ const a=BY_KEY[e.id]; if(!a) return null;
+    const R=e.rows?logRowLines(a,e.rows[0],e.rows[1]):[], X=e.xm?logXmLines(e.xm[0],e.xm[1]):[];
+    if(!R.length&&!X.length) return null;
+    return {kind:R.length?'kiem':'hoi',key:a.key,ma:a.ma?String(a.ma):'',stt:a.stt,u:a.unit,title:a.short,lines:[...R,...X]}; }
+  if(sk[0]==='u'){ const L=e.units?logUnitLines(e.units[0],e.units[1]):[]; if(!L.length) return null;
+    return {kind:'buoi',u:UNIT[e.id]?e.id:'',title:'Buổi kiểm: '+(UNIT[e.id]?.ten||e.id),lines:L}; }
+  const L=e.ps?logPsLines(e.ps[0],e.ps[1]):[]; if(!L.length) return null;
+  return {kind:'ps',u:UNIT[e.id]?e.id:'',room:e.id.startsWith('p:')?e.id.slice(2):'',title:'Phát sinh ở '+psPlace(e.id),lines:L};
+}
+function logFields(o,n){ const a=o||{}, b=n||{}; return [...new Set([...Object.keys(a),...Object.keys(b)])].filter(k=>!['at','by','started'].includes(k)&&JSON.stringify(a[k]??null)!==JSON.stringify(b[k]??null)); }
+function logTextOnly(sk,e){ return sk[0]!=='p'&&Object.keys(e).every(c=>c==='id'||logFields(e[c][0],e[c][1]).every(f=>(LOG_TEXT[c]||[]).includes(f))); }
+/* ch = [[đường dẫn, JSON cũ | undefined, JSON mới | null]] — các tài liệu save() vừa đổi */
+function logChanges(ch){
+  const ctx=LOGCTX; LOGCTX=null;
+  const subj=new Map();
+  ch.forEach(([p,o,n])=>{ const i=p.indexOf('/'), col=p.slice(0,i), id=p.slice(i+1); if(!COLS.includes(col)) return;
+    const sk=(KEYED[col]?'a:':col==='units'?'u:':'p:')+id, e=subj.get(sk)||{id};
+    const P=j=>j==null?null:fromBody(col,JSON.parse(j)); e[col]=[P(o),P(n)]; subj.set(sk,e); });
+  const out=[]; for(const [sk,e] of subj){ const d=logDescribe(sk,e); if(d) out.push({sk,e,d}); }
+  if(!out.length) return;
+  if((ctx&&ctx.bulk)||out.length>8){            // nhiều món cùng lúc (Đủ tất cả còn lại, Hoàn tác hàng loạt…): gộp 1 dòng
+    const us=new Set(out.map(x=>x.d.u)), MAX=400;
+    logPut({kind:'kiem',bulk:out.length,u:us.size===1?out[0].d.u:'',tag:(ctx&&ctx.tag)||'',title:(ctx&&ctx.title)||`Thay đổi cùng lúc ${out.length} mục`,
+      keys:out.map(x=>x.d.key).filter(Boolean),
+      lines:out.slice(0,MAX).map(x=>`${x.d.ma?x.d.ma+' · ':''}${cut(x.d.title,60)}: ${x.d.lines.join('; ')}`).concat(out.length>MAX?[`… và ${out.length-MAX} mục khác`]:[])});
+    LOGTAIL=null; return;
+  }
+  const now=Date.now();
+  out.forEach(({sk,e,d})=>{
+    const txt=logTextOnly(sk,e), T=LOGTAIL;
+    if(!ctx&&txt&&T&&T.txt&&T.sk===sk&&T.by===(ME||'')&&now-T.t<120000){
+      // đang gõ tiếp cùng một ô (ghi chú, câu trả lời…): gộp vào dòng trước, so với trạng thái trước lần gõ đầu
+      const m={id:e.id}; new Set([...Object.keys(T.e),...Object.keys(e)]).forEach(c=>{ if(c!=='id') m[c]=[(T.e[c]||e[c])[0],(e[c]||T.e[c])[1]]; });
+      logPut(logDescribe(sk,m)||Object.assign({},d,{lines:['Sửa rồi trả lại như cũ']}),T.id); T.e=m; T.t=now; return;
+    }
+    const en=logPut(ctx&&ctx.tag?Object.assign(d,{tag:ctx.tag}):d);
+    LOGTAIL={sk,e,txt,id:en.id,t:now,by:ME||''};
+  });
+}
+function logPut(d,reuse){
+  const t=Date.now(), id=reuse||(t.toString(36).padStart(9,'0')+'-'+DEV+'-'+Math.random().toString(36).slice(2,6));
+  const i=LOGMINE.findIndex(x=>x.id===id), old=i>=0?LOGMINE[i]:null;
+  const e=Object.assign({id,t,by:ME||'',dev:DEV},d); if(old) e.t0=old.t0||old.t;
+  if(i>=0) LOGMINE[i]=e; else LOGMINE.unshift(e);
+  if(LOGMINE.length>1000) LOGMINE.length=1000;
+  clearTimeout(logPut._t); logPut._t=setTimeout(logKeep,400);
+  if(MODE==='shared'&&DB&&!READONLY) WR.next.set('log/'+id,JSON.stringify(e));
+  if(V.type==='log') logDrawSoon();
+  return e;
+}
+function logKeep(){ clearTimeout(logPut._t); try{ localStorage.setItem(LOGK,JSON.stringify(LOGMINE)); }catch(e){} }
+window.addEventListener('pagehide',logKeep);
+function logEvent(d){ logPut(d); LOGTAIL=null; if(MODE==='shared') kick(); }
 function save(){
-  if(MODE==='local'){ saveLocal(); return; }
+  if(MODE==='local'){
+    const want=desired(), ch=[];
+    if(LOGPREV){ for(const p in want) if(want[p]!==LOGPREV[p]) ch.push([p,LOGPREV[p],want[p]]); for(const p in LOGPREV) if(!(p in want)) ch.push([p,LOGPREV[p],null]); }
+    LOGPREV=want; logChanges(ch); saveLocal(); return;
+  }
   if(MODE!=='shared'||!READY) return;
-  if(READONLY){ restoreFromLast(); toast('Bạn chỉ có quyền xem, thay đổi không được lưu'); return; }
-  const want=desired();
-  for(const p in want) if(want[p]!==LAST[p]){ LAST[p]=want[p]; WR.next.set(p,want[p]); }
-  for(const p in LAST) if(!(p in want)){ delete LAST[p]; WR.next.set(p,null); }
+  if(READONLY){ LOGCTX=null; restoreFromLast(); toast('Bạn chỉ có quyền xem, thay đổi không được lưu'); return; }
+  const want=desired(), ch=[];
+  for(const p in want) if(want[p]!==LAST[p]){ ch.push([p,LAST[p],want[p]]); LAST[p]=want[p]; WR.next.set(p,want[p]); }
+  for(const p in LAST) if(!(p in want)){ ch.push([p,LAST[p],null]); delete LAST[p]; WR.next.set(p,null); }
+  logChanges(ch);
   kick();
 }
 function kick(){ for(const p of WR.next.keys()){ if(WR.busy.size>=6) break; if(!WR.busy.has(p)) runWrite(p); } setSync(); }
@@ -1004,7 +1159,7 @@ function ready(){
   if(local&&!local.demo&&!moved&&!READONLY&&Object.keys(local.rows||{}).length) MIGRATE=local;
   route(); setSync(); resolveNames();
 }
-function startLocal(){ MODE='local'; S=loadLocal()||seedDemo(blank()); READY=true; refreshRooms(); route(); setSync(); }
+function startLocal(){ MODE='local'; S=loadLocal()||seedDemo(blank()); LOGPREV=desired(); READY=true; refreshRooms(); route(); setSync(); }
 async function init(){
   setSync(); route();
   const c=window.claude;
@@ -1083,7 +1238,8 @@ function showMe(){
 }
 function askName(){
   const v=(window.prompt('Tên của bạn (hiện cạnh kết quả mình kiểm):',ME||'')||'').trim().slice(0,60);
-  if(!v) return; ME=v; try{ localStorage.setItem(KEY+'.name',v); }catch(e){} showMe();
+  if(!v) return; const old=ME; ME=v; try{ localStorage.setItem(KEY+'.name',v); }catch(e){} showMe();
+  if(old!==v) logEvent({kind:'khac',title:'Đổi tên người kiểm trên máy này',lines:[`Tên: ${old||'chưa có'} → ${v}`]});
 }
 function hm(t){ const d=new Date(t), p=n=>String(n).padStart(2,'0'); const same=d.toDateString()===new Date().toDateString(); return (same?'':p(d.getDate())+'/'+p(d.getMonth()+1)+' ')+p(d.getHours())+':'+p(d.getMinutes()); }
 function seedDemo(s){
@@ -1154,6 +1310,7 @@ function snap(stts){ UNDO=stts.map(s=>[s, S.rows[s]?JSON.parse(JSON.stringify(S.
 function toast(msg,undo){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; document.getElementById('toastUndo').hidden=!undo; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,undo?5000:2200); }
 document.getElementById('toastUndo').addEventListener('click',()=>{
   if(!UNDO) return; UNDO.forEach(([s,r,x])=>{ if(r) S.rows[s]=r; else delete S.rows[s]; if(x) S.xm[s]=x; else delete S.xm[s]; });
+  LOGCTX={tag:'Hoàn tác',bulk:UNDO.length>1,title:`Hoàn tác ${UNDO.length} tài sản`};
   UNDO=null; save(); refreshRooms(); route(); document.getElementById('toast').hidden=true;
 });
 
@@ -1710,12 +1867,118 @@ function viewXuat(){
   ${rows.length>400?`<p style="color:var(--muted);font-size:12.5px">Đang xem trước 400 dòng đầu. File Excel và nút sao chép lấy đủ.</p>`:''}`;
 }
 
+/* ---------- trang Lịch sử thao tác (#lich-su) ---------- */
+const LOG_KIND={kiem:['Kiểm tài sản','ClipboardCheck'],hoi:['Hỏi đại diện','MessageCircleQuestion'],buoi:['Buổi kiểm','CalendarCheck'],ps:['Tài sản phát sinh','PackagePlus'],xuat:['Xuất file','FileSpreadsheet'],khac:['Khác','UserPen']};
+const LV={who:'me',kind:'',q:'',srv:[],more:false,last:'',loading:false,err:'',tok:0,need:true};
+const LOG_PAGE=200;
+const fold=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[đĐ]/g,'d').toLowerCase();
+const logOnline=()=>MODE==='shared'&&!!DB&&typeof DB.recent==='function';
+function logMine(e){ return e.dev===DEV||(!!ME&&e.by===ME); }
+async function logFetch(){
+  const tok=++LV.tok; LV.srv=[]; LV.last=''; LV.more=false; LV.err='';
+  if(!logOnline()){ LV.loading=false; logDraw(); return; }
+  LV.loading=true; logDraw(); await logPage(tok);
+}
+async function logPage(tok){
+  try{
+    const r=await DB.recent('log',{limit:LOG_PAGE,before:LV.last||null,kind:LV.kind||null,who:LV.who==='me'?{by:ME||null,dev:DEV}:null});
+    if(tok!==LV.tok) return;                                        // đã đổi bộ lọc trong lúc chờ
+    r.forEach(x=>{ if(x&&x.data&&typeof x.data==='object') LV.srv.push(Object.assign({},x.data,{id:x.id})); });
+    if(r.length) LV.last=r[r.length-1].id; LV.more=r.length===LOG_PAGE;
+  }catch(e){ if(tok!==LV.tok) return; LV.err='Chưa tải được lịch sử chung (kiểm tra mạng rồi bấm Làm mới). Đang hiện các thao tác lưu trên máy này.'; }
+  LV.loading=false; logDraw();
+}
+/* lịch sử chung đã tải + bản sao trên máy này (bản trên máy mới hơn khi vừa gõ), lọc theo người / loại / từ khoá */
+function logItems(){
+  const m=new Map();
+  LV.srv.forEach(e=>m.set(e.id,e));
+  LOGMINE.forEach(e=>{ if(!(LV.more&&LV.last&&e.id<LV.last)) m.set(e.id,e); });
+  let l=[...m.values()];
+  if(LV.who==='me') l=l.filter(logMine);
+  if(LV.kind) l=l.filter(e=>e.kind===LV.kind);
+  const q=fold(LV.q.trim()); if(q) l=l.filter(e=>fold([e.title,e.ma,e.stt,e.by,...(e.lines||[])].join(' ')).includes(q));
+  return l.sort((a,b)=>a.id<b.id?1:a.id>b.id?-1:0);
+}
+const hh=t=>{ const d=new Date(t), p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes()); };
+const ddmmyy=t=>{ const d=new Date(t), p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${hh(t)}`; };
+function logDay(t){
+  const d=new Date(t), now=new Date(), y=new Date(now); y.setDate(now.getDate()-1);
+  if(d.toDateString()===now.toDateString()) return 'Hôm nay'; if(d.toDateString()===y.toDateString()) return 'Hôm qua';
+  const s=d.toLocaleDateString('vi-VN',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'}); return s.charAt(0).toUpperCase()+s.slice(1);
+}
+/* "Kết quả: Chưa kiểm → Đủ" → nhãn mờ, giá trị cũ mờ, mũi tên, giá trị mới đậm */
+function logLine(l){
+  const m=String(l).match(/^([^:“]{2,32}): (.*)$/s), lab=m?m[1]:'', rest=m?m[2]:String(l), i=rest.indexOf(' → ');
+  const after=rest.slice(i+3), j=after.indexOf('; ');          // dòng gộp: chỉ in đậm giá trị mới đầu tiên
+  const body=i<0?esc(rest):`<span class="was">${esc(rest.slice(0,i))}</span> <span class="ar">→</span> <b>${esc(j<0?after:after.slice(0,j))}</b>${j<0?'':esc(after.slice(j))}`;
+  return (lab?`<span class="lk">${esc(lab)}:</span> `:'')+body;
+}
+function logItemHTML(e){
+  const [kn,icn]=LOG_KIND[e.kind]||LOG_KIND.khac, a=e.key?BY_KEY[e.key]:null, lines=e.lines||[], t=e.t0||e.t;
+  const lis=l=>l.map(x=>`<li>${logLine(x)}</li>`).join('');
+  const go=a?`<a class="lnk" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma||a.short)}">Mở tài sản →</a>`
+    :e.room?`<a class="lnk" href="#phong-${esc(e.room)}">Mở phòng →</a>`:(e.u&&UNIT[e.u])?`<a class="lnk" href="#dv-${e.u}">Mở sheet ${esc(UNIT[e.u].sheet)} →</a>`:'';
+  const meta=[a?`STT ${a.stt}`:'',a?esc(UNIT[a.unit].ten):'',e.t0&&e.t-e.t0>59000?`sửa tới ${hh(e.t)}`:''].filter(Boolean).join(' · ');
+  return `<li class="lg k-${esc(e.kind||'khac')}">
+    <time class="lt num" datetime="${new Date(t).toISOString()}" title="${ddmmyy(t)}">${hh(t)}</time>
+    <span class="li" title="${kn}">${ic(icn)}</span>
+    <div class="lb">
+      <div class="lh"><b>${esc(e.title||kn)}</b>${e.ma?`<span class="mono">${esc(e.ma)}</span>`:''}${e.tag?`<span class="tag warn">${esc(e.tag)}</span>`:''}${e.bulk?`<span class="tag">${nf.format(e.bulk)} mục</span>`:''}${LV.who==='all'?`<span class="lwho">${ic('UserRound')}${esc(e.by||'Chưa nhập tên')}</span>`:''}</div>
+      <ul class="ll">${lis(lines.slice(0,4))}</ul>
+      ${lines.length>4?`<details class="lmore"><summary>Xem thêm ${lines.length-4} dòng</summary><ul class="ll">${lis(lines.slice(4))}</ul></details>`:''}
+      ${meta||go?`<div class="lm">${meta}${meta&&go?' · ':''}${go}</div>`:''}
+    </div></li>`;
+}
+function logDraw(){
+  const box=document.getElementById('logBody'); if(!box||V.type!=='log') return;
+  const l=logItems(), today=new Date().toDateString(), td=l.filter(e=>new Date(e.t0||e.t).toDateString()===today);
+  const nA=new Set(td.flatMap(e=>e.kind==='kiem'?(e.keys||[e.key]):[]).filter(Boolean)).size;
+  let h=`<div class="lsum" role="status"><span><b class="num">${nf.format(td.length)}</b> thao tác hôm nay</span><span><b class="num">${nf.format(nA)}</b> tài sản được kiểm hôm nay</span><span><b class="num">${nf.format(l.length)}</b> thao tác đang hiện</span>${LV.loading?'<span class="lload">Đang tải lịch sử chung…</span>':''}</div>`;
+  if(LV.err) h+=`<div class="demo">${esc(LV.err)}</div>`;
+  if(!l.length&&!LV.loading) h+=`<div class="empty">${LV.q.trim()||LV.kind?'Không có thao tác nào khớp bộ lọc.':'Chưa có thao tác nào. Từ giờ, mỗi lần kiểm hay sửa kết quả, trang sẽ ghi lại ở đây.'}</div>`;
+  let day='';
+  l.forEach(e=>{ const d=logDay(e.t0||e.t); if(d!==day){ h+=`${day?'</ol></section>':''}<section class="lday"><h2>${esc(d)}</h2><ol class="llist">`; day=d; } h+=logItemHTML(e); });
+  if(day) h+='</ol></section>';
+  if(LV.more) h+=`<div class="lmorebtn"><button class="btn" data-act="logmore" ${LV.loading?'disabled':''}>Xem thao tác cũ hơn</button></div>`;
+  if(!logOnline()) h+=`<p class="lfoot">${MODE==='local'?'Trang đang lưu kết quả trên máy này, nên lịch sử':'Bản trang này chỉ đọc được lịch sử lưu trên máy, nên danh sách'} chỉ gồm thao tác trên trình duyệt này.</p>`;
+  h+=`<p class="lfoot">Lịch sử bắt đầu ghi từ 14/11/2026. Kết quả kiểm trước ngày đó chỉ lưu người kiểm và giờ kiểm gần nhất.</p>`;
+  box.innerHTML=h;
+}
+function logDrawSoon(){ clearTimeout(logDrawSoon._t); logDrawSoon._t=setTimeout(logDraw,200); }
+function viewLog(){
+  app.innerHTML=`${demoBanner()}
+  ${banner('vuon','Theo dõi','Lịch sử thao tác','Mỗi lần bấm Đủ, Không thấy, đổi phòng, ghi tình trạng, ghi chú, hỏi đại diện hay xuất file đều được ghi lại: ai làm, lúc nào, trước và sau ra sao.')}
+  <div class="tools ltools">
+    <div class="seg" role="group" aria-label="Xem thao tác của ai"><button data-act="logwho" data-v="me" aria-pressed="${LV.who==='me'}">${ic('UserRound')}Của tôi</button><button data-act="logwho" data-v="all" aria-pressed="${LV.who==='all'}">${ic('Users')}Mọi người</button></div>
+    <select class="in" id="lk" aria-label="Loại thao tác"><option value="">Mọi loại thao tác</option>${Object.entries(LOG_KIND).map(([k,[n]])=>`<option value="${k}" ${LV.kind===k?'selected':''}>${n}</option>`).join('')}</select>
+    <input class="in" type="search" id="lq" placeholder="Tìm mã, tên tài sản, phòng, nội dung…" aria-label="Tìm trong lịch sử" value="${esc(LV.q)}">
+    <button class="btn" data-act="logrefresh">${ic('RefreshCw')}Làm mới</button>
+    <button class="btn" data-act="logxlsx">${ic('Download')}Tải Excel</button>
+  </div>
+  ${LV.who==='me'?`<p class="lnote">${ME?`Đang xem thao tác của <b>${esc(ME)}</b> và mọi thao tác trên máy này.`:'Bạn chưa nhập tên nên “Của tôi” đang lấy các thao tác trên máy này.'} <button class="lnk" data-act="logname">${ME?'Đổi tên':'Nhập tên'}</button></p>`:''}
+  <div id="logBody"></div>`;
+  logDraw();
+  if(LV.need){ LV.need=false; logFetch(); }
+}
+async function logXlsx(b){
+  const l=logItems(); if(!l.length){ toast('Không có thao tác nào để tải'); return; }
+  if(!window.xuatBangExcel){ toast('Chưa tải được chức năng xuất Excel'); return; }
+  const old=b.innerHTML; b.disabled=true; b.textContent='Đang tạo file…';
+  const cot=[['Thời gian',17],['Người làm',20],['Loại',16],['Mã TSCĐ',11],['STT',6],['Tài sản / nội dung',44],['Đơn vị',24],['Chi tiết',80]];
+  const dong=l.map(e=>{ const a=e.key?BY_KEY[e.key]:null; return [ddmmyy(e.t0||e.t),e.by||'',(LOG_KIND[e.kind]||LOG_KIND.khac)[0],e.ma||'',a?a.stt:'',e.title||'',a?UNIT[a.unit].ten:(UNIT[e.u]?.ten||''),(e.lines||[]).join('\n')]; });
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  try{ await window.xuatBangExcel('Lịch sử thao tác',cot,dong,`Lich su thao tac ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`); toast(`Đã tải ${nf.format(dong.length)} thao tác`); }
+  catch(e){ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); }
+  finally{ b.disabled=false; b.innerHTML=old; }
+}
+
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else viewOverview(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else viewOverview(); }
 function route(){
   const h=(location.hash||'#tong-quan').slice(1);
-  const nv = h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:{type:'ov'};
+  const nv = h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:{type:'ov'};
+  if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
   V=nv;
   document.querySelectorAll('#nav a').forEach(a=>a.toggleAttribute('aria-current',false));
@@ -1761,6 +2024,11 @@ app.addEventListener('click',e=>{
   if(b.dataset.filter){ ui.filter=b.dataset.filter; ui.bulkArm=false; render(); return; }
   const act=b.dataset.act; const row=b.closest('[data-stt]'); const stt=row?+row.dataset.stt:null; const a=stt?BY_STT[stt]:null;
   if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
+  if(act==='logwho'){ if(LV.who!==b.dataset.v){ LV.who=b.dataset.v; LV.need=true; render(); } return; }
+  if(act==='logrefresh'){ LV.need=true; render(); return; }
+  if(act==='logmore'){ b.disabled=true; b.textContent='Đang tải…'; LV.loading=true; logPage(LV.tok); return; }
+  if(act==='logxlsx'){ logXlsx(b); return; }
+  if(act==='logname'){ const o=ME; askName(); if(ME!==o){ LV.need=true; render(); } return; }
   if(act==='unitall'){ ui.unit=''; render(); return; }
   if(act==='migrate'&&MIGRATE){ const L=MIGRATE; let n=0;
     Object.entries(L.rows||{}).forEach(([k,v])=>{ if(v&&!S.rows[k]){ S.rows[k]=Object.assign({},v,ME?{by:ME}:{}); n++; } });
@@ -1768,15 +2036,18 @@ app.addEventListener('click',e=>{
     Object.entries(L.units||{}).forEach(([k,v])=>{ if(v&&!S.units[k]) S.units[k]=v; });
     Object.entries(L.ps||{}).forEach(([k,v])=>{ if(Array.isArray(v)&&v.length) S.ps[k]=(S.ps[k]||[]).concat(v); });
     MIGRATE=null; try{ localStorage.setItem(KEY+'.moved','1'); }catch(e){}
+    LOGCTX={bulk:true,title:`Đưa ${n} kết quả từ máy này lên dữ liệu chung`};
     save(); refreshRooms(); render(); updateBadge(); toast(`Đã đưa ${n} kết quả lên dữ liệu chung${Object.keys(L.rows||{}).length>n?' (bỏ qua món đã có người kiểm)':''}`); return; }
   if(act==='nomigrate'){ MIGRATE=null; try{ localStorage.setItem(KEY+'.moved','1'); }catch(e){} render(); return; }
-  if(act==='reset'){ if(MODE!=='local') return; S=blank(); save(); refreshRooms(); route(); toast('Đã xoá dữ liệu mẫu'); return; }
+  if(act==='reset'){ if(MODE!=='local') return; S=blank(); LOGCTX={bulk:true,title:'Xoá dữ liệu mẫu'}; save(); refreshRooms(); route(); toast('Đã xoá dữ liệu mẫu'); return; }
   if(act==='more'){ ui.open[stt]=!ui.open[stt]; refreshRow(stt); return; }
   if(act==='bulk'){
     if(!ui.bulkArm){ ui.bulkArm=true; b.classList.add('armed'); b.textContent=`Bấm lần nữa: đánh dấu đủ ${bulkCandidates().length} món`; clearTimeout(ui._arm); ui._arm=setTimeout(()=>{ui.bulkArm=false; const x=app.querySelector('[data-act="bulk"]'); if(x){x.classList.remove('armed'); x.textContent=`Đủ tất cả còn lại (${bulkCandidates().length})`;}},4000); return; }
     const list=bulkCandidates(); snap(list.map(x=>x.stt));
     list.forEach(x=>{ const r=touch(x.stt); r.tt=x.sl; r.nf=false; if(r.phong==null) r.phong=roomOf(x); if(!r.cond) r.cond='tot'; });
-    ui.bulkArm=false; save(); render(); flash('ok','✓',`Đã kiểm đủ ${list.length} món`,V.type==='room'?ROOMNAME[V.id]||'':UNIT[V.id]?.ten||''); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); return;
+    const place=V.type==='room'?ROOMNAME[V.id]||'':UNIT[V.id]?.ten||'';
+    LOGCTX={bulk:true,title:`Đủ tất cả còn lại: ${list.length} tài sản${place?' · '+place:''}`};
+    ui.bulkArm=false; save(); render(); flash('ok','✓',`Đã kiểm đủ ${list.length} món`,place); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); return;
   }
   if(['du','nf','hoso','inc','dec','clr','here'].includes(act)) snap([stt]);
   if(act==='du'){ const r=touch(stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=a.vt0; if(!r.cond) r.cond='tot'; }
@@ -1799,7 +2070,7 @@ app.addEventListener('click',e=>{
     const ps=[]; Object.entries(S.ps).forEach(([k,l])=>(l||[]).forEach(p=>ps.push({...p, noi:k.startsWith('p:')?(ROOMNAME[k.slice(2)]||k.slice(2)):(UNIT[k]?.ten||k), cond:(COND.find(c=>c[0]===p.cond)||[])[1]||''})));
     b.disabled=true; const old=b.innerHTML; b.textContent='Đang tạo file…';
     window.xuatExcelKeToan({ketQua:kq, phatSinh:ps, tenFile:(DATA.file||'Kiem ke.xlsx').replace(/\.xlsx$/i,'')})
-      .then(n=>toast(`Đã tạo file: ${n} dòng có kết quả`),e=>{ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); })
+      .then(n=>{ toast(`Đã tạo file: ${n} dòng có kết quả`); logEvent({kind:'xuat',title:'Xuất file Excel cho kế toán',lines:[`${nf.format(n)} dòng có kết quả`,`File gốc: ${DATA.file||''}`]}); },e=>{ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); })
       .finally(()=>{ b.disabled=false; b.innerHTML=old; });
     return;
   }
@@ -1838,9 +2109,11 @@ app.addEventListener('change',e=>{
   if(t.id==='xu'){ xuatUnit=t.value; viewXuat(); return; }
   if(t.id==='selU'){ OV.sel=t.value; render(); return; }
   if(t.id==='hideDone'){ OV.hideDone=t.checked; document.getElementById('roomgrid').innerHTML=ovRoomsHTML(); return; }
+  if(t.id==='lk'){ LV.kind=t.value; LV.need=true; render(); document.getElementById('lk')?.focus(); return; }
 });
 app.addEventListener('input',e=>{
   const t=e.target;
+  if(t.id==='lq'){ LV.q=t.value; clearTimeout(app._l); app._l=setTimeout(logDraw,200); }
   if(t.id==='q'){ ui.q=t.value; ui.bulkArm=false; clearTimeout(app._q); app._q=setTimeout(()=>refocusAfter('q',()=>{ const l=currentList(); document.getElementById('rows').innerHTML=l.length?listBody(l,V.type==='unit'?'room':'unit'):''; refreshRow(-1); }),200); }
   if(t.id==='gq'){ OV.gq=t.value; clearTimeout(app._g); app._g=setTimeout(()=>document.getElementById('gres').innerHTML=ovSearchHTML(),200); }
   if(t.id==='uq'){ OV.uq=t.value; clearTimeout(app._u); app._u=setTimeout(()=>document.getElementById('ugrid').innerHTML=unitsGridHTML(),150); }

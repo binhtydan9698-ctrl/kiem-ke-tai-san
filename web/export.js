@@ -86,10 +86,28 @@
     const buf = await wb.xlsx.writeBuffer();
     const d = new Date(), p2 = x => String(x).padStart(2, '0');
     const fname = `${opts.tenFile || 'Kiem ke'} - cho ke toan ${p2(d.getDate())}-${p2(d.getMonth() + 1)}-${d.getFullYear()}.xlsx`;
+    taiVe(buf, fname);
+    return done.size;
+  };
+
+  // Bảng đơn giản (vd. Lịch sử thao tác) → file .xlsx. cot: [[tiêu đề, độ rộng]], dong: [[giá trị, …]]
+  window.xuatBangExcel = async function (tenSheet, cot, dong, tenFile) {
+    await loadExcelJS();
+    const wb = new window.ExcelJS.Workbook();
+    const ws = wb.addWorksheet(tenSheet);
+    ws.columns = cot.map(([header, width]) => ({ header, width }));
+    dong.forEach(r => ws.addRow(r));
+    ws.eachRow(r => { r.alignment = { wrapText: true, vertical: 'top' }; });
+    ws.getRow(1).font = { bold: true };
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+    taiVe(await wb.xlsx.writeBuffer(), tenFile + '.xlsx');
+    return dong.length;
+  };
+
+  function taiVe(buf, fname) {
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a'); a.href = url; a.download = fname;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-    return done.size;
-  };
+  }
 })();

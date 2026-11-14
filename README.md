@@ -16,6 +16,7 @@ chung trên Supabase, danh sách tài sản lấy từ **một file Excel** tron
 | Xem thử trên máy trước khi đẩy | Bấm đúp **`Xem thử trên máy.bat`** → http://localhost:3000 |
 | Kiểm tra file Excel (đối chiếu sheet Tổng hợp với các sheet con…) | Bấm đúp **`Kiểm tra dữ liệu.bat`**: dòng ✗ là cần sửa trong Excel, dòng ! chỉ là ghi chú |
 | Lấy file cho kế toán | Trên web: **Xuất cho kế toán → Tải file Excel cho kế toán** |
+| Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |
 
 Sau khi đẩy, khoảng 1 phút sau web có dữ liệu mới. Ai đang mở trang sẽ thấy thông báo **"Tải lại trang"**.
 

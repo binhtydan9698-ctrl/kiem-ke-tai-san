@@ -3,10 +3,12 @@
  * Giả lập đúng phần nhỏ của "db" mà trang dùng khi chạy trong Claude:
  *   db.collection(col).onSnapshot(next, error)   -> nhận thay đổi theo thời gian thực
  *   db.doc("col/id").set(data) / .delete()
+ *   db.recent(col, {...})                         -> đọc lịch sử thao tác (chỉ có ở bản web)
  * Mọi tài liệu nằm trong một bảng: public.kiemke_docs (col, id, data jsonb) — xem supabase/schema.sql.
  */
 (function () {
   const TABLE = 'kiemke_docs';
+  const LOG = 'log';
 
   window.makeSupabaseDb = function () {
     const cfg = window.KIEMKE_SUPABASE || {};
@@ -27,7 +29,8 @@
     async function loadAll() {
       const rows = [];
       for (let from = 0; ; from += 1000) {
-        const { data, error } = await sb.from(TABLE).select('col,id,data').range(from, from + 999);
+        // Lịch sử thao tác (col 'log') không tải lúc mở trang, chỉ đọc khi mở trang "Lịch sử" (hàm recent)
+        const { data, error } = await sb.from(TABLE).select('col,id,data').neq('col', LOG).range(from, from + 999);
         if (error) throw error;
         rows.push(...data);
         if (data.length < 1000) break;
@@ -53,7 +56,7 @@
           if (p.eventType === 'DELETE') {
             const o = p.old || {};
             if (o.col) emit(o.col, [{ type: 'removed', doc: mk(o.id, null) }]);
-          } else if (p.new && p.new.col) {
+          } else if (p.new && p.new.col && p.new.col !== LOG) {
             emit(p.new.col, [{ type: 'modified', doc: mk(p.new.id, p.new.data) }]);
           }
         })
@@ -80,6 +83,23 @@
             return () => { subs[col] = (subs[col] || []).filter(s => s.next !== next); };
           }
         };
+      },
+      // Đọc các tài liệu mới nhất của một loại, mới trước cũ sau (id tăng theo thời gian).
+      // o = {limit, before: id (lấy cũ hơn id này), kind, who: {by, dev} (lọc theo tên HOẶC máy)}
+      async recent(col, o = {}) {
+        const qt = s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';   // đặt giá trị trong ngoặc kép
+        let q = sb.from(TABLE).select('id,data').eq('col', col);
+        if (o.kind) q = q.eq('data->>kind', o.kind);
+        if (o.who) {
+          const f = [];
+          if (o.who.by) f.push('data->>by.eq.' + qt(o.who.by));
+          if (o.who.dev) f.push('data->>dev.eq.' + qt(o.who.dev));
+          if (f.length) q = q.or(f.join(','));
+        }
+        if (o.before) q = q.lt('id', o.before);
+        const { data, error } = await q.order('id', { ascending: false }).limit(o.limit || 200);
+        if (error) wrap(error);
+        return data || [];
       },
       doc(path) {
         const [col, id] = split(path);
