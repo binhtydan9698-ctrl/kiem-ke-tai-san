@@ -712,6 +712,45 @@ a.btn{text-decoration:none}
 .btn.pri{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
 @media (max-width:860px){.rooms{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
 @media (prefers-reduced-motion:reduce){.hero>img,.tile img,.bfig img,.bfig,.bpin{transition:none}.hero:hover>img,.tile:hover img{transform:none}}
+
+/* ===== Bảng màu 2026 — lấy từ kho dữ liệu UI/UX Pro Max (ui-ux-pro-max-cli 2.15.0):
+   nền/chữ slate của "Inventory & Stock Management" + "Research Lab / University Department",
+   màu chính cam FPT theo dải cam chuẩn; chữ trên nền đạt tương phản ≥ 4.5:1 ===== */
+:root{
+  --bg:#F8FAFC; --surface:#FFFFFF; --surface-2:#F1F5F9; --line:#E2E8F0; --fg:#0F172A; --muted:#475569;
+  --brand:#EA580C; --accent:#C2410C; --accent-fg:#FFFFFF; --accent-soft:#FFEDD5;
+  --cta:#C2410C; --cta-hover:#9A3412; --cta-fg:#FFFFFF;
+  --ok:#047857; --ok-soft:#D1FAE5; --warn:#B45309; --warn-soft:#FEF3C7; --bad:#B91C1C; --bad-soft:#FEE2E2;
+  --info:#2563EB; --info-soft:#EFF6FF; --idle:#94A3B8; --chart-idle:#E2E8F0;
+  --top-bg:#FFFFFF; --top-fg:#0F172A; --top-muted:#475569;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.05); --shadow:0 4px 14px -4px rgba(15,23,42,.12);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F172A; --surface:#1B2336; --surface-2:#272F42; --line:#334155; --fg:#F8FAFC; --muted:#94A3B8;
+  --brand:#F97316; --accent:#FB923C; --accent-fg:#0F172A; --accent-soft:#3B2314;
+  --cta:#FB923C; --cta-hover:#FDBA74; --cta-fg:#0F172A;
+  --ok:#34D399; --ok-soft:#063B2C; --warn:#FBBF24; --warn-soft:#3A2E0A; --bad:#F87171; --bad-soft:#3F1D1D;
+  --info:#60A5FA; --info-soft:#172554; --idle:#64748B; --chart-idle:#273449;
+  --top-bg:#111A2E; --top-fg:#F8FAFC; --top-muted:#94A3B8;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow:0 6px 18px -6px rgba(0,0,0,.6)}}
+:root[data-theme="dark"]{
+  --bg:#0F172A; --surface:#1B2336; --surface-2:#272F42; --line:#334155; --fg:#F8FAFC; --muted:#94A3B8;
+  --brand:#F97316; --accent:#FB923C; --accent-fg:#0F172A; --accent-soft:#3B2314;
+  --cta:#FB923C; --cta-hover:#FDBA74; --cta-fg:#0F172A;
+  --ok:#34D399; --ok-soft:#063B2C; --warn:#FBBF24; --warn-soft:#3A2E0A; --bad:#F87171; --bad-soft:#3F1D1D;
+  --info:#60A5FA; --info-soft:#172554; --idle:#64748B; --chart-idle:#273449;
+  --top-bg:#111A2E; --top-fg:#F8FAFC; --top-muted:#94A3B8;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4); --shadow:0 6px 18px -6px rgba(0,0,0,.6)}
+/* nút hành động chính: nền cam đậm, chữ đủ tương phản; rê chuột chỉ đổi màu (phong cách phẳng) */
+.btn.pri,.btn.brand,.top .scanbtn{background:var(--cta);border-color:var(--cta);color:var(--cta-fg);filter:none}
+.btn.pri:hover,.btn.brand:hover,.top .scanbtn:hover{background:var(--cta-hover);border-color:var(--cta-hover);filter:none}
+.c-act .btn.ok{color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .c-act .btn.ok{color:#04261b}}
+:root[data-theme="dark"] .c-act .btn.ok{color:#04261b}
+.btn{transition:background-color .18s ease,border-color .18s ease,color .18s ease}
+.hero-k,.pban .hero-k{color:#FDBA74}
+.bitem.on{box-shadow:0 8px 22px rgba(234,88,12,.14)}
+.top{box-shadow:0 1px 0 var(--line)}
 </style>
 
 <header class="top" id="top">
