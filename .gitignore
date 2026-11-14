@@ -13,3 +13,5 @@ sao-luu/
 .env.*
 # file tạm của Python (bộ UI/UX Pro Max)
 __pycache__/
+# sơ đồ app lưu thành PDF (chỉ để trên máy; bản mới nhất ở đường link artifact)
+/Sơ đồ app Quản lý tài sản.pdf
