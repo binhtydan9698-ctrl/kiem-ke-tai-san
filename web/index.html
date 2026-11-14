@@ -21,7 +21,7 @@
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Unbounded:wght@500;600;700&display=swap">
 <style>
 /* Layout: sticky top bar + one working column; tablet-landscape first, rows collapse to cards on narrow screens */
 :root{
@@ -751,6 +751,69 @@ a.btn{text-decoration:none}
 .hero-k,.pban .hero-k{color:#FDBA74}
 .bitem.on{box-shadow:0 8px 22px rgba(234,88,12,.14)}
 .top{box-shadow:0 1px 0 var(--line)}
+
+/* ===== Thẻ phòng kiểu Bento (theo UI/UX Pro Max: bento-box-grid) — số phòng font Unbounded, màu theo tòa ===== */
+@property --pp{syntax:'<number>';inherits:false;initial-value:0}
+:root{--f-display:"Unbounded","Be Vietnam Pro",system-ui,sans-serif;--ring-bg:#E2E8F0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--ring-bg:#334155}}
+:root[data-theme="dark"]{--ring-bg:#334155}
+/* màu từng tòa: --tone cho hình (vòng, vạch, quầng sáng), --tone-ink cho chữ (đủ tương phản) */
+.t-a{--tone:#EA580C;--tone-ink:#C2410C} .t-b{--tone:#2563EB;--tone-ink:#1D4ED8} .t-g{--tone:#7C3AED;--tone-ink:#6D28D9}
+.t-d{--tone:#0D9488;--tone-ink:#0F766E} .t-k{--tone:#DB2777;--tone-ink:#BE185D} .t-x{--tone:#64748B;--tone-ink:#475569} .t-n{--tone:#D97706;--tone-ink:#B45309}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) :is(.t-a,.t-b,.t-g,.t-d,.t-k,.t-x,.t-n){--tone-ink:var(--tone)}
+  :root:not([data-theme="light"]) .t-a{--tone:#FB923C} :root:not([data-theme="light"]) .t-b{--tone:#60A5FA} :root:not([data-theme="light"]) .t-g{--tone:#A78BFA}
+  :root:not([data-theme="light"]) .t-d{--tone:#2DD4BF} :root:not([data-theme="light"]) .t-k{--tone:#F472B6} :root:not([data-theme="light"]) .t-x{--tone:#94A3B8} :root:not([data-theme="light"]) .t-n{--tone:#FBBF24}}
+:root[data-theme="dark"] :is(.t-a,.t-b,.t-g,.t-d,.t-k,.t-x,.t-n){--tone-ink:var(--tone)}
+:root[data-theme="dark"] .t-a{--tone:#FB923C} :root[data-theme="dark"] .t-b{--tone:#60A5FA} :root[data-theme="dark"] .t-g{--tone:#A78BFA}
+:root[data-theme="dark"] .t-d{--tone:#2DD4BF} :root[data-theme="dark"] .t-k{--tone:#F472B6} :root[data-theme="dark"] .t-x{--tone:#94A3B8} :root[data-theme="dark"] .t-n{--tone:#FBBF24}
+
+.bldname{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--fg);letter-spacing:-.01em;margin:26px 0 12px;gap:10px}
+.bldname .dot{width:12px;height:12px;border-radius:4px;background:var(--tone);box-shadow:0 0 0 4px color-mix(in srgb,var(--tone) 18%,transparent)}
+.bldname em{font-family:var(--f-ui);font-style:normal;font-weight:500;font-size:12.5px;color:var(--muted);background:var(--surface-2);padding:2px 9px;border-radius:999px}
+.rooms{grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:14px;perspective:900px}
+.room{position:relative;isolation:isolate;overflow:hidden;border-radius:18px;padding:16px 14px 13px;gap:9px;border:1px solid var(--line);background:var(--surface);
+  box-shadow:0 1px 2px rgba(15,23,42,.05);transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));
+  transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s ease,border-color .25s ease;
+  animation:roomIn .5s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--i,0) * 35ms)}
+@keyframes roomIn{from{opacity:0;transform:translateY(14px) scale(.97)}}
+/* vạch màu tòa ở đầu thẻ */
+.room::after{content:"";position:absolute;left:0;right:0;top:0;height:4px;z-index:-1;background:linear-gradient(90deg,var(--tone),color-mix(in srgb,var(--tone) 25%,transparent));transform-origin:left;transition:transform .3s ease}
+/* quầng sáng đi theo con trỏ */
+.room::before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;transition:opacity .3s ease;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,0%),color-mix(in srgb,var(--tone) 16%,transparent),transparent 65%)}
+.room:hover,.room:focus-visible{border-color:color-mix(in srgb,var(--tone) 55%,var(--line));box-shadow:0 14px 30px -12px color-mix(in srgb,var(--tone) 45%,transparent);transform:perspective(800px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(-4px)}
+.room:hover::before,.room:focus-visible::before{opacity:1}
+.room:active{transform:perspective(800px) translateY(-1px) scale(.985);transition-duration:.08s}
+.room .rt{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.room .rn{display:flex;flex-direction:column;min-width:0;gap:2px}
+.room .rnum{font-family:var(--f-display);font-size:28px;font-weight:700;line-height:1;letter-spacing:-.03em;color:var(--fg);font-variant-numeric:tabular-nums}
+.room .rrest{font-size:12.5px;font-weight:600;color:var(--tone-ink);letter-spacing:.02em;overflow-wrap:anywhere}
+.room .rname{font-family:var(--f-display);font-size:15.5px;font-weight:600;line-height:1.25;letter-spacing:-.015em;color:var(--fg);overflow-wrap:anywhere}
+.room b{font-size:inherit}
+/* vòng tiến độ: chạy từ 0 lên % thật khi thẻ xuất hiện */
+.ring{--pp:var(--p,0);position:relative;width:46px;height:46px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  background:conic-gradient(var(--tone) calc(var(--pp) * 1%),var(--ring-bg) 0);animation:ringFill 1s cubic-bezier(.2,.7,.2,1) backwards;animation-delay:calc(var(--i,0) * 35ms + 120ms)}
+@keyframes ringFill{from{--pp:0}}
+.ring i{width:36px;height:36px;border-radius:50%;background:var(--surface);display:grid;place-items:center;font-style:normal;font-size:10.5px;font-weight:700;color:var(--fg);letter-spacing:-.02em}
+.room.done .ring{background:conic-gradient(var(--ok) 100%,var(--ok) 0)}
+.room.done .ring i{background:var(--ok);color:#fff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .room.done .ring i{color:#04261b}}
+:root[data-theme="dark"] .room.done .ring i{color:#04261b}
+.room.done .ring i svg{width:18px;height:18px;stroke-width:3}
+.room .m{font-size:12px}
+.room .bar{height:5px;border-radius:3px}
+.room .u span{border-radius:6px;padding:1px 6px}
+.room .u .rnf{font-family:var(--f-ui);font-weight:700;background:var(--bad-soft);color:var(--bad)}
+.room.done{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));background:linear-gradient(180deg,color-mix(in srgb,var(--ok) 7%,var(--surface)),var(--surface) 55%)}
+.room.none{border-style:dashed}
+.room.none .rname{color:var(--tone-ink)}
+@media (max-width:860px){
+  .rooms{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .room{border-radius:16px;padding:13px 12px 11px}
+  .room .rnum{font-size:24px}
+  .ring{width:40px;height:40px} .ring i{width:31px;height:31px;font-size:9.5px}
+}
+@media (prefers-reduced-motion:reduce){.room,.ring{animation:none}.room,.room:hover{transform:none;transition:none}.room::before{display:none}}
 </style>
 
 <header class="top" id="top">
@@ -810,8 +873,12 @@ const UNITS = [
   {id:'ICPDP',sheet:'Phòng IC PDP', ten:'Phòng IC PDP', match:['Phòng IC PDP'], dd:'Trưởng phòng'},
   {id:'HC',   sheet:'Phòng Hành chính', ten:'Phòng Hành chính', match:['Phòng Hành chính','HC; CTSV; Đào tạo'], dd:'Trưởng phòng'},
   {id:'FSC3', sheet:'FSC3', ten:'FSC3', match:['FSC3'], dd:'Trưởng đơn vị'},
-  {id:'XLPB', sheet:'Xem lại phân bổ', ten:'Xem lại phân bổ (FSC12)', match:['Xem lại phân bổ'], dd:'Kế toán', review:true},
-  {id:'CBG',  sheet:'Chưa có ghi chú', ten:'Chưa bàn giao · HC giữ trực tiếp', match:[''], dd:'Trưởng phòng HC', review:true},
+  // 3 sheet lẻ: tài sản CHƯA CÓ VỊ TRÍ (vì sao kế toán đưa vào sổ, ai mua) — cán bộ kiểm trực tiếp, đối chiếu rồi mới
+  // phân bổ vào các sheet đơn vị ở trên. Tài sản xếp nhóm theo cột nhóm lẻ (r[11]) do build ghi; id giữ nguyên vì
+  // kết quả buổi kiểm (S.units) lưu trên Supabase theo id.
+  {id:'XLPB', sheet:'Xem lại phân bổ', ten:'Xem lại phân bổ', match:['Xem lại phân bổ'], dd:'Kế toán', review:true},
+  {id:'XL',   sheet:'Xem lại',         ten:'Xem lại',         match:[],                  dd:'Kế toán', review:true},
+  {id:'CBG',  sheet:'Chưa có ghi chú', ten:'Chưa có ghi chú', match:[''],                dd:'Kế toán', review:true},
 ];
 // Đơn vị mới trong cột "Ghi chú" của Excel mà danh sách trên chưa có: tự thêm thành mục riêng
 (function(){
@@ -840,10 +907,12 @@ function shortName(s){
 function chungTu(s){const m=s.match(/(CT)?(\d{6,7})\s*$/);return m?(m[1]||'')+m[2]:'';}
 
 const ASSETS = RAW.map(r=>{
-  const [stt,ma,ten,sl,ngay,gia,gc0,vt,key,sheet,xr]=r; const gc=String(gc0||'').trim();
-  const u = UNITS.find(u=>u.match.includes(gc)) || UNIT.CBG;
+  const [stt,ma,ten,sl,ngay,gia,gc0,vt,key,sheet,xr,le]=r; const gc=String(gc0||'').trim();
+  const u = (le&&UNITS.find(u=>u.review&&u.sheet===le)) || UNITS.find(u=>u.match.includes(gc)) || UNIT.CBG;
   const cond0 = STATUS_TEXT[vt]||'';
-  return {stt,ma,ten,short:shortName(ten),ct:chungTu(ten),sl,ngay,gia,gc,vt0:cond0?'':vt,cond0,unit:u.id,key:key||String(ma||'stt-'+stt),sheet,xr,
+  // Tài sản ở sheet lẻ: luôn "Chưa có vị trí" cho tới khi kiểm trực tiếp; vị trí Excel (nếu có) chỉ để gợi ý (vtx)
+  const vtx = le&&!cond0 ? (vt||'') : '';
+  return {stt,ma,ten,short:shortName(ten),ct:chungTu(ten),sl,ngay,gia,gc,vt0:(cond0||le)?'':vt,vtx,cond0,unit:u.id,key:key||String(ma||'stt-'+stt),sheet,xr,review:!!le,
           hoso: NONPHYS.test(ten) && gia>=500e6, shared: gc==='HC; CTSV; Đào tạo'};
 });
 const BY_STT = Object.fromEntries(ASSETS.map(a=>[a.stt,a]));
@@ -1168,15 +1237,34 @@ function demoBanner(){
   return S.demo?`<div class="demo"><b>Đang xem dữ liệu kiểm mẫu.</b> Một phần sheet GD đã được điền sẵn để bạn thấy giao diện khi đang kiểm. Danh sách tài sản là dữ liệu thật từ file kế toán.<button class="btn sm" data-act="reset">Xoá dữ liệu mẫu, bắt đầu từ đầu</button></div>`:'';
 }
 
-function roomTile(r,uid){
+/* thẻ phòng kiểu Bento: số phòng to (font Unbounded), mỗi tòa một màu, vòng % tiến độ, hiệu ứng khi rê chuột */
+const BLD_TONE={'Alpha':'a','Beta':'b','Gamma':'g','Delta / Epsilon':'d','KTX':'k','Khu khác':'x'};
+function roomParts(name){ const m=String(name||'').match(/^([A-Za-z]{0,3}\d{1,4}[A-Za-z]?)\s+(.+)$/); return m?{num:m[1],rest:m[2]}:{num:'',rest:String(name||'')}; }
+function roomTile(r,uid,i){
   const sub=uid?r.list.filter(a=>a.unit===uid):r.list;
-  const c=count(sub); const done=c.chua===0; const us=Object.keys(unitsIn(r.list));
-  return `<a class="room ${r.slug===NOROOM?'none':''} ${done&&r.slug!==NOROOM?'done':''}" href="#phong-${r.slug}" ${uid?`data-act="goto" data-u="${uid}"`:''}>
-    <b>${esc(r.name)}</b>
+  const c=count(sub); const none=r.slug===NOROOM; const done=c.chua===0&&!none; const us=Object.keys(unitsIn(r.list));
+  const pct=c.tong?Math.round(c.da/c.tong*100):0;
+  const tone=none?'n':(BLD_TONE[r.bld||building(r.name)]||'x'); const p=roomParts(r.name);
+  return `<a class="room t-${tone} ${none?'none':''} ${done?'done':''}" href="#phong-${r.slug}" style="--i:${Math.min(i||0,24)};--p:${pct}" ${uid?`data-act="goto" data-u="${uid}"`:''}>
+    <span class="rt"><span class="rn">${p.num?`<b class="rnum">${esc(p.num)}</b><span class="rrest">${esc(p.rest)}</span>`:`<b class="rname">${esc(p.rest)}</b>`}</span>
+      <span class="ring" role="img" aria-label="${done?'Đã kiểm xong':'Đã kiểm '+pct+'%'}"><i class="num">${done?ic('Check'):pct+'%'}</i></span></span>
     <div class="m num"><span>${uid?`${c.tong} dòng của ${esc(uid)}${r.list.length>c.tong?` / ${r.list.length}`:''}`:c.tong+' dòng'}</span><span class="st">${done?'Xong':c.chua+' chưa kiểm'}</span></div>
     ${barHTML(c)}
-    <div class="u">${us.slice(0,4).map(id=>`<span class="${id===uid?'on':''}">${esc(id)}</span>`).join('')}${us.length>4?`<span>+${us.length-4}</span>`:''}</div></a>`;
+    <div class="u">${c.nf?`<span class="rnf">${c.nf} chưa thấy</span>`:''}${us.slice(0,4).map(id=>`<span class="${id===uid?'on':''}">${esc(id)}</span>`).join('')}${us.length>4?`<span>+${us.length-4}</span>`:''}</div></a>`;
 }
+/* nghiêng 3D + quầng sáng đi theo con trỏ (chỉ máy có chuột, tắt khi bật giảm chuyển động) */
+(function(){
+  const fine=matchMedia('(hover:hover) and (pointer:fine)'), calm=matchMedia('(prefers-reduced-motion: reduce)');
+  let raf=0, cur=null, ev=null;
+  function paint(){ raf=0; if(!cur||!ev) return; const b=cur.getBoundingClientRect(); const x=(ev.clientX-b.left)/b.width, y=(ev.clientY-b.top)/b.height;
+    cur.style.setProperty('--mx',(x*100).toFixed(1)+'%'); cur.style.setProperty('--my',(y*100).toFixed(1)+'%');
+    cur.style.setProperty('--ry',((x-.5)*10).toFixed(2)+'deg'); cur.style.setProperty('--rx',((.5-y)*8).toFixed(2)+'deg'); }
+  function reset(el){ ['--mx','--my','--rx','--ry'].forEach(k=>el.style.removeProperty(k)); }
+  app.addEventListener('pointermove',e=>{ if(!fine.matches||calm.matches) return; const el=e.target.closest&&e.target.closest('.room');
+    if(cur&&cur!==el) reset(cur); cur=el; ev=e; if(el&&!raf) raf=requestAnimationFrame(paint); });
+  app.addEventListener('pointerleave',()=>{ if(cur) reset(cur); cur=null; },true);
+  app.addEventListener('pointerout',e=>{ const el=e.target.closest&&e.target.closest('.room'); if(el&&!el.contains(e.relatedTarget)){ reset(el); if(cur===el) cur=null; } });
+})();
 function ovRoomsHTML(){
   const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM);
   const uid=OV.sel;
@@ -1184,8 +1272,8 @@ function ovRoomsHTML(){
   const q=slugify(OV.rq);
   let list=rooms.filter(r=>(!uid||r.list.some(a=>a.unit===uid))&&(OV.bld==='all'||r.bld===OV.bld)&&(!OV.rq.trim()||r.slug.includes(q))&&(!OV.hideDone||count(uid?r.list.filter(a=>a.unit===uid):r.list).chua>0));
   const by={}; list.forEach(r=>(by[r.bld]=by[r.bld]||[]).push(r));
-  const blocks=BLD_ORDER.filter(b=>by[b]).map(b=>`<div class="bldname">${b==='Khu khác'?'Khu khác, ngoài trời, chưa rõ tòa':'Tòa '+b} · ${by[b].length} vị trí</div><div class="rooms">${by[b].sort((x,y)=>x.name.localeCompare(y.name,'vi',{numeric:true})).map(r=>roomTile(r,uid)).join('')}</div>`).join('');
-  const noneTile=(OV.bld==='all'&&!OV.rq.trim()&&none.length)?`<div class="bldname">Chưa ghi vị trí</div><div class="rooms">${roomTile({slug:NOROOM,name:'Chưa có vị trí',list:none},uid)}</div>`:'';
+  const blocks=BLD_ORDER.filter(b=>by[b]).map(b=>`<div class="bldname t-${BLD_TONE[b]||'x'}"><i class="dot"></i>${b==='Khu khác'?'Khu khác, ngoài trời, chưa rõ tòa':'Tòa '+b}<em class="num">${by[b].length} vị trí</em></div><div class="rooms">${by[b].sort((x,y)=>x.name.localeCompare(y.name,'vi',{numeric:true})).map((r,i)=>roomTile(r,uid,i)).join('')}</div>`).join('');
+  const noneTile=(OV.bld==='all'&&!OV.rq.trim()&&none.length)?`<div class="bldname t-n"><i class="dot"></i>Chưa ghi vị trí</div><div class="rooms">${roomTile({slug:NOROOM,name:'Chưa có vị trí',list:none},uid,0)}</div>`:'';
   return (blocks||(none.length?'':'<div class="empty">Không có phòng nào khớp.</div>'))+noneTile;
 }
 /* ---------- trang "Kiểm theo phòng ban / bộ môn / khoa": mỗi sheet của kế toán là một thẻ ---------- */
@@ -1210,7 +1298,7 @@ function unitsGridHTML(){
   const main=UNITS.filter(u=>!u.review&&ok(u)), rv=UNITS.filter(u=>u.review&&ok(u));
   if(!main.length&&!rv.length) return '<div class="empty">Không có đơn vị nào khớp.</div>';
   return (main.length?`<div class="cards">${main.map(unitCard).join('')}</div>`:'')
-    +(rv.length?`<div class="sect" style="margin-top:22px"><h2>${ic('CircleHelp')}Cần kế toán xem lại</h2><span>Tài sản chưa rõ đơn vị quản lý</span></div><div class="cards">${rv.map(unitCard).join('')}</div>`:'');
+    +(rv.length?`<div class="sect" style="margin-top:22px"><h2>${ic('MapPin')}Chưa có vị trí</h2><span>3 sheet lẻ: vì sao kế toán đưa vào sổ, ai mua — kiểm trực tiếp, đối chiếu rồi mới phân bổ vào sheet đơn vị</span></div><div class="cards">${rv.map(unitCard).join('')}</div>`:'');
 }
 function viewUnits(){
   const n={all:UNITS.length,chua:0,run:0,done:0}; UNITS.forEach(u=>n[unitState0(u)]++);
@@ -1393,7 +1481,7 @@ function rowHTML(a){
   const s=S.rows[a.stt]||{}; const r=res(a); const open=ui.open[a.stt];
   const room=roomOf(a); const cond=s.cond||a.cond0||'';
   const moved = V.type==='room' && V.id!==NOROOM && slugify(room)!==V.id;
-  const tags=[V.type==='room'?`<span class="tag">${esc(a.unit)}</span>`:'', a.shared?'<span class="tag info">Dùng chung HC; CTSV; Đào tạo</span>':'', a.sl>1?`<span class="tag">Đếm số lượng</span>`:'', a.cond0?`<span class="tag warn">Excel ghi: ${esc(Object.keys(STATUS_TEXT).find(k=>STATUS_TEXT[k]===a.cond0))}</span>`:'', (s.phong!=null&&a.vt0&&s.phong!==a.vt0)?`<span class="tag warn">Sổ ghi: ${esc(a.vt0)}</span>`:'', moved?`<span class="tag warn">Đã ghi sang ${esc(room||'chưa có vị trí')}</span>`:''].join('');
+  const tags=[V.type==='room'?`<span class="tag ${a.review?'warn':''}">${esc(a.review?UNIT[a.unit].sheet:a.unit)}</span>`:'', (a.vtx&&!s.phong)?`<span class="tag warn">Excel ghi: ${esc(a.vtx)} · cần xác nhận</span>`:'', a.shared?'<span class="tag info">Dùng chung HC; CTSV; Đào tạo</span>':'', a.sl>1?`<span class="tag">Đếm số lượng</span>`:'', a.cond0?`<span class="tag warn">Excel ghi: ${esc(Object.keys(STATUS_TEXT).find(k=>STATUS_TEXT[k]===a.cond0))}</span>`:'', (s.phong!=null&&a.vt0&&s.phong!==a.vt0)?`<span class="tag warn">Sổ ghi: ${esc(a.vt0)}</span>`:'', moved?`<span class="tag warn">Đã ghi sang ${esc(room||'chưa có vị trí')}</span>`:''].join('');
   const real = a.hoso
     ? `<div class="hoso-note">Tài sản không kiểm đếm được (công trình, dịch vụ). Chỉ cần xác nhận hồ sơ.</div>`
     : `<div class="c-book"><span class="lbl">Sổ sách</span><b>${nf.format(a.sl)}</b></div>
@@ -1485,6 +1573,7 @@ function viewUnit(id){
     <div><h1>${esc(u.ten)}</h1><p class="num">${c.tong} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
     <div class="prog" id="prog">${progHTML(c)}</div>
   </div>
+  ${u.review?`<div class="demo" style="background:var(--warn-soft);color:var(--warn)">${ic('MapPin')}<span style="flex:1;min-width:0"><b>Sheet lẻ · tài sản chưa có vị trí.</b> Chưa rõ vì sao kế toán đưa vào sổ, ai mua. Kiểm trực tiếp: thấy ở đâu thì chọn <b>Phòng thực tế</b>; không thấy thì bấm "Không thấy" và hỏi kế toán. Đối chiếu xong mới phân bổ vào sheet đơn vị (GD … FSC3).</span></div>`:''}
   <section class="panel" aria-label="Thành phần buổi kiểm kê">
     <div class="team">
       <div class="fld"><label for="u-ngay">Ngày kiểm</label><input class="in" type="date" id="u-ngay" data-u="ngay" value="${esc(us.ngay)}"></div>
@@ -1597,6 +1686,7 @@ function ketQuaKeToan(a){
   let vt='';
   if(r==='nf') vt=(x&&x.kq==='chi'&&x.phong)?x.phong:'';
   else if(r!=='chua'||s.phong!=null) vt=roomOf(a);
+  if(a.review&&!vt&&r!=='nf') vt='Chưa có vị trí';
   const cond=s.cond&&s.cond!=='tot'?(COND.find(c=>c[0]===s.cond)||[])[1]:'';
   const gc=[cond, s.note, x&&x.phanhoi?'Đại diện trả lời: '+x.phanhoi:''].filter(Boolean).join('; ');
   return {kq, vt, gc, thucTe: cellE(a), sl: a.sl, r};

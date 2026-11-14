@@ -11,3 +11,5 @@ sao-luu/
 .gemini/
 .env
 .env.*
+# file tạm của Python (bộ UI/UX Pro Max)
+__pycache__/

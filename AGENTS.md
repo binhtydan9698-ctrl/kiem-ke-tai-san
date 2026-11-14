@@ -17,7 +17,7 @@ kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ f
 | Lệnh | Việc |
 |---|---|
 | `npm install` | Cài thư viện (lần đầu) |
-| `npm test` | Build từ Excel + soát dữ liệu + chạy thử xuất Excel kế toán. **Chạy sau mọi thay đổi.** |
+| `npm test` | Build từ Excel + soát dữ liệu + đối chiếu sheet "Tổng hợp" với các sheet con + chạy thử xuất Excel kế toán. **Chạy sau mọi thay đổi.** |
 | `npm run dev` | Build rồi mở máy chủ xem thử http://localhost:3000 (chạy nền; sửa `web/` thì chạy lại) |
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
@@ -35,7 +35,11 @@ kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ f
 1. `dữ liệu cập nhật/*.xlsx` là nguồn duy nhất của danh sách tài sản (biên bản gốc: mỗi đơn vị một sheet + "Xem lại" + "Tổng hợp").
 2. `npm run build` (`scripts/build.mjs`) đọc Excel → `dist/data/assets.js` (`window.KIEMKE_DATA = {version, file, sheets, rows}`),
    `dist/data/version.json`, `dist/data/goc.xlsx`, chép `web/` → `dist/`.
-   Mỗi dòng: `[stt, ma, ten, sl, ngay(yyyy-mm-dd), gia, gc(đơn vị), vt(vị trí), key, sheet, dòngExcel]`.
+   Mỗi dòng: `[stt, ma, ten, sl, ngay(yyyy-mm-dd), gia, gc(đơn vị), vt(vị trí), key, sheet, dòngExcel, nhómLẻ]`.
+   `nhómLẻ` = tên sheet lẻ ("Xem lại phân bổ" / "Xem lại" / "Chưa có ghi chú", theo thứ tự ưu tiên `REVIEW_SHEETS`
+   trong `web/excel-rules.js`) hoặc `''`. Tài sản sheet lẻ là tài sản **chưa có vị trí** (chưa rõ vì sao kế toán đưa vào
+   sổ, ai mua): trang xếp vào 3 nhóm riêng (id `XLPB`, `XL`, `CBG`), luôn để "Chưa có vị trí" (bỏ qua cột Vị trí Excel,
+   chỉ hiện làm gợi ý) cho tới khi cán bộ kiểm trực tiếp rồi phân bổ vào các sheet đơn vị GD … FSC3.
 3. `web/index.html` dựng `ASSETS` từ `KIEMKE_DATA.rows`. Trạng thái kiểm kê trong `S = {rows, xm, units, ps}`:
    - `S.rows[stt]`: kết quả từng tài sản `{tt, nf, hs, phong, cond, note, at, by}`
    - `S.xm[stt]`: hỏi đại diện `{kq, cach, phanhoi, phong}`

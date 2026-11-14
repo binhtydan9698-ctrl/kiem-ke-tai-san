@@ -91,5 +91,10 @@
   // Sheet gốc: tên có "tổng hợp" (ưu tiên khi các sheet ghi khác nhau)
   const isPrimarySheet = name => /tong hop/.test(norm(name));
 
-  g.KIEMKE_EXCEL = { norm, str, cellValue, headerMap, readRow, isPrimarySheet };
+  // Sheet lẻ: tài sản chưa rõ vị trí (vì sao kế toán đưa vào sổ, ai mua) — cán bộ phải kiểm trực tiếp, đối chiếu
+  // rồi mới phân bổ vào sheet đơn vị. Tài sản có ở nhiều sheet lẻ thì lấy sheet đứng trước trong danh sách này.
+  const REVIEW_SHEETS = ['Xem lại phân bổ', 'Xem lại', 'Chưa có ghi chú'];
+  const reviewSheet = name => REVIEW_SHEETS.find(s => norm(s) === norm(name)) || '';
+
+  g.KIEMKE_EXCEL = { norm, str, cellValue, headerMap, readRow, isPrimarySheet, REVIEW_SHEETS, reviewSheet };
 })(typeof window !== 'undefined' ? window : globalThis);

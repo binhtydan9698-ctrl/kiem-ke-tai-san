@@ -62,8 +62,8 @@ async function readAssets(file) {
       }
       const v = { stt: x.stt, ten: x.ten, sl: num(x.sl), ngay: isoDate(x.ngay), gia: num(x.gia), gc: x.gc, vt: x.vt };
       const cur = items.get(x.key);
-      if (!cur) { prev = { ...v, ma: x.ma, key: x.key, sheet: ws.name, r, lastRow: r }; items.set(x.key, prev); continue; }
-      prev = cur; cur.lastRow = r;
+      if (!cur) { prev = { ...v, ma: x.ma, key: x.key, sheet: ws.name, r, lastRow: r, sheets: [ws.name] }; items.set(x.key, prev); continue; }
+      prev = cur; cur.lastRow = r; if (!cur.sheets.includes(ws.name)) cur.sheets.push(ws.name);
       for (const f of FIELDS) {
         if (empty(cur[f]) && !empty(v[f])) cur[f] = v[f];
         else if (f === 'ten' && String(cur.ten).startsWith(String(v.ten))) continue;   // tên đã được nối phần xuống dòng
@@ -78,7 +78,9 @@ async function readAssets(file) {
   // STT: dùng STT trong Excel nếu đủ và không trùng, nếu không đánh số lại 1..N
   const xs = list.map(x => x.stt);
   const useX = xs.every(n => Number.isInteger(n) && n > 0) && new Set(xs).size === xs.length;
-  const rows = list.map((x, i) => [useX ? x.stt : i + 1, x.ma, x.ten, x.sl ?? 1, x.ngay, x.gia ?? 0, x.gc, x.vt, x.key, x.sheet, x.r]);
+  // Nhóm lẻ (chưa rõ vị trí): tên sheet lẻ đầu tiên theo thứ tự X.REVIEW_SHEETS mà tài sản có mặt
+  const nhomLe = x => { const ds = x.sheets.map(X.reviewSheet).filter(Boolean); return X.REVIEW_SHEETS.find(s => ds.includes(s)) || ''; };
+  const rows = list.map((x, i) => [useX ? x.stt : i + 1, x.ma, x.ten, x.sl ?? 1, x.ngay, x.gia ?? 0, x.gc, x.vt, x.key, x.sheet, x.r, nhomLe(x)]);
   return { rows, sheets, conflicts, useX };
 }
 
@@ -106,4 +108,6 @@ fs.writeFileSync(path.join(DIST, 'data', 'assets.js'),
 fs.writeFileSync(path.join(DIST, 'data', 'version.json'), JSON.stringify(meta));
 fs.copyFileSync(file, path.join(DIST, 'data', 'goc.xlsx'));
 
+const le = X.REVIEW_SHEETS.map(s => `${s} ${rows.filter(r => r[11] === s).length}`).join(', ');
 console.log(`Xong: ${rows.length} tài sản từ ${sheets.length} sheet · phiên bản ${version}`);
+console.log(`  Chưa có vị trí (sheet lẻ): ${le}`);

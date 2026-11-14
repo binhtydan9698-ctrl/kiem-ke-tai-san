@@ -14,7 +14,8 @@ Nguồn duy nhất của danh sách tài sản: **một** file `.xlsx` trong `d�
 
 1. **Không tự sửa nội dung file Excel** trừ khi người dùng yêu cầu rõ. Nếu người dùng đưa file mới:
    chép vào `dữ liệu cập nhật/`, xoá file `.xlsx` cũ trong đó (`git rm`), đừng để hai file cùng lúc.
-2. Kiểm tra file đọc được và đúng: `npm test`.
+2. Kiểm tra file đọc được và đúng: `npm test`. Mục "2b" đối chiếu sheet "Tổng hợp" với các sheet con (thiếu/thừa tài sản,
+   lệch nguyên giá/ngày, dòng TỔNG CỘNG); dòng "!" chỉ là ghi chú số lượng khác nhau (tài sản dùng chung), không phải lỗi.
    - Đọc kỹ các dòng `!` của build: "ô ghi khác nhau giữa các sheet" (Tổng hợp được ưu tiên),
      "STT trống hoặc trùng" (nếu xuất hiện là bất thường với biên bản này). Báo lại cho người dùng.
    - So số tài sản ("Xong: N tài sản") với lần trước (`git show HEAD:...` hoặc bản trên web

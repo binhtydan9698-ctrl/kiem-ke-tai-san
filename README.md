@@ -14,6 +14,7 @@ chung trên Supabase, danh sách tài sản lấy từ **một file Excel** tron
 | Web tự cập nhật mỗi lần lưu Excel | Bấm đúp **`Tự động cập nhật.bat`**, để cửa sổ đó mở |
 | Đẩy lên web một lần (không để cửa sổ chạy) | Bấm đúp **`Cập nhật lên web.bat`** sau khi lưu Excel |
 | Xem thử trên máy trước khi đẩy | Bấm đúp **`Xem thử trên máy.bat`** → http://localhost:3000 |
+| Kiểm tra file Excel (đối chiếu sheet Tổng hợp với các sheet con…) | Bấm đúp **`Kiểm tra dữ liệu.bat`**: dòng ✗ là cần sửa trong Excel, dòng ! chỉ là ghi chú |
 | Lấy file cho kế toán | Trên web: **Xuất cho kế toán → Tải file Excel cho kế toán** |
 
 Sau khi đẩy, khoảng 1 phút sau web có dữ liệu mới. Ai đang mở trang sẽ thấy thông báo **"Tải lại trang"**.

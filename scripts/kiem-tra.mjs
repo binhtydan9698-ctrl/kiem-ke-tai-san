@@ -31,7 +31,67 @@ ok(rows.every(r => r[2] && r[2].length > 2), 'tài sản nào cũng có tên');
 ok(rows.every(r => typeof r[3] === 'number' && r[3] >= 0), 'số lượng sổ sách là số ≥ 0');
 ok(rows.every(r => r[4] === '' || /^\d{4}-\d{2}-\d{2}$/.test(r[4])), 'ngày đúng dạng yyyy-mm-dd');
 ok(!rows.some(r => /^(tong cong|tổng cộng)/i.test(r[2]) || /^m[aã]\s*tsc/i.test(r[1])), 'không lẫn dòng TỔNG CỘNG / dòng tiêu đề');
+{ const le = rows.filter(r => r[11]); const nhom = ['Xem lại phân bổ', 'Xem lại', 'Chưa có ghi chú'].map(s => `${s} ${le.filter(r => r[11] === s).length}`).join(' · ');
+  ok(rows.every(r => typeof r[11] === 'string') && le.length > 0, `tài sản chưa rõ vị trí (sheet lẻ) có nhóm riêng: ${nhom}`); }
 ok(['web/index.html', 'web/export.js', 'web/excel-rules.js', 'web/config.js', 'web/supabase-db.js'].every(f => fs.existsSync(path.join(DIST, path.basename(f)))), 'dist/ có đủ file của trang');
+
+/* 2b. Đối chiếu sheet "Tổng hợp" với các sheet con: Tổng hợp phải là tổng của tất cả sheet trước nó */
+console.log('2b. Đối chiếu sheet Tổng hợp với các sheet con');
+await import(pathToFileURL(path.join(ROOT, 'web', 'excel-rules.js')).href);
+{
+  const X = globalThis.KIEMKE_EXCEL;
+  const wb = new ExcelJS.Workbook(); await wb.xlsx.readFile(path.join(DIST, 'data', 'goc.xlsx'));
+  const so = v => { if (typeof v === 'number') return v; const s = X.str(v).replace(/[^\d,.-]/g, ''); if (!s) return null;
+    const n = Number(s.replace(/[.,](?=\d{3}(\D|$))/g, '').replace(',', '.')); return Number.isFinite(n) ? n : null; };
+  const ngay = v => v instanceof Date ? v.toISOString().slice(0, 10) : X.str(v);
+  const per = {}; let tongCong = null;
+  for (const ws of wb.worksheets) {
+    const hm = X.headerMap(ws); if (!hm) continue;
+    const list = per[ws.name] = [];
+    for (let r = hm.dataStart; r <= ws.rowCount; r++) {
+      const x = X.readRow(ws, hm, r);
+      if (x && !x.tiepTen) { list.push({ key: x.key, ma: x.ma || x.key, sl: so(x.sl), gia: so(x.gia), ngay: ngay(x.ngay), r }); continue; }
+      if (!x && X.isPrimarySheet(ws.name) && /tong cong/.test(X.norm(X.str(X.cellValue(ws.getRow(r).getCell(hm.cols.ten)))))) {
+        const row = ws.getRow(r); const g = k => hm.cols[k] ? so(X.cellValue(row.getCell(hm.cols[k]))) : null;
+        tongCong = { sl: g('sl'), gia: g('gia'), r };
+      }
+    }
+  }
+  const TH = Object.keys(per).find(n => X.isPrimarySheet(n));
+  const con = Object.keys(per).filter(n => n !== TH);
+  if (!TH || !con.length) console.log('  – Không có sheet "Tổng hợp" cùng các sheet con, bỏ qua đối chiếu');
+  else {
+    const T = new Map(per[TH].map(a => [a.key, a]));
+    const noi = new Map(); con.forEach(n => per[n].forEach(a => (noi.get(a.key) || noi.set(a.key, []).get(a.key)).push({ n, a })));
+    const ds = (l, f) => l.slice(0, 5).map(f).join('; ') + (l.length > 5 ? `; … và ${l.length - 5} mục khác` : '');
+    const tongDong = con.reduce((s, n) => s + per[n].length, 0);
+    ok(per[TH].length === T.size, `"${TH}" không có mã ghi trùng (${per[TH].length} dòng)`);
+    const thieu = [...noi.entries()].filter(([k]) => !T.has(k)).map(([, l]) => l[0]);
+    ok(!thieu.length, `mọi tài sản ở ${con.length} sheet con đều có trong "${TH}"` +
+      (thieu.length ? ` — THIẾU ${thieu.length}: ${ds(thieu, ({ n, a }) => `mã ${a.ma} (sheet ${n}, dòng ${a.r})`)}` : ` (${tongDong} dòng, bỏ trùng còn ${noi.size} mã)`));
+    const thua = per[TH].filter(a => !noi.has(a.key));
+    ok(!thua.length, `"${TH}" không có tài sản nằm ngoài các sheet con` +
+      (thua.length ? ` — THỪA ${thua.length}: ${ds(thua, a => `mã ${a.ma} (dòng ${a.r})`)}` : ''));
+    const lech = [];
+    for (const [k, l] of noi) { const t = T.get(k); if (!t) continue;
+      for (const { n, a } of l) {
+        if (a.gia != null && t.gia != null && Math.abs(a.gia - t.gia) > 0.5) lech.push(`mã ${a.ma}: nguyên giá Tổng hợp ${t.gia} ≠ ${n} ${a.gia}`);
+        if (a.ngay && t.ngay && a.ngay !== t.ngay) lech.push(`mã ${a.ma}: ngày Tổng hợp ${t.ngay} ≠ ${n} ${a.ngay}`);
+      } }
+    ok(!lech.length, 'nguyên giá và ngày của từng tài sản khớp giữa Tổng hợp và sheet con' + (lech.length ? ` — LỆCH ${lech.length}: ${ds(lech, s => s)}` : ''));
+    const slTH = per[TH].reduce((s, a) => s + (a.sl || 0), 0), giaTH = per[TH].reduce((s, a) => s + (a.gia || 0), 0);
+    const vn = v => Math.round(v).toLocaleString('vi-VN');
+    if (tongCong && (tongCong.sl != null || tongCong.gia != null))
+      ok((tongCong.sl == null || Math.abs(tongCong.sl - slTH) < 0.5) && (tongCong.gia == null || Math.abs(tongCong.gia - giaTH) < 1),
+        `dòng TỔNG CỘNG (dòng ${tongCong.r}) khớp tổng tính lại: SL ${vn(slTH)} · nguyên giá ${vn(giaTH)} đ` +
+        (tongCong.sl != null && Math.abs(tongCong.sl - slTH) >= 0.5 ? ` — Excel ghi SL ${vn(tongCong.sl)}` : '') +
+        (tongCong.gia != null && Math.abs(tongCong.gia - giaTH) >= 1 ? ` — Excel ghi nguyên giá ${vn(tongCong.gia)}` : ''));
+    else console.log(`  – "${TH}" không có dòng TỔNG CỘNG (hoặc chưa lưu kết quả công thức), bỏ qua so tổng`);
+    // Số lượng khác nhau: chỉ ghi chú, vì tài sản dùng chung có thể được chia cho nhiều đơn vị (VD Tổng hợp 3 = 1+1+1)
+    const slKhac = [...noi.entries()].filter(([k, l]) => T.has(k) && l.some(({ a }) => a.sl != null && T.get(k).sl != null && a.sl !== T.get(k).sl));
+    slKhac.forEach(([k, l]) => console.log(`  ! mã ${T.get(k).ma}: số lượng Tổng hợp ${T.get(k).sl}, các sheet con ghi ${l.map(({ n, a }) => `${n} ${a.sl}`).join(', ')} (kiểm tra nếu không phải tài sản dùng chung)`));
+  }
+}
 
 /* 3. Xuất cho kế toán: chạy web/export.js trong Node */
 console.log('3. Xuất Excel cho kế toán (chạy thử web/export.js)');
