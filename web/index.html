@@ -628,7 +628,6 @@ a.btn{text-decoration:none}
 .btn.brand{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;padding:10px 18px;font-size:14px}
 .btn.ghost{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.45);color:#fff;font-weight:600;padding:10px 18px;font-size:14px}
 .btn.ghost:hover{background:rgba(255,255,255,.22)}
-.credit{position:absolute;right:12px;bottom:8px;font-size:11px;color:rgba(255,255,255,.65);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none}
 #gres .sr{margin-top:14px}
 
 /* ảnh nhỏ đầu các trang con */
@@ -681,7 +680,6 @@ a.btn{text-decoration:none}
 .bitem.on{border-color:var(--brand);box-shadow:0 8px 22px rgba(243,112,33,.16);transform:translateY(-2px)}
 .bitem.on::before{width:75%;background:repeating-linear-gradient(-60deg,var(--brand) 0 3px,transparent 3px 7px)}
 .bitem.on h3{color:var(--accent);font-size:17px}
-.bfig .credit{bottom:10px}
 
 @media (max-width:860px){
   .stitle{margin:26px 0 12px}
@@ -1515,7 +1513,7 @@ function bldSecHTML(){
   return `<div class="stitle"><h2>Tiến độ <strong>theo tòa nhà</strong></h2></div>
   <section class="bsec">
     <div class="bimg">${items.map((it,i)=>{ const f=BLD_FOCUS[it.id];
-      return `<figure class="bfig ${i?'':'on'}" data-i="${i}" ${f?`style="--x:${f.x}%;--y:${f.y}%;--z:${f.z};--zi:1"`:''}><img src="${IMG}${BLD_IMG[it.id]||'toan-canh'}.jpg" alt="${f?esc(it.name)+' trên ảnh toàn cảnh campus':''}" loading="lazy">${f?`<span class="bpin" style="left:${f.x}%;top:${f.y}%">${esc(it.name)}</span>`:''}<span class="credit">${f?'Ảnh: daihoc.fpt.edu.vn':'Ảnh minh hoạ · campus Đà Nẵng'}</span></figure>`; }).join('')}</div>
+      return `<figure class="bfig ${i?'':'on'}" data-i="${i}" ${f?`style="--x:${f.x}%;--y:${f.y}%;--z:${f.z};--zi:1"`:''}><img src="${IMG}${BLD_IMG[it.id]||'toan-canh'}.jpg" alt="${f?esc(it.name)+' trên ảnh toàn cảnh campus':''}" loading="lazy">${f?`<span class="bpin" style="left:${f.x}%;top:${f.y}%">${esc(it.name)}</span>`:''}</figure>`; }).join('')}</div>
     <div class="bmain">
       <p class="bdesc">Tài sản tính theo vị trí thực tế (cập nhật ngay khi kiểm). Rê chuột vào từng tòa để xem, bấm để mở danh sách phòng của tòa đó.</p>
       <div class="bitems">${items.map((it,i)=>{ const p=it.c.tong?Math.round(it.c.da/it.c.tong*100):0;
@@ -1541,7 +1539,6 @@ function viewOverview(){
       <label class="sbox">${ic('Search')}<input class="in" id="gq" type="search" placeholder="Tìm nhanh tài sản ở cả trường: mã hoặc tên…" value="${esc(OV.gq)}" aria-label="Tìm tài sản ở cả trường"></label>
       <div class="hero-cta"><a class="btn brand" href="#vi-tri">${ic('MapPin')}Kiểm theo số phòng</a><a class="btn ghost" href="#don-vi">${ic('Users')}Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</a></div>
     </div>
-    <span class="credit">Ảnh: daihoc.fpt.edu.vn</span>
   </section>
   <div id="gres">${ovSearchHTML()}</div>
   <div class="stitle"><h2>Số liệu <strong>kiểm kê</strong></h2></div>
