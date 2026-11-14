@@ -717,8 +717,8 @@ a.btn{text-decoration:none}
         <a href="#tong-quan" class="dd-t" aria-haspopup="true"><span data-ic="LayoutDashboard"></span>Tổng quan<span class="chev"><span data-ic="ChevronDown"></span></span></a>
         <div class="dd-m"><div class="dd-p" role="menu">
           <a href="#tong-quan" data-r="tong-quan" role="menuitem"><span class="mi"><span data-ic="LayoutDashboard"></span></span><span class="mt"><b class="full">Bảng tổng quan</b><b class="short">Tổng quan</b><small>Số liệu, biểu đồ tiến độ, tìm nhanh tài sản</small></span></a>
-          <a href="#don-vi" data-r="don-vi" role="menuitem"><span class="mi"><span data-ic="Users"></span></span><span class="mt"><b class="full">Kiểm theo đơn vị</b><b class="short">Đơn vị</b><small>Theo sheet của kế toán, từng phòng ban</small></span></a>
-          <a href="#vi-tri" data-r="vi-tri" role="menuitem"><span class="mi"><span data-ic="MapPin"></span></span><span class="mt"><b class="full">Kiểm theo phòng</b><b class="short">Phòng</b><small>Đi từng phòng, kiểm tại chỗ mọi tài sản</small></span></a>
+          <a href="#don-vi" data-r="don-vi" role="menuitem"><span class="mi"><span data-ic="Users"></span></span><span class="mt"><b class="full">Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</b><b class="short">Phòng ban</b><small>Theo sheet của kế toán, từng phòng ban</small></span></a>
+          <a href="#vi-tri" data-r="vi-tri" role="menuitem"><span class="mi"><span data-ic="MapPin"></span></span><span class="mt"><b class="full">Kiểm theo số phòng</b><b class="short">Số phòng</b><small>Đi từng phòng, kiểm tại chỗ mọi tài sản</small></span></a>
         </div></div>
       </div>
       <a href="#xac-minh" data-r="xac-minh"><span data-ic="MessageCircleQuestion"></span>Hỏi đại diện <span class="pill" id="xmCount" hidden>0</span></a>
@@ -1144,7 +1144,7 @@ function ovRoomsHTML(){
   const noneTile=(OV.bld==='all'&&!OV.rq.trim()&&none.length)?`<div class="bldname">Chưa ghi vị trí</div><div class="rooms">${roomTile({slug:NOROOM,name:'Chưa có vị trí',list:none},uid)}</div>`:'';
   return (blocks||(none.length?'':'<div class="empty">Không có phòng nào khớp.</div>'))+noneTile;
 }
-/* ---------- trang "Kiểm theo đơn vị": mỗi sheet của kế toán là một thẻ ---------- */
+/* ---------- trang "Kiểm theo phòng ban / bộ môn / khoa": mỗi sheet của kế toán là một thẻ ---------- */
 function unitState0(u){ const c=count(BY_UNIT[u.id]); const us=S.units[u.id]; return us?.ended?'done':(c.da>0||us?.started)?'run':'chua'; }
 const UST_LABEL={done:'Hoàn tất',run:'Đang kiểm',chua:'Chưa kiểm'};
 function unitCard(u){
@@ -1171,7 +1171,7 @@ function unitsGridHTML(){
 function viewUnits(){
   const n={all:UNITS.length,chua:0,run:0,done:0}; UNITS.forEach(u=>n[unitState0(u)]++);
   app.innerHTML=`${demoBanner()}
-  ${banner('hoi-truong','Kiểm theo đơn vị','Danh sách theo sheet của kế toán',`Mỗi đơn vị là một sheet trong biên bản gốc. "Kiểm theo sheet" để kiểm đúng danh sách; "Xem các phòng" để biết tài sản của đơn vị đang nằm ở đâu.`)}
+  ${banner('hoi-truong','Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa','Danh sách theo sheet của kế toán',`Mỗi đơn vị là một sheet trong biên bản gốc. "Kiểm theo sheet" để kiểm đúng danh sách; "Xem các phòng" để biết tài sản của đơn vị đang nằm ở đâu.`)}
   <div class="tools">
     <label class="sbox search">${ic('Search')}<input class="in" id="uq" type="search" placeholder="Tìm đơn vị, VD: CNTT" value="${esc(OV.uq||'')}" aria-label="Tìm đơn vị"></label>
     <div class="seg" role="group" aria-label="Lọc theo trạng thái">${[['all','Tất cả'],['chua','Chưa kiểm'],['run','Đang kiểm'],['done','Hoàn tất']].map(([k,l])=>`<button data-ust="${k}" aria-pressed="${OV.ust===k}">${l} <em class="num">${n[k]}</em></button>`).join('')}</div>
@@ -1179,13 +1179,13 @@ function viewUnits(){
   <div id="ugrid">${unitsGridHTML()}</div>`;
 }
 
-/* ---------- trang "Kiểm theo phòng": lưới phòng theo tòa ---------- */
+/* ---------- trang "Kiểm theo số phòng": lưới phòng theo tòa ---------- */
 function viewRooms(){
   const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM);
   const done=rooms.filter(r=>count(r.list).chua===0).length;
   const u=OV.sel&&UNIT[OV.sel];
   app.innerHTML=`${demoBanner()}
-  ${banner('phong-hoc','Kiểm theo phòng','Đi từng phòng, kiểm tại chỗ',`${rooms.length} phòng, khu vực · đã xong ${done}. Bấm vào một phòng để kiểm mọi tài sản đang ở đó, của bất kỳ đơn vị nào.`)}
+  ${banner('phong-hoc','Kiểm theo số phòng','Đi từng phòng, kiểm tại chỗ',`${rooms.length} phòng, khu vực · đã xong ${done}. Bấm vào một phòng để kiểm mọi tài sản đang ở đó, của bất kỳ đơn vị nào.`)}
   <div class="tools">
     <label class="sbox search">${ic('Search')}<input class="in" id="rq" type="search" placeholder="Tìm phòng, VD: 108" value="${esc(OV.rq)}" aria-label="Tìm phòng"></label>
     <select class="in" id="selU" style="max-width:300px" aria-label="Chỉ xem phòng có tài sản của một đơn vị"><option value="">Mọi đơn vị</option>${UNITS.map(x=>`<option value="${x.id}" ${OV.sel===x.id?'selected':''}>${esc(x.ten)}</option>`).join('')}</select>
@@ -1250,7 +1250,7 @@ function viewOverview(){
       <p>Phòng Hành chính · số liệu chốt sổ đến hết 31/10/2026</p>
       <div class="hero-prog"><b class="num">${pct}%</b><span class="num">đã kiểm<br>${nf.format(all.da)}/${nf.format(all.tong)} dòng</span>${barHTML(all)}</div>
       <label class="sbox">${ic('Search')}<input class="in" id="gq" type="search" placeholder="Tìm nhanh tài sản ở cả trường: mã hoặc tên…" value="${esc(OV.gq)}" aria-label="Tìm tài sản ở cả trường"></label>
-      <div class="hero-cta"><a class="btn brand" href="#vi-tri">${ic('MapPin')}Kiểm theo phòng</a><a class="btn ghost" href="#don-vi">${ic('Users')}Kiểm theo đơn vị</a></div>
+      <div class="hero-cta"><a class="btn brand" href="#vi-tri">${ic('MapPin')}Kiểm theo số phòng</a><a class="btn ghost" href="#don-vi">${ic('Users')}Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</a></div>
     </div>
     <span class="credit">Ảnh: daihoc.fpt.edu.vn</span>
   </section>
@@ -1266,8 +1266,8 @@ function viewOverview(){
   <div class="stitle"><h2>Bắt đầu <strong>kiểm kê</strong></h2></div>
   <div class="mosaic">
     <div class="mcol l">
-      ${tile('#vi-tri','phong-hoc','Kiểm theo phòng',`${nRooms} phòng, khu vực · đã xong ${doneR} · kiểm tại chỗ mọi tài sản`,'big')}
-      ${tile('#don-vi','hoi-truong','Kiểm theo đơn vị',`${UNITS.length} sheet · ${n.done} hoàn tất · ${n.run} đang kiểm`)}
+      ${tile('#vi-tri','phong-hoc','Kiểm theo số phòng',`${nRooms} phòng, khu vực · đã xong ${doneR} · kiểm tại chỗ mọi tài sản`,'big')}
+      ${tile('#don-vi','hoi-truong','Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa',`${UNITS.length} sheet · ${n.done} hoàn tất · ${n.run} đang kiểm`)}
       <button type="button" class="tile" data-act="scan"><img src="${IMG}phong-lab.jpg" alt="" loading="lazy"><div class="cap"><p><b>Quét mã tài sản</b><small>Camera đọc QR, mã vạch trên tem</small></p></div></button>
     </div>
     <div class="mcol r">
@@ -1436,7 +1436,7 @@ function viewUnit(id){
   const u=UNIT[id]; if(!u) return viewOverview();
   const list=BY_UNIT[id]; const c=count(list); const us=unitState(id);
   app.innerHTML=`${demoBanner()}
-  <div class="crumb"><a href="#don-vi">Kiểm theo đơn vị</a> / Sheet ${esc(u.sheet)}</div>
+  <div class="crumb"><a href="#don-vi">Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</a> / Sheet ${esc(u.sheet)}</div>
   <div class="uhead">
     <div><h1>${esc(u.ten)}</h1><p class="num">${c.tong} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
     <div class="prog" id="prog">${progHTML(c)}</div>
@@ -1468,7 +1468,7 @@ function viewRoom(slug){
   // gợi ý: tài sản chưa có vị trí của các đơn vị đang có đồ ở phòng này
   const sugg = slug===NOROOM?[]:ASSETS.filter(a=>byU[a.unit]&&!roomOf(a)&&res(a)==='chua');
   app.innerHTML=`${demoBanner()}
-  <div class="crumb"><a href="#vi-tri">Kiểm theo phòng</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
+  <div class="crumb"><a href="#vi-tri">Kiểm theo số phòng</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
   <div class="uhead">
     <div><h1>${esc(name)}</h1><p class="num">${c.tong} dòng của ${Object.keys(byU).length} đơn vị · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
     <div class="prog" id="prog">${progHTML(c)}</div>
