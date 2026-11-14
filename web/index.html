@@ -641,9 +641,12 @@ a.btn{text-decoration:none}
 .pban p{margin:0;color:rgba(255,255,255,.86);font-size:14px}
 
 /* khối ảnh có chú thích: rê chuột ảnh phóng nhẹ */
-.mosaic{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.mcol{display:grid;grid-template-columns:1fr 1fr;gap:12px;grid-auto-rows:190px}
-.mcol.l .tile:first-child,.mcol.r .tile:last-child{grid-column:1/-1;grid-row:span 2}
+/* 2 ô lớn bằng nhau (2 cách kiểm) + 4 ô nhỏ bằng nhau */
+.mosaic{display:flex;flex-direction:column;gap:12px}
+.mbig{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mbig .tile{height:320px}
+.msmall{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.msmall .tile{height:170px}
 .tile{position:relative;display:block;overflow:hidden;border-radius:6px;border:0;padding:0;margin:0;background:#2a2a2a;color:#fff;text-decoration:none;text-align:left;cursor:pointer;font:inherit;box-shadow:var(--shadow-sm)}
 .tile img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .45s ease}
 .tile .cap{position:absolute;inset:0;display:flex;align-items:flex-end;padding:16px;background:linear-gradient(0deg,rgba(20,20,20,.92) 0%,rgba(20,20,20,0) 62%);transition:background .3s ease}
@@ -691,8 +694,10 @@ a.btn{text-decoration:none}
   .pban{min-height:140px}
   .pban-in{padding:18px}
   .pban h1{font-size:22px}
-  .mosaic{grid-template-columns:1fr}
-  .mcol{grid-auto-rows:130px}
+  .mbig{grid-template-columns:1fr}
+  .mbig .tile{height:200px}
+  .msmall{grid-template-columns:1fr 1fr}
+  .msmall .tile{height:130px}
   .tile .cap{padding:12px}
   .tile .cap b{font-size:15px}
   .tile.big .cap b{font-size:18px}
@@ -1265,15 +1270,15 @@ function viewOverview(){
   </div>
   <div class="stitle"><h2>Bắt đầu <strong>kiểm kê</strong></h2></div>
   <div class="mosaic">
-    <div class="mcol l">
+    <div class="mbig">
       ${tile('#vi-tri','phong-hoc','Kiểm theo số phòng',`${nRooms} phòng, khu vực · đã xong ${doneR} · kiểm tại chỗ mọi tài sản`,'big')}
-      ${tile('#don-vi','hoi-truong','Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa',`${UNITS.length} sheet · ${n.done} hoàn tất · ${n.run} đang kiểm`)}
-      <button type="button" class="tile" data-act="scan"><img src="${IMG}phong-lab.jpg" alt="" loading="lazy"><div class="cap"><p><b>Quét mã tài sản</b><small>Camera đọc QR, mã vạch trên tem</small></p></div></button>
+      ${tile('#don-vi','hoi-truong','Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa',`${UNITS.length} sheet của kế toán · ${n.done} hoàn tất · ${n.run} đang kiểm · ${n.chua} chưa kiểm`,'big')}
     </div>
-    <div class="mcol r">
+    <div class="msmall">
+      <button type="button" class="tile" data-act="scan"><img src="${IMG}phong-lab.jpg" alt="" loading="lazy"><div class="cap"><p><b>Quét mã tài sản</b><small>Camera đọc QR, mã vạch trên tem</small></p></div></button>
       ${tile('#xac-minh','can-tin','Hỏi đại diện',wait?`${wait} món chờ phản hồi`:'Không có món nào chờ hỏi')}
       ${tile('#xuat','thu-vien','Xuất cho kế toán','File Excel gốc + 3 cột kết quả')}
-      ${tile('#phong-'+NOROOM,'sanh-giai-tri','Tài sản chưa có vị trí',`${nf.format(all.novt)} tài sản cần ghi phòng thực tế`,'big')}
+      ${tile('#phong-'+NOROOM,'sanh-giai-tri','Tài sản chưa có vị trí',`${nf.format(all.novt)} tài sản cần ghi phòng`)}
     </div>
   </div>
   ${bldSecHTML()}
