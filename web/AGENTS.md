@@ -18,8 +18,12 @@
   ảnh campus Đà Nẵng ở `web/img/` (bản 1024px lấy từ daihoc.fpt.edu.vn; người dùng yêu cầu không hiện dòng ghi nguồn ảnh trên trang). Ảnh dưới màn hình đầu
   để `loading="lazy"`. Menu "Tổng quan" xổ ra 3 trang: `#tong-quan`, `#don-vi`, `#vi-tri`.
 - Trang gồm 2 phần ngang hàng dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
-  **Kiểm kê** (mọi trang còn lại, gồm trang một tài sản `#ts-<khoá>` = `viewTS`) và **Mã QR** (`#ma-qr`, `viewQR` trong `ma-qr.js`). `setMod()` đổi tên/biểu tượng ở
-  góc trái (`#mods`) và `body[data-mod=hub|kk|qr]`; menu `#nav` và nút Quét mã chỉ hiện ở phần Kiểm kê.
+  **Kiểm kê** (mọi trang còn lại, gồm trang một tài sản `#ts-<khoá>` = `viewTS`) và **Mã QR** (`#ma-qr`, `viewQR` trong `ma-qr.js`). Góc trái (`#mods`): logo về trang chủ +
+  nút chuyển `.sw` [Kiểm kê | Mã QR]; `setMod()` đặt `body[data-mod=hub|kk|qr]`, đánh dấu nút đang ở, và nhớ trang đang xem dở
+  của mỗi phần (`MODLAST`). Menu `#nav` chỉ hiện ở phần Kiểm kê; nút Quét mã ẩn ở trang chủ. Nút `data-act="qrin"`
+  (`data-qk` tài sản / `data-qu` sheet / `data-qr` phòng) gọi `qrOpen()` mở phần Mã QR lọc sẵn; `data-act="qrso"` mở Sổ mã QR.
+- Sổ mã QR trên trang: `SOQR = window.KIEMKE_SO_QR` (sinh khi build). Tài sản đã xoá khỏi BBKK: `viewTSXoa`; quét tem của nó
+  (`scanGoXoa`) vẫn mở trang này.
   Mã của phần Mã QR viết trong `ma-qr.js` (dùng lại `ASSETS`, `banner()`, `ic()`, `esc()`… của `index.html`); thêm
   file `.js` mới thì thêm vào `MA_TRANG` trong `scripts/kiem-tra-web.mjs`.
 - In tem (`ma-qr.js`): một bố cục `temOps()` (mm) vẽ ra cả 4 nơi: xem trước và In ngay (SVG), PDF (jsPDF, nhúng phông

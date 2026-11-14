@@ -15,6 +15,7 @@
 <script src="supabase-db.js"></script>
 <!-- Danh sách tài sản (sinh khi build từ file Excel) và chức năng xuất Excel cho kế toán -->
 <script src="data/assets.js"></script>
+<script src="data/so-ma-qr.js"></script>
 <script src="excel-rules.js"></script>
 <script src="export.js"></script>
 <!-- Tem mã QR: tạo mã (qrcode-generator), quy tắc nội dung mã dùng chung với npm test (qr-rules.js), phần Quản lý mã QR (ma-qr.js) -->
@@ -484,6 +485,9 @@ dialog.scan::backdrop{background:rgba(8,16,14,.55)}
   /* thanh trên gọn: 1 hàng thương hiệu + quét + người dùng, 1 hàng menu cuộn ngang */
   .top .wrap{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px 10px;padding-block:8px 6px}
   .mods{grid-column:1;grid-row:1}
+  .mods .logo{width:30px;height:30px;border-radius:8px} .mods .logo svg{width:17px;height:17px}
+  .mods .bt-h{display:none}
+  .sw a{padding:5px 10px}
   .brand>.bt>span{display:none}
   .brand .logo{width:30px;height:30px;border-radius:8px}
   .brand .logo svg{width:17px;height:17px}
@@ -612,26 +616,19 @@ a.btn{text-decoration:none}
   #whoN{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
 .nav .dd-p a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);box-shadow:none;border-radius:8px}
-/* Quản lý tài sản: nút chuyển phần ở góc trái (Trang chủ · Kiểm kê tài sản · Mã QR tài sản) */
-.mods{position:relative;min-width:0}
-.mods>summary{list-style:none;cursor:pointer;border-radius:10px;padding:3px 8px 3px 3px;margin:-3px -8px -3px -3px}
-.mods>summary::-webkit-details-marker{display:none}
-.mods>summary:hover{background:var(--surface-2)}
-.mods>summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.mods .bt{min-width:0}
-.mods .bt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mods .chev{display:grid;color:var(--top-muted);transition:transform .15s}
-.mods .chev svg{width:16px;height:16px}
-.mods[open] .chev{transform:rotate(180deg)}
-.mods-p{position:absolute;left:0;top:calc(100% + 10px);z-index:40;width:min(370px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;display:grid;gap:2px}
-.mods-p a{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-radius:8px;color:var(--fg);text-decoration:none}
-.mods-p a:hover{background:var(--surface-2)}
-.mods-p a[aria-current="page"]{background:var(--accent-soft)}
-.mods-p a[aria-current="page"] b{color:var(--accent)}
-.mods-p .mi{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;background:var(--surface-2);color:var(--accent);flex:0 0 auto}
-.mods-p .mi svg{width:17px;height:17px}
-.mods-p .mt{display:flex;flex-direction:column;gap:1px;min-width:0}
-.mods-p b{font-size:14px} .mods-p small{font-size:12px;color:var(--muted)}
+/* Quản lý tài sản: logo về trang chủ + nút chuyển qua lại giữa 2 phần [Kiểm kê | Mã QR] */
+.mods{display:flex;align-items:center;gap:10px;min-width:0}
+.mods .logo{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:var(--brand);color:#fff;flex:0 0 auto}
+.mods .logo svg{width:20px;height:20px}
+.mods .bt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.mods .bt-h{font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--top-muted);text-decoration:none;line-height:1}
+.mods .bt-h:hover{color:var(--accent)}
+.sw{display:inline-flex;gap:2px;padding:2px;border-radius:9px;background:var(--surface-2);border:1px solid var(--line)}
+.sw a{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--top-fg);text-decoration:none;white-space:nowrap}
+.sw a svg{width:15px;height:15px}
+.sw a:hover{background:var(--surface);color:var(--accent)}
+.sw a[aria-current="page"]{background:var(--brand);color:#fff}
+.sw a:focus-visible,.mods .logo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 /* menu và nút Quét mã chỉ thuộc phần Kiểm kê */
 body:not([data-mod="kk"]) #nav,body[data-mod="hub"] #scanBtn{display:none}
 body:not([data-mod="kk"]) .who{margin-left:auto}
@@ -646,6 +643,11 @@ body:not([data-mod="kk"]) .who{margin-left:auto}
 .tsx-go{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 8px}
 .tsx-go .btn{text-decoration:none}
 @media (max-width:560px){.tsx{grid-template-columns:1fr;padding:14px}.tsx-qr{justify-self:start}.tsx h1{font-size:19px}}
+.tsx-xoa{display:flex;gap:12px;align-items:flex-start;background:var(--warn-soft);color:var(--fg);border:1px solid var(--warn);border-radius:var(--r);padding:14px 16px;margin:6px 0 12px;font-size:14px;line-height:1.5}
+.tsx-xoa>svg{color:var(--warn);flex:0 0 auto;margin-top:2px}
+.lnk.qrin{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none}
+.lnk.qrin svg{width:15px;height:15px}
+.lnk.qrin:hover{text-decoration:underline}
 /* trang In tem mã QR (#ma-qr) */
 .qrw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start;margin-top:4px}
 .qr-col{display:grid;gap:14px;min-width:0}
@@ -694,6 +696,21 @@ body:not([data-mod="kk"]) .who{margin-left:auto}
 .qr-help{margin:0;padding-left:18px;font-size:13px;color:var(--muted);display:grid;gap:5px}
 .qr-help b{color:var(--fg)}
 .qrw.busy .qr-btns .btn{opacity:.55;pointer-events:none}
+.qr-lb{font-size:12.5px;color:var(--muted)}
+.qrw .lnk.qrkk,.qr-cap .lnk.qrkk{font-size:13px;font-weight:600;color:var(--accent);text-decoration:none}
+.lnk.qrkk:hover{text-decoration:underline}
+.qr-cap{white-space:normal}
+.qr-so{display:grid;gap:12px;margin-top:16px}
+.qr-so h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin:0}
+.qr-so h3 svg{color:var(--accent);width:18px;height:18px}
+.qr-rule{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;max-width:900px}
+.qr-sof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.qr-sof>div{background:var(--surface-2);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}
+.qr-sof small{color:var(--muted);font-size:12.5px} .qr-sof b{font-size:22px}
+.qr-sot{max-height:360px;overflow:auto}
+.qr-sot a{color:var(--accent);font-weight:600}
+.qr-so .qr-btns{align-items:center}
+@media (max-width:560px){.qr-sof{grid-template-columns:1fr}}
 @media (max-width:980px){.qrw{grid-template-columns:1fr}.qr-side{position:static}}
 @media (max-width:560px){.qr-g3{grid-template-columns:1fr 1fr}.qr-g3 .fld:first-child{grid-column:1/-1}.qr-g4{grid-template-columns:1fr 1fr}.qr-row{grid-template-columns:auto 64px minmax(0,1fr) auto}.qr-row .qr-rm{display:none}}
 /* trang chủ Quản lý tài sản */
@@ -964,14 +981,16 @@ body:not([data-mod="kk"]) .who{margin-left:auto}
 
 <header class="top" id="top">
   <div class="wrap">
-    <details class="mods" id="mods">
-      <summary class="brand" title="Chuyển phần: Kiểm kê tài sản · Quản lý mã QR tài sản"><span class="logo" id="modIc"><span data-ic="LayoutGrid"></span></span><span class="bt"><b id="modName">Quản lý tài sản</b><span id="modSub">Trường ĐH FPT Đà Nẵng · Phòng Hành chính</span></span><span class="chev"><span data-ic="ChevronDown"></span></span></summary>
-      <div class="mods-p">
-        <a href="#trang-chu" data-m="hub"><span class="mi"><span data-ic="LayoutGrid"></span></span><span class="mt"><b>Trang chủ Quản lý tài sản</b><small>Chọn phần việc</small></span></a>
-        <a href="#tong-quan" data-m="kk"><span class="mi"><span data-ic="ClipboardCheck"></span></span><span class="mt"><b>Kiểm kê tài sản 2026</b><small>Kiểm theo phòng, phòng ban · xuất cho kế toán</small></span></a>
-        <a href="#ma-qr" data-m="qr"><span class="mi"><span data-ic="QrCode"></span></span><span class="mt"><b>Quản lý mã QR tài sản</b><small>In tem mã QR · quét tem mở thẳng tài sản</small></span></a>
+    <div class="mods" id="mods">
+      <a class="logo" href="#trang-chu" title="Trang chủ Quản lý tài sản" aria-label="Trang chủ Quản lý tài sản"><span data-ic="LayoutGrid"></span></a>
+      <div class="bt">
+        <a class="bt-h" href="#trang-chu">Quản lý tài sản</a>
+        <nav class="sw" aria-label="Chuyển qua lại giữa Kiểm kê và Mã QR">
+          <a href="#tong-quan" id="swKK" data-m="kk" title="Kiểm kê tài sản 2026 (về đúng trang đang kiểm dở)"><span data-ic="ClipboardCheck"></span>Kiểm kê</a>
+          <a href="#ma-qr" id="swQR" data-m="qr" title="Quản lý mã QR tài sản: in tem, sổ mã QR"><span data-ic="QrCode"></span>Mã QR</a>
+        </nav>
       </div>
-    </details>
+    </div>
     <nav class="nav" id="nav">
       <div class="dd" id="navOv">
         <a href="#tong-quan" class="dd-t" aria-haspopup="true"><span data-ic="LayoutDashboard"></span>Tổng quan<span class="chev"><span data-ic="ChevronDown"></span></span></a>
@@ -1841,7 +1860,7 @@ function viewUnit(id){
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#don-vi">Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</a> / Sheet ${esc(u.sheet)}</div>
   <div class="uhead">
-    <div><h1>${esc(u.ten)}</h1><p class="num">${c.tong} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
+    <div><h1>${esc(u.ten)}</h1><p class="num">${c.tong} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p><a class="lnk qrin" href="#ma-qr" data-act="qrin" data-qu="${id}">${ic('QrCode')}In tem mã QR cho sheet này</a></div>
     <div class="prog" id="prog">${progHTML(c)}</div>
   </div>
   ${u.review?`<div class="demo" style="background:var(--warn-soft);color:var(--warn)">${ic('MapPin')}<span style="flex:1;min-width:0"><b>Sheet lẻ · tài sản chưa có vị trí.</b> Chưa rõ vì sao kế toán đưa vào sổ, ai mua. Kiểm trực tiếp: thấy ở đâu thì chọn <b>Phòng thực tế</b>; không thấy thì bấm "Không thấy" và hỏi kế toán. Đối chiếu xong mới phân bổ vào sheet đơn vị (GD … FSC3).</span></div>`:''}
@@ -1874,7 +1893,7 @@ function viewRoom(slug){
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#vi-tri">Kiểm theo số phòng</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
   <div class="uhead">
-    <div><h1>${esc(name)}</h1><p class="num">${c.tong} dòng của ${Object.keys(byU).length} đơn vị · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p></div>
+    <div><h1>${esc(name)}</h1><p class="num">${c.tong} dòng của ${Object.keys(byU).length} đơn vị · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p>${list.length?`<a class="lnk qrin" href="#ma-qr" data-act="qrin" data-qr="${slug}">${ic('QrCode')}In tem mã QR cho ${slug===NOROOM?'nhóm này':'phòng này'}</a>`:''}</div>
     <div class="prog" id="prog">${progHTML(c)}</div>
   </div>
   ${slug===NOROOM?`<p class="hint">Các tài sản này chưa ghi phòng. Khi thấy ở đâu, gõ phòng vào ô "Phòng thực tế" để chuyển nó về đúng phòng.</p>`:''}
@@ -2095,6 +2114,7 @@ async function logXlsx(b){
 function tsKey(s){ try{ return decodeURIComponent(s); }catch(e){ return s; } }
 function viewTS(key){
   const a=BY_KEY[key];
+  if(!a&&SOQR.xoa[key]) return viewTSXoa(key,SOQR.xoa[key]);
   if(!a){ app.innerHTML=`${demoBanner()}<div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a></div>
     <div class="empty" style="margin-top:16px"><b>Không có tài sản mã “${esc(key)}” trong danh sách hiện tại.</b><br>Có thể tài sản đã bị bỏ khỏi file Excel biên bản, hoặc tem không phải của trang này.<br><br><button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét lại</button></div>`; return; }
   const u=UNIT[a.unit], n=roomOf(a), rs=n?slugify(n):NOROOM;
@@ -2118,9 +2138,35 @@ function viewTS(key){
   ${LHEAD}<div class="list">${rowHTML(a)}</div>
   <div class="tsx-go">
     <button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét tem tiếp</button>
+    <a class="btn" href="#ma-qr" data-act="qrin" data-qk="${esc(a.key)}">${ic('QrCode')}In tem mã QR tài sản này</a>
     <a class="btn" href="#phong-${rs}" data-act="goto" data-q="${esc(a.ma||'')}">${ic('MapPin')}Mở ${n?'phòng '+esc(n):'nhóm Chưa có vị trí'}</a>
     <a class="btn" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma||'')}">${ic('Users')}Mở sheet ${esc(u.sheet)}</a>
   </div>`;
+}
+
+const SOQR=Object.assign({dang:{},xoa:{}},window.KIEMKE_SO_QR||{});   // sổ mã QR: mã đang dùng {khoá: ngày cấp}, mã của tài sản đã xoá khỏi BBKK
+function viewTSXoa(key,e){
+  app.innerHTML=`${demoBanner()}
+  <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Tài sản đã xoá khỏi BBKK</div>
+  <div class="tsx-xoa" role="status">${ic('Archive')}<div><b>Tài sản này đã bị xoá khỏi file BBKK</b> (phát hiện ngày ${dmy(e.xoa)}).
+    Mã QR của nó vẫn được giữ trong <b>Sổ mã QR</b>, nên quét tem cũ vẫn xem được thông tin lúc còn trong sổ.
+    Tài sản không còn trong danh sách kiểm kê; nếu vẫn thấy ngoài thực tế, hãy báo kế toán.</div></div>
+  <section class="tsx">
+    <div class="tsx-qr">${qrSvg(KIEMKE_QR.payload(key),116)}<small>Mã QR trên tem</small></div>
+    <div class="tsx-in">
+      <div class="tsx-k">Mã TSCĐ <b class="mono">${esc(key)}</b> · <span class="tag warn">Đã xoá khỏi BBKK</span></div>
+      <h1>${esc(e.ten)}</h1>
+      <dl class="tsx-dl">
+        <div><dt>Đơn vị (Excel ghi)</dt><dd>${esc(e.donVi||'—')}</dd></div>
+        <div><dt>Vị trí theo sổ</dt><dd>${esc(e.vt||'—')}</dd></div>
+        <div><dt>Ngày ghi sổ</dt><dd class="num">${dmy(e.ngay)}</dd></div>
+        <div><dt>Nguyên giá</dt><dd class="num">${money(e.gia)}</dd></div>
+        <div><dt>Cấp mã QR</dt><dd class="num">${dmy(e.tu)}</dd></div>
+        <div><dt>Xoá khỏi BBKK</dt><dd class="num">${dmy(e.xoa)}</dd></div>
+      </dl>
+    </div>
+  </section>
+  <div class="tsx-go"><button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét tem tiếp</button><a class="btn" href="#ma-qr" data-act="qrso">${ic('BookOpen')}Xem Sổ mã QR</a></div>`;
 }
 
 /* ---------- trang chủ Quản lý tài sản: 2 phần ngang hàng ---------- */
@@ -2141,16 +2187,14 @@ function viewHub(){
   </div>`;
 }
 /* phần đang mở: hub = trang chủ, kk = Kiểm kê tài sản, qr = Mã QR tài sản */
-const MODS={hub:['Quản lý tài sản','Trường ĐH FPT Đà Nẵng · Phòng Hành chính','LayoutGrid','Quản lý tài sản FPTU ĐN'],
-  kk:['Kiểm kê tài sản 2026','Quản lý tài sản · Phòng Hành chính','ClipboardCheck','Kiểm kê tài sản FPTU ĐN'],
-  qr:['Quản lý mã QR tài sản','Quản lý tài sản · Phòng Hành chính','QrCode','Mã QR tài sản FPTU ĐN']};
+const MODS={hub:'Quản lý tài sản FPTU ĐN',kk:'Kiểm kê tài sản FPTU ĐN',qr:'Mã QR tài sản FPTU ĐN'};
+const MODLAST={kk:'#tong-quan',qr:'#ma-qr'};   // nút Kiểm kê / Mã QR quay về đúng trang đang xem dở của phần đó
 function setMod(m){
-  const mods=document.getElementById('mods'); mods.open=false;
+  if(m!=='hub') MODLAST[m]=location.hash||MODLAST[m];
+  document.getElementById('swKK').href=MODLAST.kk; document.getElementById('swQR').href=MODLAST.qr;
   if(document.body.dataset.mod===m) return;
-  document.body.dataset.mod=m; const [name,sub,icon,title]=MODS[m];
-  document.getElementById('modName').textContent=name; document.getElementById('modSub').textContent=sub;
-  document.getElementById('modIc').innerHTML=ic(icon); document.title=title;
-  mods.querySelectorAll('.mods-p a').forEach(a=>{ if(a.dataset.m===m) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  document.body.dataset.mod=m; document.title=MODS[m];
+  document.querySelectorAll('.sw a').forEach(a=>{ if(a.dataset.m===m) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
   setTopH();
 }
 
@@ -2206,6 +2250,7 @@ app.addEventListener('click',e=>{
   if(b.dataset.filter){ ui.filter=b.dataset.filter; ui.bulkArm=false; render(); return; }
   const act=b.dataset.act; const row=b.closest('[data-stt]'); const stt=row?+row.dataset.stt:null; const a=stt?BY_STT[stt]:null;
   if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
+  if(act==='qrin'||act==='qrso'){ e.preventDefault(); qrOpen(act==='qrso'?{so:true}:{unit:b.dataset.qu,room:b.dataset.qr,key:b.dataset.qk}); return; }
   if(act==='logwho'){ if(LV.who!==b.dataset.v){ LV.who=b.dataset.v; LV.need=true; render(); } return; }
   if(act==='logrefresh'){ LV.need=true; render(); return; }
   if(act==='logmore'){ b.disabled=true; b.textContent='Đang tải…'; LV.loading=true; logPage(LV.tok); return; }
@@ -2345,16 +2390,24 @@ function scanGo(a,fromCam){
   if(location.hash==='#'+h) render(); else location.hash=h;
   flash('ok','✓',`Đã mở tài sản ${a.ma||'STT '+a.stt}`,a.short);
 }
+function scanGoXoa(k,fromCam){
+  if(fromCam&&navigator.vibrate) try{ navigator.vibrate([60,80,60]); }catch(e){}
+  SD.close(); const h='ts-'+encodeURIComponent(k);
+  if(location.hash==='#'+h) render(); else location.hash=h;
+  flash('warn','!',`Mã ${k}: tài sản đã xoá khỏi BBKK`,SOQR.xoa[k].ten);
+}
 function scanShow(raw,fromCam){
   const txt=String(raw||'').trim(), box=document.getElementById('scanRes');
   if(!txt){ box.innerHTML=''; return; }
   // 1. tem in từ phần Mã QR: khoá nằm trong đường link → tra đúng khoá, không đoán
   const k=window.KIEMKE_QR?KIEMKE_QR.parse(txt):null;
   if(k!=null){ const a=BY_KEY[k]; if(a){ scanGo(a,fromCam); return; }
+    if(SOQR.xoa[k]){ scanGoXoa(k,fromCam); return; }
     scanMsg(`Tem có mã “${k}” nhưng không có tài sản này trong danh sách hiện tại.`,true); box.innerHTML=''; return; }
   // 2. nội dung là đúng một Mã TSCĐ (tem chỉ chứa mã, mã vạch, hoặc gõ đủ mã)
   const t=scanParse(txt); const exact=BY_KEY[t]||BY_MA[t.toUpperCase()];
   if(exact){ scanGo(exact,fromCam); return; }
+  if(SOQR.xoa[t]){ scanGoXoa(t,fromCam); return; }
   if(fromCam){ scanMsg(`Mã quét được “${t.length>40?t.slice(0,40)+'…':t}” không khớp tài sản nào trong sổ. Nếu là đồ ngoài sổ, ghi vào mục Tài sản phát sinh.`,true); box.innerHTML=''; return; }
   const hits=scanFind(t);
   if(!hits.length){ scanMsg(`Không tìm thấy tài sản có mã “${t}”. Nếu là đồ ngoài sổ, ghi vào mục Tài sản phát sinh.`,true); box.innerHTML=''; return; }
@@ -2412,11 +2465,6 @@ document.getElementById('scanRes').addEventListener('click',e=>{
   document.addEventListener('click',e=>{ if(!dd.contains(e.target)) dd.classList.remove('open'); });
   dd.addEventListener('keydown',e=>{ if(e.key==='Escape'){ dd.classList.add('shut'); document.activeElement.blur(); } });
   dd.addEventListener('focusin',()=>dd.classList.remove('shut'));
-})();
-(function(){
-  const m=document.getElementById('mods');
-  document.addEventListener('click',e=>{ if(m.open&&!m.contains(e.target)) m.open=false; });
-  m.addEventListener('keydown',e=>{ if(e.key==='Escape'&&m.open){ m.open=false; m.querySelector('summary').focus(); } });
 })();
 function setTopH(){document.documentElement.style.setProperty('--toph',document.getElementById('top').offsetHeight+'px');}
 window.addEventListener('resize',setTopH);

@@ -86,7 +86,7 @@ const TEM_KEY = 'kiemke2026.v1.tem';
 const TEM_DEF = {
   mode: 'a4', size: '50x30', w: 50, h: 30, orient: 'p', mt: 10, ml: 8, gx: 2, gy: 2, center: true, pad: 2, border: true,
   head: true, headText: 'TRƯỜNG ĐH FPT ĐÀ NẴNG', ma: true, name: true, nameLines: 3, nameFull: false, room: true, unit: true,
-  seq: true, font: 0, qrPos: 'auto', qrSize: 0, ecc: 'M', kind: 'link', copies: 'one', sort: 'phong', dpi: 300,
+  seq: true, font: 0, qrPos: 'auto', qrSize: 0, ecc: 'M', copies: 'one', sort: 'phong', dpi: 300,
 };
 let TEM = (() => { try { return Object.assign({}, TEM_DEF, JSON.parse(localStorage.getItem(TEM_KEY) || '{}')); } catch (e) { return Object.assign({}, TEM_DEF); } })();
 function temSave() { try { localStorage.setItem(TEM_KEY, JSON.stringify(TEM)); } catch (e) { } }
@@ -95,9 +95,10 @@ const TEM_SIZES = [['30x20', '30 × 20 mm'], ['40x25', '40 × 25 mm'], ['40x30',
 const TEMV = { unit: '', room: '', q: '', off: new Set(), idx: 0, page: 0, view: 'tem', busy: false, fontOK: false, checked: '', checkMsg: '', bound: false };
 
 /* ---------- chọn tài sản ---------- */
+const temCoMa = a => !!a.ma && String(a.ma) === String(a.key);   // chưa có Mã TSCĐ thì chưa cấp mã QR
 function temPool() {
   const q = TEMV.q.trim().toLowerCase();
-  return ASSETS.filter(a => (!TEMV.unit || a.unit === TEMV.unit)
+  return ASSETS.filter(a => temCoMa(a) && (!TEMV.unit || a.unit === TEMV.unit)
     && (!TEMV.room || (TEMV.room === NOROOM ? !roomOf(a) : slugify(roomOf(a)) === TEMV.room))
     && (!q || String(a.ma).toLowerCase().includes(q) || a.ten.toLowerCase().includes(q)));
 }
@@ -192,7 +193,7 @@ function temWrap(text, size, w, max) {
   return L.map(l => temFit(l, false, size, w));
 }
 function temOps(it, G) {   // danh sách nét vẽ của một tem, toạ độ mm tính từ góc trái trên của tem
-  const ops = [{ t: 'qr', x: G.qr.x, y: G.qr.y, s: G.qr.s, text: KIEMKE_QR.payload(it.a.key, TEM.kind) }];
+  const ops = [{ t: 'qr', x: G.qr.x, y: G.qr.y, s: G.qr.s, text: KIEMKE_QR.payload(it.a.key) }];
   if (G.head) ops.push({ t: 'text', x: G.head.x, y: G.head.y, size: G.head.size, bold: true, str: G.head.str, align: 'center' });
   if (!G.txt) return ops;
   const T = temTexts(it), L = [];
@@ -313,7 +314,7 @@ function viewQR() {
           ${num('qrQs', 'qrSize', 'Cỡ mã QR (mm, để trống = tự động)', 0, 200, 0.5)}
         </div>
         <div class="qr-g2">
-          <div class="fld"><label for="qrKd">Nội dung mã QR</label><select class="in" id="qrKd" data-t="kind">${opt([['link', 'Đường link (điện thoại nào quét cũng mở được)'], ['ma', 'Chỉ Mã TSCĐ (mã nhỏ gọn hơn)']], TEM.kind)}</select></div>
+          <div class="fld"><span class="lbl qr-lb">Nội dung mã QR</span><p class="qr-info">Đường link mở thẳng tài sản trong phần Kiểm kê (theo quy tắc, không đổi được)</p></div>
           <div class="fld"><label for="qrEc">Mức chịu trầy xước</label><select class="in" id="qrEc" data-t="ecc">${opt([['M', 'Vừa (15%) – khuyên dùng'], ['Q', 'Cao (25%)'], ['H', 'Rất cao (30%), mã dày hơn']], TEM.ecc)}</select></div>
         </div>
         <p class="qr-info" id="qrMod"></p>
@@ -346,9 +347,54 @@ function viewQR() {
         </ul>
       </section>
     </div>
-  </div>`;
-  temBind(); temSync();
+  </div>
+  <section class="panel qr-so" id="qrSo" aria-labelledby="qrh7">
+    <h3 id="qrh7">${ic('BookOpen')}Sổ mã QR và quy tắc</h3>
+    <ol class="qr-rule">
+      <li>Mỗi mã QR là đường link <b>mở thẳng trang của đúng một tài sản trong phần Kiểm kê</b>, quét bằng nút Quét mã hay camera điện thoại đều được.</li>
+      <li>Mã QR gắn với <b>Mã TSCĐ</b>. Mã đã cấp <b>không bao giờ cấp lại</b> cho tài sản khác; thêm tài sản mới vào file BBKK thì có mã mới, không trùng mã cũ.</li>
+      <li>Tài sản <b>bị xoá khỏi file BBKK vẫn được giữ trong Sổ mã QR</b>: quét tem cũ vẫn xem được thông tin và biết tài sản đã bị xoá ngày nào.</li>
+      <li>Sổ tự cập nhật mỗi lần đưa file Excel lên web và được lưu riêng cùng file Excel (file <span class="mono">so-ma-qr.json</span> trong thư mục “dữ liệu cập nhật”).</li>
+    </ol>
+    <div id="qrSoBody"></div>
+  </section>`;
+  temBind(); temSync(); temSoDraw();
+  if (TEMV.soOpen) { TEMV.soOpen = false; setTimeout(() => document.getElementById('qrSo')?.scrollIntoView({ block: 'start' }), 60); }
   temFonts().then(() => { TEMV.fontOK = true; temRefresh(); }).catch(e => { const st = document.getElementById('qrStage'); if (st) st.innerHTML = `<div class="empty">${esc('Lỗi: ' + e.message)}</div>`; });
+}
+
+/* Sổ mã QR: số mã đã cấp, mã của tài sản đã xoá khỏi BBKK (lưu riêng, sinh khi build) */
+function temSoDraw() {
+  const box = document.getElementById('qrSoBody'); if (!box) return;
+  const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} }, xoa = Object.entries(so.xoa || {}), nDang = Object.keys(so.dang || {}).length;
+  box.innerHTML = `<div class="qr-sof">
+      <div><small>Mã đã cấp</small><b class="num">${nf.format(nDang + xoa.length)}</b></div>
+      <div><small>Đang dùng</small><b class="num">${nf.format(nDang)}</b></div>
+      <div><small>Tài sản đã xoá khỏi BBKK</small><b class="num">${nf.format(xoa.length)}</b></div>
+    </div>
+    ${xoa.length ? `<div class="tblwrap qr-sot"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Vị trí theo sổ</th><th>Cấp mã</th><th>Xoá khỏi BBKK</th></tr></thead><tbody>${xoa.sort((a, b) => (b[1].xoa || '').localeCompare(a[1].xoa || '')).map(([k, e]) => `<tr><td class="mono"><a href="#ts-${encodeURIComponent(k)}">${esc(k)}</a></td><td>${esc(e.ten)}</td><td>${esc(e.vt || '—')}</td><td class="num">${dmy(e.tu)}</td><td class="num">${dmy(e.xoa)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="qr-info">Chưa có tài sản nào bị xoá khỏi file BBKK. Khi có, mã QR của chúng vẫn được giữ và liệt kê ở đây.</p>'}
+    <div class="qr-btns"><button type="button" class="btn" data-qa="soxlsx">${ic('FileSpreadsheet')}Tải Sổ mã QR (Excel)</button><span class="qr-info">Sổ cập nhật ngày ${dmy(so.capNhat)}</span></div>`;
+}
+function temSoXlsx() {
+  const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} };
+  const cot = [['Mã TSCĐ', 12], ['Tên tài sản', 55], ['Đơn vị', 30], ['Vị trí', 18], ['Ngày ghi sổ', 12], ['Nguyên giá', 14], ['Cấp mã QR', 12], ['Trạng thái', 26], ['Nội dung mã QR', 55]];
+  const dong = [];
+  ASSETS.filter(temCoMa).forEach(a => dong.push([String(a.ma), a.ten, UNIT[a.unit] ? UNIT[a.unit].ten : a.unit, roomOf(a), dmy(a.ngay), a.gia || 0, dmy(so.dang[a.key] || ''), 'Đang dùng', KIEMKE_QR.payload(a.key)]));
+  Object.entries(so.xoa || {}).forEach(([k, e]) => dong.push([k, e.ten, e.donVi, e.vt, dmy(e.ngay), e.gia || 0, dmy(e.tu), 'Đã xoá khỏi BBKK ngày ' + dmy(e.xoa), KIEMKE_QR.payload(k)]));
+  return window.xuatBangExcel('Sổ mã QR', cot, dong, 'So ma QR - ' + new Date().toLocaleDateString('vi-VN').replace(/\//g, '-'));
+}
+// Mở phần Mã QR đúng tài sản / sheet / phòng đang xem ở phần Kiểm kê (hoặc mở Sổ mã QR)
+function qrOpen(o) {
+  o = o || {};
+  if (!o.so) {
+    TEMV.unit = o.unit || ''; TEMV.room = o.room || ''; TEMV.q = '';
+    if (o.key) { const a = BY_KEY[o.key]; TEMV.q = a ? String(a.ma || a.key) : String(o.key); TEMV.off.delete(o.key); }
+    TEMV.idx = 0; TEMV.page = 0; TEMV.view = 'tem';
+  }
+  TEMV.soOpen = !!o.so;
+  const w = document.getElementById('qrw'); if (w) app.innerHTML = '';   // dựng lại trang với bộ lọc mới
+  if (location.hash === '#ma-qr') render(); else location.hash = 'ma-qr';
 }
 
 function temSync() {   // đưa cài đặt lên các ô nhập
@@ -369,7 +415,10 @@ function temRefresh(keepList) {
   const w = document.getElementById('qrw'); if (!w) return;
   const pool = temPool(), list = temSort(pool.filter(a => !TEMV.off.has(a.key))), nTem = temCount(list);
   const off = pool.length - list.length;
-  document.getElementById('qrCount').innerHTML = `Sẽ in <b class="num">${nf.format(nTem)}</b> tem cho <b class="num">${nf.format(list.length)}</b> tài sản${off ? ` (đã bỏ chọn ${nf.format(off)})` : ''}${TEM.copies === 'sl' && nTem > 3000 ? '<br><span class="qr-warn">Rất nhiều tem: file PDF sẽ được chia thành nhiều phần.</span>' : ''}`;
+  const kk = TEMV.room ? `<a class="lnk qrkk" href="#phong-${esc(TEMV.room)}">Mở ${TEMV.room === NOROOM ? 'nhóm Chưa có vị trí' : esc(ROOMNAME[TEMV.room] || TEMV.room)} trong Kiểm kê →</a>`
+    : TEMV.unit ? `<a class="lnk qrkk" href="#dv-${esc(TEMV.unit)}">Mở sheet ${esc(UNIT[TEMV.unit].sheet)} trong Kiểm kê →</a>` : '';
+  const khongMa = ASSETS.filter(a => !temCoMa(a)).length;
+  document.getElementById('qrCount').innerHTML = `Sẽ in <b class="num">${nf.format(nTem)}</b> tem cho <b class="num">${nf.format(list.length)}</b> tài sản${off ? ` (đã bỏ chọn ${nf.format(off)})` : ''}${kk ? '<br>' + kk : ''}${khongMa ? `<br><span class="qr-warn">${khongMa} tài sản chưa có Mã TSCĐ nên chưa cấp mã QR.</span>` : ''}${TEM.copies === 'sl' && nTem > 3000 ? '<br><span class="qr-warn">Rất nhiều tem: file PDF sẽ được chia thành nhiều phần.</span>' : ''}`;
   if (!keepList && document.getElementById('qrPick').open) temListDraw(pool);
   if (!TEMV.fontOK) return;
   const stage = document.getElementById('qrStage'), info = document.getElementById('qrGrid'), mod = document.getElementById('qrMod');
@@ -378,7 +427,7 @@ function temRefresh(keepList) {
   const P = temPage(G), items = temItems(list);
   if (TEM.mode === 'a4') info.innerHTML = P.per ? `${P.cols} cột × ${P.rows} hàng = <b>${P.per} tem/trang</b> · ${nf.format(Math.ceil(nTem / P.per) || 0)} trang A4` : '<span class="qr-warn">Tem lớn hơn khổ giấy: giảm cỡ tem hoặc lề.</span>';
   // cỡ ô nhỏ nhất của mã QR → đánh giá dễ quét
-  const sample = list[0] || ASSETS[0], m = qrMatrix(KIEMKE_QR.payload(sample.key, TEM.kind), TEM.ecc), u = G.qr.s / (m.n + 2 * TEM_QZ);
+  const sample = list[0] || ASSETS[0], m = qrMatrix(KIEMKE_QR.payload(sample.key), TEM.ecc), u = G.qr.s / (m.n + 2 * TEM_QZ);
   const lv = u >= 0.5 ? ['ok', 'quét tốt'] : u >= 0.35 ? ['warn', 'quét được, nên in từ 300 dpi trở lên'] : ['bad', 'quá nhỏ, khó quét: tăng cỡ mã QR hoặc chọn “Chỉ Mã TSCĐ”'];
   mod.innerHTML = `Mã QR ${temVN(G.qr.s)} mm · ${m.n}×${m.n} ô · mỗi ô ${temVN(u, 2)} mm: <b class="qr-${lv[0]}">${lv[1]}</b>`
     + (G.txt ? `<br>Cỡ chữ chính ${temVN(G.s)} pt${G.small ? ' · <span class="qr-warn">chữ nhỏ dưới 5 pt, khó đọc</span>' : ''}${G.over ? ' · <span class="qr-warn">chữ không vừa tem, giảm cỡ chữ hoặc bớt dòng</span>' : ''}` : '');
@@ -397,7 +446,7 @@ function temRefresh(keepList) {
     const it = items[TEMV.idx], ops = temOps(it, G);
     stage.innerHTML = `<svg class="qr-one" viewBox="-1 -1 ${G.W + 2} ${G.H + 2}" style="max-width:${Math.round((G.W + 2) * 7)}px" font-family="${TEM_FONT}" role="img" aria-label="Tem của tài sản ${esc(it.a.ma)}"><rect width="${G.W}" height="${G.H}" fill="#fff"${TEM.border ? '' : ' stroke="#c8c8c8" stroke-width="0.15" stroke-dasharray="0.8 0.8"'}/>${temSvgInner(ops, G, 0, 0)}</svg>`;
     document.getElementById('qrPos2').textContent = `Tem ${nf.format(TEMV.idx + 1)}/${nf.format(items.length)}`;
-    document.getElementById('qrCap').textContent = `${temVN(G.W)} × ${temVN(G.H)} mm · ${it.a.ma} · ${it.a.short}`;
+    document.getElementById('qrCap').innerHTML = `${temVN(G.W)} × ${temVN(G.H)} mm · ${esc(it.a.ma)} · ${esc(it.a.short)}<br><a class="lnk qrkk" href="#ts-${encodeURIComponent(it.a.key)}">Mở tài sản này trong Kiểm kê →</a>`;
     temTestSoon(it, G, ops);
   }
 }
@@ -414,7 +463,7 @@ function temTestSoon(it, G, ops) {
       const cv = document.createElement('canvas'); cv.width = Math.round(G.W * k); cv.height = Math.round(G.H * k);
       const ctx = cv.getContext('2d', { willReadFrequently: true }); temDraw(ctx, ops, G, k);
       const img = ctx.getImageData(0, 0, cv.width, cv.height), r = jsQR(img.data, img.width, img.height);
-      const want = KIEMKE_QR.payload(it.a.key, TEM.kind), key = r && (TEM.kind === 'ma' ? r.data : KIEMKE_QR.parse(r.data));
+      const want = KIEMKE_QR.payload(it.a.key), key = r && KIEMKE_QR.parse(r.data);
       if (r && r.data === want && key === it.a.key && BY_KEY[key] === it.a) temTestSet(`${ic('CircleCheck')} Đọc thử mã trên tem này: mở đúng tài sản <b>${esc(it.a.ma)}</b>`, 'ok');
       else temTestSet(`${ic('CircleAlert')} Không đọc lại được mã trên tem này. Tăng cỡ mã QR hoặc lề trong tem.`, 'bad');
     } catch (e) { temTestSet(esc('Chưa đọc thử được: ' + e.message), 'bad'); }
@@ -431,7 +480,7 @@ function temListDraw(pool) {
 
 function temBind() {
   if (TEMV.bound) return; TEMV.bound = true;
-  const inQR = e => e.target.closest && e.target.closest('#qrw');
+  const inQR = e => e.target.closest && e.target.closest('#qrw,#qrSo');
   const setT = el => {
     const k = el.dataset.t; let v;
     if (el.type === 'checkbox') v = el.checked;
@@ -465,6 +514,7 @@ function temBind() {
     if (b.dataset.qv) { TEMV.view = b.dataset.qv; temSync(); temRefresh(); return; }
     const a = b.dataset.qa;
     if (a === 'prev' || a === 'next') { const d = a === 'next' ? 1 : -1; if (TEMV.view === 'trang' && TEM.mode === 'a4') TEMV.page += d; else TEMV.idx += d; temRefresh(); return; }
+    if (a === 'soxlsx') { temSoXlsx(); return; }
     if (a === 'all' || a === 'none') { temPool().forEach(x => a === 'all' ? TEMV.off.delete(x.key) : TEMV.off.add(x.key)); temListDraw(temPool()); temRefresh(); return; }
     temExport(a);
   });
@@ -488,15 +538,15 @@ function temName() {
 }
 // Đọc thử MỌI mã QR sắp in: tạo mã → vẽ thành ảnh → giải mã lại → phải ra đúng nội dung và đúng tài sản
 async function temVerify(list) {
-  const sig = TEM.ecc + TEM.kind + list.map(a => a.key).join(',');
+  const sig = TEM.ecc + list.map(a => a.key).join(',');
   if (TEMV.checked === sig) return true;
   const jsQR = await temLoad('jsqr'); const bad = [];
   for (let i = 0; i < list.length; i++) {
-    const a = list[i], p = KIEMKE_QR.payload(a.key, TEM.kind), m = qrMatrix(p, TEM.ecc);
+    const a = list[i], p = KIEMKE_QR.payload(a.key), m = qrMatrix(p, TEM.ecc);
     const sc = 3, N = m.n + 8, W = N * sc, d = new Uint8ClampedArray(W * W * 4).fill(255);
     for (let r = 0; r < m.n; r++) for (let c = 0; c < m.n; c++) if (m.dark[r * m.n + c])
       for (let y = 0; y < sc; y++) for (let x = 0; x < sc; x++) { const j = (((r + 4) * sc + y) * W + (c + 4) * sc + x) * 4; d[j] = d[j + 1] = d[j + 2] = 0; }
-    const r = jsQR(d, W, W), k = r && (TEM.kind === 'ma' ? r.data : KIEMKE_QR.parse(r.data));
+    const r = jsQR(d, W, W), k = r && KIEMKE_QR.parse(r.data);
     if (!r || r.data !== p || k !== a.key || BY_KEY[k] !== a) bad.push(a.ma || a.key);
     if (i % 50 === 49) { temMsg(`Đang đọc thử mã QR ${nf.format(i + 1)}/${nf.format(list.length)}…`); await temTick(); }
   }
@@ -580,7 +630,7 @@ function temPhys(png, dpi) {
 }
 function temData(items, kind, name) {
   const cot = [['STT tem', 8], ['Mã TSCĐ', 12], ['Tên trên tem', 40], ['Tên đầy đủ', 55], ['Phòng', 18], ['Đơn vị', 16], ['Số lượng trong sổ', 10], ['Tem số', 9], ['Nội dung mã QR', 55]];
-  const dong = items.map((it, i) => { const a = it.a; return [i + 1, String(a.ma || a.key), a.short, a.ten, roomOf(a), UNIT[a.unit] ? UNIT[a.unit].sheet : a.unit, a.sl, `${it.i}/${it.n}`, KIEMKE_QR.payload(a.key, TEM.kind)]; });
+  const dong = items.map((it, i) => { const a = it.a; return [i + 1, String(a.ma || a.key), a.short, a.ten, roomOf(a), UNIT[a.unit] ? UNIT[a.unit].sheet : a.unit, a.sl, `${it.i}/${it.n}`, KIEMKE_QR.payload(a.key)]; });
   if (kind === 'xlsx') return window.xuatBangExcel('Tem QR', cot, dong, name);
   const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
   const csv = '﻿' + [cot.map(c => q(c[0])), ...dong.map(r => r.map(q))].map(r => r.join(',')).join('\r\n');

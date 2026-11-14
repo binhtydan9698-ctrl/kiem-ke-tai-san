@@ -10,7 +10,10 @@ chọn phần, nút tên ở góc trái chuyển phần):
 - **Kiểm kê tài sản 2026** (đang dùng): mọi trang `#tong-quan`, `#don-vi`, `#vi-tri`, `#dv-…`, `#phong-…`, `#xac-minh`,
   `#xuat`, `#lich-su`; mã trong `web/index.html`.
 - **Quản lý mã QR tài sản** (`#ma-qr`, mã trong `web/ma-qr.js`): in tem mã QR (chọn tài sản, chỉnh mẫu tem, xem trước,
-  tải PDF / ảnh PNG / Excel, CSV / In ngay). Quét tem bằng nút Quét mã mở thẳng trang tài sản `#ts-<khoá>` trong phần Kiểm kê.
+  tải PDF / ảnh PNG / Excel, CSV / In ngay) và **Sổ mã QR**. Quét tem bằng nút Quét mã mở thẳng trang tài sản `#ts-<khoá>`
+  trong phần Kiểm kê.
+- Đầu trang: logo về trang chủ, nút chuyển qua lại **[Kiểm kê | Mã QR]** (mỗi phần nhớ trang đang xem dở). Trang tài sản,
+  sheet, phòng có nút "In tem mã QR…" mở phần Mã QR lọc sẵn (`qrOpen()`); phần Mã QR có link ngược về Kiểm kê.
 
 Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
 biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
@@ -41,7 +44,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 
 1. `dữ liệu cập nhật/*.xlsx` là nguồn duy nhất của danh sách tài sản (biên bản gốc: mỗi đơn vị một sheet + "Xem lại" + "Tổng hợp").
 2. `npm run build` (`scripts/build.mjs`) đọc Excel → `dist/data/assets.js` (`window.KIEMKE_DATA = {version, file, sheets, rows}`),
-   `dist/data/version.json`, `dist/data/goc.xlsx`, chép `web/` → `dist/`.
+   `dist/data/version.json`, `dist/data/goc.xlsx`, chép `web/` → `dist/`; cập nhật Sổ mã QR → `dist/data/so-ma-qr.js`
+   (`window.KIEMKE_SO_QR = {capNhat, dang: {khoá: ngày cấp}, xoa: {khoá: thông tin lúc còn trong sổ}}`).
    Mỗi dòng: `[stt, ma, ten, sl, ngay(yyyy-mm-dd), gia, gc(đơn vị), vt(vị trí), key, sheet, dòngExcel, nhómLẻ]`.
    `nhómLẻ` = tên sheet lẻ ("Xem lại phân bổ" / "Xem lại" / "Chưa có ghi chú", theo thứ tự ưu tiên `REVIEW_SHEETS`
    trong `web/excel-rules.js`) hoặc `''`. Tài sản sheet lẻ là tài sản **chưa có vị trí** (chưa rõ vì sao kế toán đưa vào
@@ -67,10 +71,15 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
   `web/export.js` (trình duyệt) dùng. Đừng chép logic này sang chỗ khác.
 - Tài sản có mặt ở nhiều sheet: build gộp theo `key`, sheet tên "Tổng hợp" được ưu tiên, ô trống lấy từ sheet khác.
   Export điền kết quả vào MỌI lần xuất hiện của tài sản.
-- **Tem mã QR đã in chứa `https://kiem-ke-tai-san-sigma.vercel.app/#ts-<a.key>`** (hoặc chỉ `a.key`). Nội dung mã và cách
-  đọc lại nằm DUY NHẤT trong `web/qr-rules.js` (`globalThis.KIEMKE_QR`), dùng chung cho trang và `npm test` (bước 4 tạo mã
-  cho mọi tài sản rồi giải mã lại). Không đổi dạng link, không bỏ đường dẫn `#ts-`, không đổi cách tạo `key`: tem đã dán
-  sẽ không còn khớp.
+- **Quy tắc mã QR (người dùng đặt):** mỗi mã QR là đường link `https://kiem-ke-tai-san-sigma.vercel.app/#ts-<a.key>` mở thẳng
+  trang của đúng một tài sản trong phần Kiểm kê (không có kiểu "chỉ Mã TSCĐ"). Nội dung mã và cách đọc lại nằm DUY NHẤT trong
+  `web/qr-rules.js` (`globalThis.KIEMKE_QR`), dùng chung cho trang và `npm test` (bước 4). Không đổi dạng link, không bỏ
+  đường dẫn `#ts-`, không đổi cách tạo `key`: tem đã dán sẽ không còn khớp. Tài sản chưa có Mã TSCĐ thì chưa cấp mã QR.
+- **Sổ mã QR `dữ liệu cập nhật/so-ma-qr.json`** (`scripts/so-ma-qr.mjs`, build tự cập nhật trên máy, Vercel chỉ đọc): mọi Mã TSCĐ
+  đã cấp mã QR; mã không bao giờ cấp lại cho tài sản khác (cùng mã mà ngày ghi sổ và nguyên giá đều khác → cảnh báo, thông tin
+  cũ vào `cu`); tài sản bị xoá khỏi file BBKK vẫn giữ (có ngày `xoa`), quét tem cũ mở trang "đã xoá khỏi BBKK". **Không xoá
+  dòng nào trong sổ, không sửa tay**; commit cùng file Excel (`npm run day-len-web` commit cả thư mục). `npm test` bước 5
+  soát sổ không mất mã nào so với bản trên GitHub.
 - Không sửa tay `dist/` (sinh khi build, đã `.gitignore`). Không tự sửa file Excel trừ khi người dùng yêu cầu.
 - `web/config.js` chỉ chứa khoá **publishable/anon** (công khai). Không bao giờ đưa khoá `secret`/`service_role` vào repo.
 - Repo **công khai**: không commit `sao-luu/`, `.gemini/`, `.env`, dữ liệu cá nhân hay khoá bí mật.

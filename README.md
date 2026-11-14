@@ -5,6 +5,9 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 - **Kiểm kê tài sản 2026** (đang dùng): nhiều tổ cùng kiểm trên điện thoại hoặc máy tính, kết quả lưu chung trên
   Supabase, danh sách tài sản lấy từ **một file Excel** trong thư mục `dữ liệu cập nhật/`.
 - **Quản lý mã QR tài sản**: in tem mã QR cho từng tài sản; quét tem bằng nút **Quét mã** mở thẳng tài sản đó.
+  **Sổ mã QR** (`dữ liệu cập nhật/so-ma-qr.json`) giữ mọi mã đã cấp, kể cả tài sản đã bị xoá khỏi file BBKK. Không xoá file này.
+
+Nút **[Kiểm kê | Mã QR]** ở góc trái trên cùng để qua lại giữa 2 phần.
 
 - Web: https://kiem-ke-tai-san-sigma.vercel.app
 - Mã nguồn: https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san

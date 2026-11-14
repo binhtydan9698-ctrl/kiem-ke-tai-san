@@ -169,22 +169,62 @@ console.log('4. Mã QR trên tem (web/qr-rules.js)');
     const kq = jsQR(d, W, W); return { n, data: kq && kq.data };
   };
   const byKey = new Map(rows.map(r => [r[8], r]));
-  const sai = []; const co = {};
-  for (const kind of ['link', 'ma']) for (const r of rows) {
-    const k = r[8], p = Q.payload(k, kind), kq = docLai(p, 'M');
-    co[kind] = Math.max(co[kind] || 0, kq.n);
-    const ve = kind === 'ma' ? kq.data : Q.parse(kq.data);
-    if (kq.data !== p || ve !== k || byKey.get(ve) !== r) sai.push(`${kind}:${k}`);
+  const sai = []; let co = 0; const noiDung = new Set();
+  for (const r of rows) {
+    const k = r[8], p = Q.payload(k), kq = docLai(p, 'M');
+    co = Math.max(co, kq.n); noiDung.add(p);
+    const ve = Q.parse(kq.data);
+    if (!p.startsWith(Q.WEB + '#ts-') || kq.data !== p || ve !== k || byKey.get(ve) !== r) sai.push(k);
   }
-  ok(!sai.length, `${rows.length} tài sản × 2 kiểu nội dung (đường link ${co.link}×${co.link} ô, chỉ mã ${co.ma}×${co.ma} ô): mã QR đọc lại đúng tài sản`
+  ok(!sai.length, `${rows.length} mã QR (${co}×${co} ô) đều là đường link mở thẳng tài sản trong phần Kiểm kê và đọc lại đúng tài sản`
     + (sai.length ? ` (sai ${sai.length}: ${sai.slice(0, 5).join(', ')})` : ''));
+  ok(noiDung.size === rows.length, `${noiDung.size} mã QR khác nhau, không mã nào trùng`);
   const mau = rows.filter((r, i) => i % 25 === 0); const saiEcc = [];
-  for (const ecc of ['Q', 'H']) for (const r of mau) { const p = Q.payload(r[8], 'link'); if (docLai(p, ecc).data !== p) saiEcc.push(ecc + ':' + r[8]); }
+  for (const ecc of ['Q', 'H']) for (const r of mau) { const p = Q.payload(r[8]); if (docLai(p, ecc).data !== p) saiEcc.push(ecc + ':' + r[8]); }
   ok(!saiEcc.length, `mức chịu trầy xước Q, H cũng đọc lại đúng (${mau.length} tài sản mẫu)` + (saiEcc.length ? `: sai ${saiEcc.slice(0, 5).join(', ')}` : ''));
   ok(Q.parse('http://localhost:3000/#ts-5467321') === '5467321' && Q.parse(' ' + Q.payload('5467321') + ' ') === '5467321'
     && Q.parse('5467321') === null && Q.parse('https://vd.vn/#ma=5467321') === null && Q.parse(Q.WEB + '#ts-') === null && Q.parse(Q.WEB + '#ts-%E0%A4%A') === null,
     'đọc đường link trên tem: nhận mọi tên miền, bỏ qua nội dung lạ hoặc hỏng');
   ok(['stt:12', 'khong-ma:Sheet 1:20', 'A/B#C?d=1', 'Mã 01'].every(k => Q.parse(Q.payload(k)) === k), 'khoá có ký tự đặc biệt vẫn đọc lại nguyên vẹn');
+}
+
+/* 5. Sổ mã QR: mã đã cấp không mất, không cấp lại cho tài sản khác, tài sản bị xoá vẫn giữ */
+console.log('5. Sổ mã QR ("dữ liệu cập nhật/so-ma-qr.json")');
+{
+  const { SO_FILE, docSo, capNhatSo } = await import('./so-ma-qr.mjs');
+  ok(fs.existsSync(SO_FILE), 'có file sổ mã QR');
+  const so = docSo();
+  const coMa = rows.filter(r => r[1] && String(r[1]) === String(r[8]));
+  const thieu = coMa.filter(r => !so.ma[r[8]] || so.ma[r[8]].xoa);
+  ok(!thieu.length, `${coMa.length} tài sản có Mã TSCĐ đều có trong sổ, đang dùng` + (thieu.length ? ` (thiếu ${thieu.length}: ${thieu.slice(0, 5).map(r => r[8]).join(', ')})` : ''));
+  const xoa = Object.entries(so.ma).filter(([, e]) => e.xoa);
+  ok(xoa.every(([k, e]) => !byKeyHas(k) && e.ten && e.tu && e.xoa), `${xoa.length} mã của tài sản đã xoá khỏi BBKK vẫn giữ đủ thông tin`);
+  function byKeyHas(k) { return rows.some(r => r[8] === k); }
+  // so với sổ đã lưu trên GitHub: không được mất mã nào
+  const g = spawnSync('git', ['-c', 'core.quotepath=false', 'show', 'HEAD:' + path.relative(ROOT, SO_FILE).replace(/\\/g, '/')], { cwd: ROOT, encoding: 'utf8' });
+  if (g.status === 0) {
+    const cu = JSON.parse(g.stdout).ma || {}, mat = Object.keys(cu).filter(k => !so.ma[k]);
+    ok(!mat.length, `không mất mã nào so với sổ trên GitHub (${Object.keys(cu).length} mã)` + (mat.length ? `: mất ${mat.slice(0, 5).join(', ')}` : ''));
+  } else console.log('  · sổ chưa có trên GitHub (lần đầu), bỏ qua so sánh');
+  const dist = fs.readFileSync(path.join(DIST, 'data', 'so-ma-qr.js'), 'utf8');
+  const dctx = { window: {} }; vm.runInNewContext(dist, dctx); const ds = dctx.window.KIEMKE_SO_QR;
+  ok(Object.keys(ds.dang).length + Object.keys(ds.xoa).length === Object.keys(so.ma).length, 'trang web nhận đủ sổ mã QR (dist/data/so-ma-qr.js)');
+  // chạy thử quy tắc trên một bản sao (không ghi file): xoá, thêm lại, thêm mới, dùng lại mã, tài sản chưa có mã
+  const a = coMa[0], b = coMa[1];
+  const b1 = capNhatSo(rows.filter(r => r !== a), so, '2027-01-02');
+  const b2 = capNhatSo(rows, b1.so, '2027-02-03');
+  const moiR = [...a]; moiR[1] = moiR[8] = '9999998'; moiR[2] = 'Tài sản mới thử';
+  const b3 = capNhatSo([...rows, moiR], so, '2027-03-04');
+  const dungLai = [...b]; dungLai[2] = 'Tài sản khác dùng lại mã'; dungLai[4] = '2030-01-01'; dungLai[5] = (+b[5] || 0) + 12345;
+  const b4 = capNhatSo(rows.map(r => r === b ? dungLai : r), so, '2027-04-05');
+  const khongMa = [...a]; khongMa[1] = ''; khongMa[8] = 'stt:99999';
+  const b5 = capNhatSo([...rows, khongMa], so, '2027-05-06');
+  ok(b1.xoa.includes(a[8]) && b1.so.ma[a[8]] && b1.so.ma[a[8]].xoa === '2027-01-02' && b1.so.ma[a[8]].ten === so.ma[a[8]].ten,
+    'thử: tài sản bị xoá khỏi BBKK → vẫn giữ trong sổ, ghi ngày xoá');
+  ok(b2.quayLai.includes(a[8]) && !b2.so.ma[a[8]].xoa && b2.so.ma[a[8]].tu === so.ma[a[8]].tu, 'thử: tài sản quay lại BBKK → dùng lại đúng mã cũ, giữ ngày cấp');
+  ok(b3.moi.length === 1 && b3.so.ma['9999998'].tu === '2027-03-04' && Object.keys(b3.so.ma).length === Object.keys(so.ma).length + 1, 'thử: thêm tài sản mới → cấp thêm 1 mã, không đụng mã cũ');
+  ok(b4.canhBao.length === 1 && b4.so.ma[b[8]].cu && b4.so.ma[b[8]].cu[0].ten === so.ma[b[8]].ten, 'thử: Mã TSCĐ bị dùng lại cho tài sản khác → cảnh báo, giữ thông tin cũ');
+  ok(b5.khongMa.length === 1 && !b5.so.ma['stt:99999'], 'thử: tài sản chưa có Mã TSCĐ → chưa cấp mã QR');
 }
 
 console.log(loi ? `\n✗ ${loi} mục KHÔNG đạt` : '\n✓ Tất cả đều đạt');

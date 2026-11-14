@@ -2,6 +2,7 @@
 //  1. Đọc file Excel trong "dữ liệu cập nhật/" → dist/data/assets.js (danh sách tài sản cho trang)
 //  2. Chép nguyên file Excel → dist/data/goc.xlsx (mẫu cho chức năng "Xuất cho kế toán")
 //  3. Chép web/* → dist/
+//  4. Cập nhật Sổ mã QR "dữ liệu cập nhật/so-ma-qr.json" (scripts/so-ma-qr.mjs) → dist/data/so-ma-qr.js
 // Vercel chạy lệnh này (npm run build) mỗi lần có thay đổi được đẩy lên GitHub.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,6 +10,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import ExcelJS from 'exceljs';
 import { findExcel } from './excel-file.mjs';
+import { SO_FILE, docSo, vietSo, capNhatSo } from './so-ma-qr.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -108,6 +110,21 @@ fs.writeFileSync(path.join(DIST, 'data', 'assets.js'),
 fs.writeFileSync(path.join(DIST, 'data', 'version.json'), JSON.stringify(meta));
 fs.copyFileSync(file, path.join(DIST, 'data', 'goc.xlsx'));
 
+/* ---------- Sổ mã QR: mã đã cấp không bao giờ mất, tài sản bị xoá vẫn giữ ---------- */
+const SQ = capNhatSo(rows, docSo());
+// Trên Vercel chỉ tính trong bộ nhớ (sổ được commit từ máy cùng file Excel); trên máy thì ghi lại sổ khi có thay đổi
+if (SQ.doi && !process.env.VERCEL) fs.writeFileSync(SO_FILE, vietSo(SQ.so));
+const soDang = {}, soXoa = {};
+for (const [k, e] of Object.entries(SQ.so.ma)) { if (e.xoa) soXoa[k] = e; else soDang[k] = e.tu; }
+fs.writeFileSync(path.join(DIST, 'data', 'so-ma-qr.js'),
+  '// Sinh tự động từ "dữ liệu cập nhật/so-ma-qr.json" — đừng sửa tay.\n' +
+  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, dang: soDang, xoa: soXoa })};\n`);
+
 const le = X.REVIEW_SHEETS.map(s => `${s} ${rows.filter(r => r[11] === s).length}`).join(', ');
 console.log(`Xong: ${rows.length} tài sản từ ${sheets.length} sheet · phiên bản ${version}`);
 console.log(`  Chưa có vị trí (sheet lẻ): ${le}`);
+console.log(`  Sổ mã QR: ${Object.keys(SQ.so.ma).length} mã đã cấp (đang dùng ${Object.keys(soDang).length}, đã xoá khỏi BBKK ${Object.keys(soXoa).length})`
+  + (SQ.moi.length ? ` · mới cấp ${SQ.moi.length}` : '') + (SQ.xoa.length ? ` · vừa xoá khỏi BBKK ${SQ.xoa.length}: ${SQ.xoa.slice(0, 10).join(', ')}` : '')
+  + (SQ.quayLai.length ? ` · quay lại ${SQ.quayLai.length}` : '') + (SQ.doi && process.env.VERCEL ? ' (chưa ghi sổ: đang chạy trên Vercel)' : ''));
+SQ.canhBao.forEach(c => console.warn('  ! ' + c));
+if (SQ.khongMa.length) console.warn(`  ! ${SQ.khongMa.length} tài sản chưa có Mã TSCĐ: chưa cấp mã QR được (STT ${SQ.khongMa.slice(0, 10).map(r => r[0]).join(', ')})`);

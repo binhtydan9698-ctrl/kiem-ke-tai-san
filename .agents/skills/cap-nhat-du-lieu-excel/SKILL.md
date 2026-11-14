@@ -20,7 +20,10 @@ Nguồn duy nhất của danh sách tài sản: **một** file `.xlsx` trong `d�
      "STT trống hoặc trùng" (nếu xuất hiện là bất thường với biên bản này). Báo lại cho người dùng.
    - So số tài sản ("Xong: N tài sản") với lần trước (`git show HEAD:...` hoặc bản trên web
      `https://kiem-ke-tai-san-sigma.vercel.app/data/version.json`). Chênh lệch lớn → hỏi người dùng trước khi đẩy.
-3. Đẩy riêng dữ liệu lên: `npm run day-len-web` (kiểm tra lại, commit chỉ thư mục dữ liệu, pull --rebase, push).
+   - Đọc dòng "Sổ mã QR" của build: "mới cấp" (tài sản mới), "vừa xoá khỏi BBKK" (tài sản bị bỏ khỏi file, mã vẫn giữ),
+     cảnh báo "có thể mã bị dùng lại cho tài sản khác" → báo người dùng. Sổ `dữ liệu cập nhật/so-ma-qr.json` do build ghi,
+     không sửa tay, không xoá dòng; phải commit cùng file Excel.
+3. Đẩy riêng dữ liệu lên: `npm run day-len-web` (kiểm tra lại, commit cả thư mục dữ liệu gồm Excel và sổ mã QR, pull --rebase, push).
 4. Xác nhận trên web: `npm run kiem-tra-web` (đợi Vercel tối đa 5 phút, phải thấy "✓ Trang web hoạt động bình thường").
 
 ## Khi một tài sản hiện sai
