@@ -25,6 +25,9 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 - Web: https://quan-ly-tai-san-fptudn.vercel.app (tên cũ kiem-ke-tai-san-sigma.vercel.app vẫn mở được) · Repo (công khai): https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
 - Người dùng là cán bộ hành chính, **không phải lập trình viên**, làm việc bằng **tiếng Việt**: trả lời, giao diện,
   chú thích code, thông điệp commit đều bằng tiếng Việt; giải thích bằng lời thường, tránh thuật ngữ khi không cần.
+- **Hỏi khi cần người dùng quyết, luôn đưa gợi ý** (người dùng dặn 15/11/2026): chỗ nào là quyết định của người dùng (quy tắc,
+  dữ liệu, cách hiểu chưa rõ — vd. kế toán đổi Mã TSCĐ thì 1 mã QR hay 2 mã QR) thì hỏi, đừng tự chọn. Thấy điều có thể làm
+  tốt hơn thì nêu gợi ý (người dùng đánh giá cao, rất cần), nhưng chỉ làm gợi ý nào người dùng đồng ý. Lỗi nhỏ thì tự sửa.
 
 ## Lệnh
 
@@ -113,6 +116,6 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 1. `npm test` → "✓ Tất cả đều đạt".
 2. Thay đổi giao diện: `npm run thu-giao-dien` → "✓ Giao diện: tất cả đều đạt" (thêm kịch bản vào
    `scripts/thu-giao-dien-kich-ban.js` cho chức năng mới); xem thử bằng `npm run dev` (skill `xem-thu-cuc-bo`).
-   Lỗi nhỏ tự tìm thấy thì tự sửa (chỉ hỏi khi quan trọng); không tự làm các gợi ý người dùng chưa yêu cầu.
+   Lỗi nhỏ tự tìm thấy thì tự sửa (chỉ hỏi khi quan trọng); gợi ý thì nêu ra và chờ người dùng chọn, không tự làm.
 3. Đã push: `npm run kiem-tra-web`.
 4. Nói rõ cho người dùng điều gì đã làm, điều gì chưa kiểm tra được.
