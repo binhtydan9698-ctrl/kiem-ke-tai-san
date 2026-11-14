@@ -27,7 +27,10 @@
   Nút `data-act="qrin"`
   (`data-qk` tài sản / `data-qu` sheet / `data-qr` phòng) gọi `qrOpen()` mở phần Mã QR lọc sẵn; `data-act="qrso"` mở Sổ mã QR.
 - Sổ mã QR trên trang: `SOQR = window.KIEMKE_SO_QR` (sinh khi build). Tài sản đã xoá khỏi BBKK: `viewTSXoa`; quét tem của nó
-  (`scanGoXoa`) vẫn mở trang này.
+  (`scanGoXoa`) vẫn mở trang này. Kế toán đổi Mã TSCĐ (`SOQR.sang {cũ: mới}`): mọi chỗ nhận mã (quét `scanShow`/`contScan`,
+  `#ts-`, `#ly-lich-`) tra `maMoi()` trước khi coi là đã xoá → mở tài sản mã mới (`scanGoCu`, `TSCU` để báo "tem mang mã cũ");
+  `maCuCua()` cho trang tài sản, lý lịch (đọc log của cả mã cũ), Nhập sổ. Kết quả của mã không còn trong Excel giữ trong
+  `ORPHAN` (chỉ đọc, không vào `S`/`LAST` nên không bị ghi đè/xoá); nút `data-act="kqcu"` chép sang mã mới qua `save()`.
   Mã của phần Mã QR viết trong `ma-qr.js` (dùng lại `ASSETS`, `banner()`, `ic()`, `esc()`… của `index.html`); thêm
   file `.js` mới thì thêm vào `MA_TRANG` trong `scripts/kiem-tra-web.mjs`.
 - In tem (`ma-qr.js`): một bố cục `temOps()` (mm) vẽ ra cả 4 nơi: xem trước và In ngay (SVG), PDF (jsPDF, nhúng phông

@@ -6,6 +6,8 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
   Supabase, danh sách tài sản lấy từ **một file Excel** trong thư mục `dữ liệu cập nhật/`.
 - **Quản lý mã QR tài sản**: in tem mã QR cho từng tài sản; quét tem bằng nút **Quét mã** mở thẳng tài sản đó.
   **Sổ mã QR** (`dữ liệu cập nhật/so-ma-qr.json`) giữ mọi mã đã cấp, kể cả tài sản đã bị xoá khỏi file BBKK. Không xoá file này.
+  Kế toán đổi Mã TSCĐ cho cùng một tài sản thì vẫn là tài sản đó: tem mang mã cũ vẫn mở đúng tài sản, lý lịch gộp cả mã cũ
+  (tự nối khi thông tin giống hệt; trường hợp khác khai báo trong `dữ liệu cập nhật/doi-ma-tscd.json`).
 
 - **Lịch sử** (chung cho cả app): thao tác trên app, nhập sổ (tài sản vào sổ khi nào, từ kế toán hay cán bộ Hành chính),
   lý lịch từng tài sản.

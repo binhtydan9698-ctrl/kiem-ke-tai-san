@@ -589,6 +589,9 @@ a.btn{text-decoration:none}
 @media (max-width:560px){.tsx{grid-template-columns:1fr;padding:14px}.tsx-qr{justify-self:start}.tsx h1{font-size:19px}}
 .tsx-xoa{display:flex;gap:12px;align-items:flex-start;background:var(--warn-soft);color:var(--fg);border:1px solid var(--warn);border-radius:var(--r);padding:14px 16px;margin:6px 0 12px;font-size:14px;line-height:1.5}
 .tsx-xoa>svg{color:var(--warn);flex:0 0 auto;margin-top:2px}
+.tsx-xoa.tsx-doi{background:var(--accent-soft);border-color:var(--accent)}
+.tsx-xoa.tsx-doi>svg{color:var(--accent)}
+.tsx-doi-b{margin-top:8px}
 .lnk.qrin{display:inline-flex;align-items:center;gap:5px;margin-top:6px;font-size:13px;font-weight:600;color:var(--accent);text-decoration:none}
 .lnk.qrin svg{width:15px;height:15px}
 .lnk.qrin:hover{text-decoration:underline}
@@ -648,13 +651,13 @@ a.btn{text-decoration:none}
 .qr-so h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin:0}
 .qr-so h3 svg{color:var(--accent);width:18px;height:18px}
 .qr-rule{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;max-width:900px}
-.qr-sof{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.qr-sof{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px}
 .qr-sof>div{background:var(--surface-2);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}
 .qr-sof small{color:var(--muted);font-size:12.5px} .qr-sof b{font-size:22px}
 .qr-sot{max-height:360px;overflow:auto}
 .qr-sot a{color:var(--accent);font-weight:600}
 .qr-so .qr-btns{align-items:center}
-@media (max-width:560px){.qr-sof{grid-template-columns:1fr}}
+@media (max-width:560px){.qr-sof{grid-auto-flow:row;grid-template-columns:1fr}}
 @media (max-width:980px){.qrw{grid-template-columns:1fr}.qr-side{position:static}}
 @media (max-width:560px){.qr-g3{grid-template-columns:1fr 1fr}.qr-g3 .fld:first-child{grid-column:1/-1}.qr-g4{grid-template-columns:1fr 1fr}.qr-row{grid-template-columns:auto 64px minmax(0,1fr) auto}.qr-row .qr-rm{display:none}}
 /* trang chủ Quản lý tài sản */
@@ -1162,6 +1165,9 @@ function fromBody(col,d){ return col==='ps'?(Array.isArray(d.items)?d.items:[]):
 const KEYED={rows:1,xm:1};
 function docId(c,k){ if(!KEYED[c]) return k; const a=BY_STT[k]; return a?a.key:null; }
 function localKey(c,id){ if(!KEYED[c]) return id; const a=BY_KEY[id]; return a?String(a.stt):null; }
+// kết quả (rows, xm) của mã không còn trong Excel: chỉ giữ để đọc (vd. kế toán đổi Mã TSCĐ → trang tài sản mã mới cho dùng lại
+// kết quả của mã cũ khi người dùng bấm). Không vào S / LAST nên không bao giờ bị ghi đè hay xoá trên máy chủ.
+const ORPHAN={};
 function desired(){ const m={}; COLS.forEach(c=>Object.entries(S[c]||{}).forEach(([k,v])=>{ const id=docId(c,k); if(v!=null&&id!=null) m[c+'/'+id]=JSON.stringify(docBody(c,v)); })); return m; }
 function restoreFromLast(){ S=blank(); for(const p in LAST){ const i=p.indexOf('/'), c=p.slice(0,i), k=localKey(c,p.slice(i+1)); if(k!=null) S[c][k]=fromBody(c,JSON.parse(LAST[p])); } }
 /* ---------- lịch sử thao tác ----------
@@ -1327,7 +1333,10 @@ function listen(col){
     const changed=[];
     snap.docChanges().forEach(ch=>{
       const id=ch.doc.id, p=col+'/'+id, k=localKey(col,id);
-      if(k==null) return;                                   // tài sản không còn trong file Excel hiện tại
+      if(k==null){                                          // tài sản không còn trong file Excel hiện tại: chỉ giữ để đọc
+        if(KEYED[col]){ const o=ORPHAN[col]||(ORPHAN[col]={}); if(ch.type==='removed') delete o[id]; else o[id]=ch.doc.data()||{}; }
+        return;
+      }
       if(WR.busy.has(p)||WR.next.has(p)) return;          // đang ghi bản mới hơn của chính mình
       if(ch.type==='removed'){ if(p in LAST||S[col][k]){ delete LAST[p]; delete S[col][k]; changed.push(k); } return; }
       const j=JSON.stringify(ch.doc.data()||{}); if(LAST[p]===j) return;
@@ -2156,8 +2165,8 @@ function tuText(tu){ if(!tu) return '—'; const [d,t]=String(tu).split(' '); re
 const isoMin=t=>{ const d=new Date(t),p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; };
 function nsRows(){
   const r=[];
-  ASSETS.forEach(a=>{ if(!a.ma||String(a.ma)!==String(a.key)) return; const so=soCua(a.key); r.push({loai:'kt',key:a.key,ma:String(a.ma),ten:a.ten,ghiSo:a.ngay,tu:so.tu,file:so.file,trang:'dang'}); });
-  Object.entries(SOQR.xoa||{}).forEach(([k,e])=>r.push({loai:'kt',key:k,ma:k,ten:e.ten,ghiSo:e.ngay,tu:e.tu,file:e.file||'',trang:'xoa',xoa:e.xoa}));
+  ASSETS.forEach(a=>{ if(!a.ma||String(a.ma)!==String(a.key)) return; const so=soCua(a.key); r.push({loai:'kt',key:a.key,ma:String(a.ma),ten:a.ten,ghiSo:a.ngay,tu:so.tu,file:so.file,trang:'dang',cu:maCuCua(a.key)}); });
+  Object.entries(SOQR.xoa||{}).forEach(([k,e])=>r.push({loai:'kt',key:k,ma:k,ten:e.ten,ghiSo:e.ngay,tu:e.tu,file:e.file||'',trang:'xoa',xoa:e.xoa,sang:e.sang?String(e.sang.ma):''}));
   Object.entries(S.ps||{}).forEach(([pk,l])=>(l||[]).forEach((p,i)=>r.push({loai:'hc',key:'',ma:'',ten:p.mo_ta||'',sl:p.sl,ghiSo:'',tu:p.at?isoMin(p.at):'',by:p.by||'',noi:psPlace(pk),phong:p.phong||'',trang:'ps'})));
   return r;
 }
@@ -2165,32 +2174,35 @@ function nsList(){
   let l=nsRows();
   if(NS.nguon) l=l.filter(x=>x.loai===NS.nguon);
   if(NS.nam) l=l.filter(x=>(x.ghiSo||'').slice(0,4)===NS.nam);
-  const q=fold(NS.q.trim()); if(q) l=l.filter(x=>fold([x.ma,x.ten,x.file,x.by,x.noi,x.phong].join(' ')).includes(q));
+  const q=fold(NS.q.trim()); if(q) l=l.filter(x=>fold([x.ma,x.ten,x.file,x.by,x.noi,x.phong,x.sang,(x.cu||[]).join(' ')].join(' ')).includes(q));
   const k=NS.sap==='vao'?(x=>x.tu||''):(x=>x.ghiSo||''), asc=NS.sap==='ghiso-cu';
   return l.sort((a,b)=>{ const x=k(a),y=k(b); if(x===y) return String(a.ma).localeCompare(String(b.ma)); if(!x) return 1; if(!y) return -1; return (x<y?-1:1)*(asc?1:-1); });
 }
 function nsNguon(x){ return x.loai==='kt'?`<span class="ns-chip kt">Kế toán</span><small>Sổ kế toán (file BBKK)</small>`
   :`<span class="ns-chip hc">Cán bộ Hành chính</span><small>${esc(x.by||'Chưa nhập tên')} · ghi nhận tại ${esc(x.noi)}${x.phong?' · '+esc(x.phong):''}</small>`; }
-function nsTrang(x){ return x.trang==='xoa'?`<span class="tag warn">Đã xoá khỏi BBKK ${dmy(x.xoa)}</span>`:x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ'; }
+const nsTrangTxt=x=>x.trang==='xoa'?(x.sang?'Kế toán đổi sang Mã TSCĐ '+x.sang+' (cùng tài sản)':'Đã xoá khỏi BBKK '+dmy(x.xoa)):x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ'+(x.cu&&x.cu.length?' · đổi từ mã '+x.cu.join(', '):'');
+function nsTrang(x){ return x.trang==='xoa'?(x.sang?`<span class="tag">Đổi sang mã ${esc(x.sang)}</span><small>cùng tài sản, tem cũ vẫn dùng được</small>`:`<span class="tag warn">Đã xoá khỏi BBKK ${dmy(x.xoa)}</span>`)
+  :x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ'+(x.cu&&x.cu.length?`<small>đổi từ mã ${esc(x.cu.join(', '))}</small>`:''); }
 function viewNhapSo(){
-  const all=nsRows(), kt=all.filter(x=>x.loai==='kt'), hc=all.filter(x=>x.loai==='hc'), xoa=kt.filter(x=>x.trang==='xoa');
+  const all=nsRows(), kt=all.filter(x=>x.loai==='kt'), hc=all.filter(x=>x.loai==='hc'), xoa=kt.filter(x=>x.trang==='xoa'&&!x.sang), nDoi=kt.filter(x=>x.sang).length;
   const nams=[...new Set(kt.map(x=>(x.ghiSo||'').slice(0,4)).filter(Boolean))].sort().reverse();
   // các đợt vào sổ: theo ngày + file (kế toán), theo ngày (cán bộ HC ghi nhận), theo ngày xoá khỏi BBKK
   const m=new Map(), add=(k,o)=>{ const v=m.get(k)||Object.assign({n:0},o); v.n++; m.set(k,v); };
-  kt.forEach(x=>{ const d=(x.tu||'').slice(0,10); add('kt|'+d+'|'+x.file,{loai:'kt',d,file:x.file,gio:(x.tu||'').slice(11)}); if(x.xoa) add('xoa|'+x.xoa,{loai:'xoa',d:x.xoa}); });
+  kt.forEach(x=>{ const d=(x.tu||'').slice(0,10); add('kt|'+d+'|'+x.file,{loai:'kt',d,file:x.file,gio:(x.tu||'').slice(11)}); if(x.xoa) add((x.sang?'doi|':'xoa|')+x.xoa,{loai:x.sang?'doi':'xoa',d:x.xoa}); });
   hc.forEach(x=>add('hc|'+(x.tu||'').slice(0,10),{loai:'hc',d:(x.tu||'').slice(0,10)}));
   const dots=[...m.values()].sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:0);
   app.innerHTML=`${demoBanner()}
   ${banner('thu-vien','Lịch sử','Nhập sổ tài sản','Tài sản vào sổ khi nào và từ đâu: kế toán ghi sổ (file BBKK) rồi cán bộ Hành chính đưa lên app, hay cán bộ Hành chính ghi nhận tài sản phát sinh khi đi kiểm.')}
   <div class="ns-sum">
-    <div><small>Từ sổ kế toán (file BBKK)</small><b class="num">${nf.format(kt.length-xoa.length)}</b><span>tài sản đang trong sổ</span></div>
+    <div><small>Từ sổ kế toán (file BBKK)</small><b class="num">${nf.format(kt.filter(x=>x.trang==='dang').length)}</b><span>tài sản đang trong sổ</span></div>
     <div><small>Cán bộ Hành chính ghi nhận</small><b class="num">${nf.format(hc.length)}</b><span>tài sản phát sinh, chưa có Mã TSCĐ</span></div>
-    <div><small>Đã xoá khỏi file BBKK</small><b class="num">${nf.format(xoa.length)}</b><span>vẫn giữ trong Sổ mã QR</span></div>
+    <div><small>Đã xoá khỏi file BBKK</small><b class="num">${nf.format(xoa.length)}</b><span>vẫn giữ trong Sổ mã QR${nDoi?` · ngoài ra ${nf.format(nDoi)} mã cũ kế toán đã đổi sang mã mới (cùng tài sản)`:''}</span></div>
   </div>
   <div class="stitle"><h2>Các đợt <strong>vào sổ</strong></h2></div>
   <ol class="ns-dot">${dots.map(o=>`<li><time class="num">${o.d?dmy(o.d):'Chưa rõ ngày'}${o.gio?' '+o.gio:''}</time>${
       o.loai==='kt'?`<span class="ns-chip kt">Kế toán</span><span><b class="num">${nf.format(o.n)}</b> tài sản vào sổ từ file <span class="mono">${esc(o.file||'BBKK')}</span>, cán bộ Hành chính đưa lên app</span>`
       :o.loai==='hc'?`<span class="ns-chip hc">Cán bộ Hành chính</span><span><b class="num">${nf.format(o.n)}</b> tài sản phát sinh được ghi nhận khi đi kiểm</span>`
+      :o.loai==='doi'?`<span class="ns-chip kt">Đổi Mã TSCĐ</span><span><b class="num">${nf.format(o.n)}</b> mã cũ được kế toán đổi sang mã mới (cùng tài sản, tem cũ vẫn dùng được)</span>`
       :`<span class="ns-chip xoa">Xoá khỏi sổ</span><span><b class="num">${nf.format(o.n)}</b> tài sản không còn trong file BBKK (mã QR vẫn giữ)</span>`}</li>`).join('')||'<li>Chưa có đợt nào.</li>'}</ol>
   <div class="stitle"><h2>Danh sách <strong>tài sản</strong></h2></div>
   <div class="tools ns-tools">
@@ -2218,7 +2230,7 @@ async function nsXlsx(b){
   const l=nsList(); if(!l.length){ toast('Không có tài sản nào để tải'); return; }
   const old=b.innerHTML; b.disabled=true; b.textContent='Đang tạo file…';
   const cot=[['Mã TSCĐ',12],['Tên tài sản',55],['Kế toán ghi sổ',14],['Vào sổ trên app',17],['File BBKK',34],['Nguồn',20],['Người ghi nhận',20],['Nơi ghi nhận',26],['Hiện trạng',28]];
-  const dong=l.map(x=>[x.ma,x.ten,x.ghiSo?dmy(x.ghiSo):'',x.tu?tuText(x.tu):'',x.file||'',x.loai==='kt'?'Kế toán (file BBKK)':'Cán bộ Hành chính',x.by||'',x.noi?(x.noi+(x.phong?' · '+x.phong:'')):'',x.trang==='xoa'?'Đã xoá khỏi BBKK '+dmy(x.xoa):x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ']);
+  const dong=l.map(x=>[x.ma,x.ten,x.ghiSo?dmy(x.ghiSo):'',x.tu?tuText(x.tu):'',x.file||'',x.loai==='kt'?'Kế toán (file BBKK)':'Cán bộ Hành chính',x.by||'',x.noi?(x.noi+(x.phong?' · '+x.phong:'')):'',nsTrangTxt(x)]);
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   try{ await window.xuatBangExcel('Nhập sổ tài sản',cot,dong,`Nhap so tai san ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`); toast(`Đã tải ${nf.format(dong.length)} tài sản`); }
   catch(e){ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); }
@@ -2227,36 +2239,47 @@ async function nsXlsx(b){
 
 /* ---------- Lịch sử › Lý lịch tài sản: có từ khi nào, vào sổ ra sao, đã làm gì trên app, lúc nào, ai làm ---------- */
 const LL={key:'',q:'',srv:[],loading:false,err:'',tok:0};
-const LL_KIND={kt:['Kế toán ghi sổ','BookPlus'],vao:['Vào sổ trên app','QrCode'],xoa:['Xoá khỏi sổ','Archive']};
+const LL_KIND={kt:['Kế toán ghi sổ','BookPlus'],vao:['Vào sổ trên app','QrCode'],xoa:['Xoá khỏi sổ','Archive'],doima:['Đổi Mã TSCĐ','ArrowRightLeft']};
 function llAsset(key){
-  const a=BY_KEY[key]; if(a) return {a,key,ma:String(a.ma||key),ten:a.ten,ngay:a.ngay,gia:a.gia,sl:a.sl,donVi:UNIT[a.unit].ten,vt0:a.vt0,so:soCua(key)};
-  const e=SOQR.xoa&&SOQR.xoa[key]; if(e) return {xoa:e,key,ma:key,ten:e.ten,ngay:e.ngay,gia:e.gia,donVi:e.donVi,vt0:e.vt,so:{tu:e.tu,file:e.file||''}};
+  const cu=maCuCua(key);   // kế toán đổi Mã TSCĐ: lý lịch gộp cả các mã cũ của tài sản này
+  const a=BY_KEY[key]; if(a) return {a,key,cu,ma:String(a.ma||key),ten:a.ten,ngay:a.ngay,gia:a.gia,sl:a.sl,donVi:UNIT[a.unit].ten,vt0:a.vt0,so:soCua(key)};
+  const e=SOQR.xoa&&SOQR.xoa[key]; if(e) return {xoa:e,key,cu,ma:key,ten:e.ten,ngay:e.ngay,gia:e.gia,donVi:e.donVi,vt0:e.vt,so:{tu:e.tu,file:e.file||''}};
   return null;
 }
 async function llFetch(){
   const tok=++LL.tok; LL.srv=[]; LL.err='';
   if(!logOnline()||!LL.key){ LL.loading=false; llDraw(); return; }
   LL.loading=true; llDraw();
-  try{ const r=await DB.recent('log',{key:LL.key,limit:500}); if(tok!==LL.tok) return; r.forEach(x=>{ if(x&&x.data&&typeof x.data==='object') LL.srv.push(Object.assign({},x.data,{id:x.id})); }); }
+  try{ const rs=await Promise.all([LL.key,...maCuCua(LL.key)].map(k=>DB.recent('log',{key:k,limit:500}))); if(tok!==LL.tok) return;
+    rs.flat().forEach(x=>{ if(x&&x.data&&typeof x.data==='object') LL.srv.push(Object.assign({},x.data,{id:x.id})); }); }
   catch(e){ if(tok!==LL.tok) return; LL.err='Chưa tải được lịch sử chung (kiểm tra mạng). Đang hiện các thao tác lưu trên máy này.'; }
   LL.loading=false; llDraw();
 }
 function llEvents(A){
-  const ev=[], key=A.key;
+  const ev=[], key=A.key, cu=A.cu||[], ks=[key,...cu], luc=(s,h0)=>{ const [d,h]=String(s||'').split(' '); return {t:Date.parse(d+'T'+(h||h0)+':00'),day:!h}; };
   if(A.ngay) ev.push({t:Date.parse(A.ngay+'T00:00:00'),day:true,who:'Kế toán',kind:'kt',title:'Kế toán ghi sổ tài sản',
     lines:['Theo file BBKK: ngày ghi sổ '+dmy(A.ngay),A.gia?'Nguyên giá: '+money(A.gia):'',A.sl!=null?'Số lượng theo sổ: '+nf.format(A.sl):'',A.donVi?'Đơn vị: '+A.donVi:'',A.vt0?'Vị trí theo sổ: '+A.vt0:''].filter(Boolean)});
+  cu.forEach(c=>{ const e=SOQR.xoa[c]; if(!e) return;   // các Mã TSCĐ cũ của tài sản: vào sổ, cấp mã QR, kế toán đổi mã
+    if(e.ngay&&e.ngay!==A.ngay) ev.push({t:Date.parse(e.ngay+'T00:00:00'),day:true,who:'Kế toán',kind:'kt',title:'Kế toán ghi sổ tài sản (Mã TSCĐ cũ '+c+')',lines:['Theo file BBKK: ngày ghi sổ '+dmy(e.ngay),e.gia?'Nguyên giá: '+money(e.gia):''].filter(Boolean)});
+    if(e.tu) ev.push(Object.assign(luc(e.tu,'00:00'),{who:'Cán bộ Hành chính',kind:'vao',title:'Vào sổ trên app, cấp mã QR (Mã TSCĐ cũ '+c+')',lines:['Từ file '+(e.file||'BBKK')+' (sổ kế toán)','Mã QR: '+KIEMKE_QR.payload(c)]}));
+    if(e.sang) ev.push(Object.assign(luc(e.sang.luc||e.xoa,'23:58'),{who:'Kế toán',kind:'doima',title:`Kế toán đổi Mã TSCĐ ${c} → ${e.sang.ma}`,
+      lines:['Vẫn là tài sản này: tem mang mã cũ '+c+' vẫn quét được và mở đúng tài sản',e.sang.cach==='tự nhận'?'App tự nhận ra: mã cũ rời file BBKK, mã mới có tên, ngày ghi sổ, nguyên giá giống hệt':'Cán bộ Hành chính khai báo đổi mã']}));
+  });
   if(A.so.tu){ const [d,h]=String(A.so.tu).split(' '); ev.push({t:Date.parse(d+'T'+(h||'00:00')+':00'),day:!h,who:'Cán bộ Hành chính',kind:'vao',title:'Vào sổ trên app, cấp mã QR',
     lines:['Từ file '+(A.so.file||'BBKK')+' (sổ kế toán)','Mã QR: '+KIEMKE_QR.payload(key)]}); }
   const m=new Map(); LL.srv.forEach(e=>m.set(e.id,e)); LOGMINE.forEach(e=>m.set(e.id,e));
-  [...m.values()].filter(e=>e.key===key||(e.keys||[]).includes(key)).forEach(e=>{
+  [...m.values()].filter(e=>ks.includes(e.key)||(e.keys||[]).some(k=>ks.includes(k))).forEach(e=>{
     let lines=e.lines||[];
-    if(e.bulk&&e.key!==key){ const pre=A.ma+' · '; lines=lines.filter(x=>String(x).startsWith(pre)).map(x=>String(x).slice(pre.length)); }
-    ev.push({t:e.t0||e.t,who:e.by||'Chưa nhập tên',kind:e.kind||'khac',title:e.title||'',lines,tag:e.tag||''});
+    if(e.bulk&&!ks.includes(e.key)){ const pres=ks.map(k=>(k===key?A.ma:k)+' · '), pre=x=>pres.find(p=>String(x).startsWith(p));
+      lines=lines.filter(pre).map(x=>String(x).slice(pre(x).length)); }
+    const theoCu=cu.includes(e.key)?'theo mã cũ '+e.key:'';
+    ev.push({t:e.t0||e.t,who:e.by||'Chưa nhập tên',kind:e.kind||'khac',title:e.title||'',lines,tag:[e.tag,theoCu].filter(Boolean).join(' · ')});
   });
   if(A.xoa) ev.push({t:Date.parse(A.xoa.xoa+'T23:59:00'),day:true,who:'Kế toán',kind:'xoa',title:'Không còn trong file BBKK (xoá khỏi sổ)',lines:['Mã QR vẫn giữ trong Sổ mã QR, quét tem cũ vẫn xem được']});
   return ev.sort((a,b)=>a.t-b.t);
 }
 function viewLyLich(key){
+  if(key&&!BY_KEY[key]){ const kn=maMoi(key); if(kn!==key&&(BY_KEY[kn]||SOQR.xoa[kn])){ location.replace('#ly-lich-'+encodeURIComponent(kn)); return; } }   // mã cũ → lý lịch của mã mới
   if(key!==LL.key){ LL.key=key; LL.srv=[]; LL.err=''; if(key) llFetch(); }
   app.innerHTML=`${demoBanner()}
   ${banner('vuon','Lịch sử','Lý lịch tài sản','Tài sản có từ khi nào, vào sổ ra sao, đã được kiểm, chuyển phòng, ghi tình trạng, xác minh, in tem… lúc nào và ai làm. Dùng để quản lý và truy cứu khi tài sản đổi chỗ, bàn giao, hư hỏng hay thanh lý.')}
@@ -2269,7 +2292,7 @@ function llResDraw(){
   const box=document.getElementById('llRes'); if(!box) return; const q=fold(LL.q.trim());
   if(q.length<2){ box.innerHTML=''; return; }
   const hits=ASSETS.filter(a=>fold(a.ma+' '+a.ten).includes(q)).slice(0,10).map(a=>({key:a.key,ma:a.ma,ten:a.short,sub:roomOf(a)||'Chưa có vị trí'}))
-    .concat(Object.entries(SOQR.xoa||{}).filter(([k,e])=>fold(k+' '+e.ten).includes(q)).slice(0,5).map(([k,e])=>({key:k,ma:k,ten:e.ten,sub:'Đã xoá khỏi BBKK'})));
+    .concat(Object.entries(SOQR.xoa||{}).filter(([k,e])=>fold(k+' '+e.ten).includes(q)).slice(0,5).map(([k,e])=>({key:k,ma:k,ten:e.ten,sub:e.sang?'Mã cũ, kế toán đã đổi sang '+e.sang.ma:'Đã xoá khỏi BBKK'})));
   box.innerHTML=hits.length?hits.map(x=>`<a href="#ly-lich-${encodeURIComponent(x.key)}"><span class="mono">${esc(x.ma)}</span><span>${esc(x.ten)}</span><small>${esc(x.sub)}</small></a>`).join(''):'<div class="empty">Không có tài sản nào khớp.</div>';
 }
 function llDraw(){
@@ -2283,7 +2306,7 @@ function llDraw(){
   box.innerHTML=`<section class="tsx">
     <div class="tsx-qr">${qrSvg(KIEMKE_QR.payload(A.key),96)}<small>Mã QR trên tem</small></div>
     <div class="tsx-in">
-      <div class="tsx-k">Mã TSCĐ <b class="mono">${esc(A.ma)}</b>${a?' · STT '+a.stt:''}${A.xoa?' · <span class="tag warn">Đã xoá khỏi BBKK</span>':''}</div>
+      <div class="tsx-k">Mã TSCĐ <b class="mono">${esc(A.ma)}</b>${a?' · STT '+a.stt:''}${A.xoa?' · <span class="tag warn">Đã xoá khỏi BBKK</span>':''}${A.cu.length?` · mã cũ <span class="mono">${esc(A.cu.join(', '))}</span>`:''}</div>
       <h1>${esc(A.ten)}</h1>
       <dl class="tsx-dl">
         <div><dt>Có từ (kế toán ghi sổ)</dt><dd class="num">${dmy(A.ngay)}</dd></div>
@@ -2323,12 +2346,20 @@ async function logXlsx(b){
 function tsKey(s){ try{ return decodeURIComponent(s); }catch(e){ return s; } }
 function viewTS(key){
   const a=BY_KEY[key];
+  if(!a){ const kn=maMoi(key); if(kn!==key&&BY_KEY[kn]){ TSCU={cu:key,moi:kn}; location.replace('#ts-'+encodeURIComponent(kn)); return; } }   // tem mang mã cũ → tài sản mã mới
   if(!a&&SOQR.xoa[key]) return viewTSXoa(key,SOQR.xoa[key]);
   if(!a){ app.innerHTML=`${demoBanner()}<div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a></div>
     <div class="empty" style="margin-top:16px"><b>Không có tài sản mã “${esc(key)}” trong danh sách hiện tại.</b><br>Có thể tài sản đã bị bỏ khỏi file Excel biên bản, hoặc tem không phải của trang này.<br><br><button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét lại</button></div>`; return; }
   const u=UNIT[a.unit], n=roomOf(a), rs=n?slugify(n):NOROOM; ui.open[a.stt]=true;   // trang một tài sản: mở sẵn ghi chú, trạng thái sử dụng
+  // kế toán đổi Mã TSCĐ: các mã cũ của tài sản; vừa quét tem mã cũ; kết quả kiểm đã ghi theo mã cũ (mã mới chưa có)
+  const cu=maCuCua(a.key), tc=TSCU&&TSCU.moi===a.key?TSCU.cu:'';
+  const kqCu=S.rows[a.stt]?null:cu.map(c=>[c,(ORPHAN.rows||{})[c]]).find(([,d])=>d&&((d.tt!=null&&d.tt!=='')||d.nf||d.hs));
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / <a href="#dv-${a.unit}">Sheet ${esc(u.sheet)}</a> / <a href="#phong-${rs}">${esc(n||'Chưa có vị trí')}</a></div>
+  ${tc?`<div class="tsx-xoa tsx-doi" role="status">${ic('ArrowRightLeft')}<div><b>Tem này mang Mã TSCĐ cũ ${esc(tc)}.</b> Kế toán đã đổi sang Mã TSCĐ <b class="mono">${esc(a.ma||a.key)}</b>, vẫn là tài sản này.
+    Tem cũ vẫn quét được và mở đúng trang này; muốn dán tem mới thì bấm “In tem mã QR tài sản này”.</div></div>`:''}
+  ${kqCu?`<div class="tsx-xoa tsx-doi" role="status">${ic('History')}<div><b>Mã cũ ${esc(kqCu[0])} đã được kiểm:</b> ${esc(logRes(kqCu[1],a))}${kqCu[1].phong?' · '+esc(kqCu[1].phong):''}${kqCu[1].at?' · '+esc(whoLabel(kqCu[1].by)||'Chưa nhập tên')+' · '+ddmmyy(kqCu[1].at):''}.
+    Mã mới chưa có kết quả.${READONLY?'':`<div class="tsx-doi-b"><button type="button" class="btn sm pri" data-act="kqcu" data-cu="${esc(kqCu[0])}">${ic('Check')}Dùng kết quả này cho mã ${esc(a.ma||a.key)}</button></div>`}</div></div>`:''}
   <section class="tsx">
     <div class="tsx-qr">${qrSvg(KIEMKE_QR.payload(a.key),116)}<small>Mã QR trên tem</small></div>
     <div class="tsx-in">
@@ -2341,6 +2372,7 @@ function viewTS(key){
         <div><dt>Ngày ghi sổ</dt><dd class="num">${dmy(a.ngay)}</dd></div>
         <div><dt>Nguyên giá</dt><dd class="num">${money(a.gia)}</dd></div>
         <div><dt>Trạng thái sử dụng</dt><dd>${esc(lbl(SUDUNG,(S.rows[a.stt]||{}).sd||''))}</dd></div>
+        ${cu.length?`<div><dt>Mã TSCĐ cũ (tem cũ vẫn dùng được)</dt><dd class="mono">${esc(cu.join(', '))}</dd></div>`:''}
       </dl>
     </div>
   </section>
@@ -2355,13 +2387,24 @@ function viewTS(key){
   </div>`;
 }
 
-const SOQR=Object.assign({dang:{},xoa:{}},window.KIEMKE_SO_QR||{});   // sổ mã QR: mã đang dùng {khoá: ngày cấp}, mã của tài sản đã xoá khỏi BBKK
+const SOQR=Object.assign({dang:{},xoa:{},sang:{}},window.KIEMKE_SO_QR||{});   // sổ mã QR: mã đang dùng {khoá: ngày cấp}, mã của tài sản đã xoá khỏi BBKK, sang {mã cũ: mã mới}
+/* Kế toán đổi Mã TSCĐ cho cùng một tài sản (người dùng chốt: "chung quy thì nó vẫn là nó"): tem mang mã cũ vẫn mở đúng tài sản
+   mã mới (1 mã QR, 2 Mã TSCĐ); in tem mới thì có thêm mã QR mới (2 mã QR, cùng tài sản); lý lịch gộp cả lịch sử của mã cũ.
+   maMoi(k): mã cuối cùng theo chuỗi đổi mã (k nếu không đổi); maCuCua(k): các mã cũ của tài sản k. */
+function maMoi(k){ k=String(k); const seen=new Set(); while(!BY_KEY[k]&&SOQR.sang[k]!=null&&!seen.has(k)){ seen.add(k); k=String(SOQR.sang[k]); } return k; }
+let SOQR_CU=null;
+function maCuCua(k){
+  if(!SOQR_CU){ SOQR_CU={}; Object.keys(SOQR.sang).forEach(c=>{ const m=maMoi(c); if(m!==c) (SOQR_CU[m]=SOQR_CU[m]||[]).push(c); }); }
+  return SOQR_CU[String(k)]||[];
+}
+let TSCU=null;   // vừa quét / mở tem mang mã cũ: {cu, moi} để trang tài sản mã mới báo rõ
 function viewTSXoa(key,e){
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Tài sản đã xoá khỏi BBKK</div>
   <div class="tsx-xoa" role="status">${ic('Archive')}<div><b>Tài sản này đã bị xoá khỏi file BBKK</b> (phát hiện ngày ${dmy(e.xoa)}).
     Mã QR của nó vẫn được giữ trong <b>Sổ mã QR</b>, nên quét tem cũ vẫn xem được thông tin lúc còn trong sổ.
     Tài sản không còn trong danh sách kiểm kê; nếu vẫn thấy ngoài thực tế, hãy báo kế toán.</div></div>
+  ${e.sang?`<div class="tsx-xoa tsx-doi">${ic('ArrowRightLeft')}<div>Kế toán đã đổi mã này sang Mã TSCĐ <a class="mono" href="#ts-${encodeURIComponent(e.sang.ma)}">${esc(e.sang.ma)}</a> (${tuText(e.sang.luc)}), cùng một tài sản.</div></div>`:''}
   <section class="tsx">
     <div class="tsx-qr">${qrSvg(KIEMKE_QR.payload(key),116)}<small>Mã QR trên tem</small></div>
     <div class="tsx-in">
@@ -2417,6 +2460,7 @@ function route(){
   const h=(location.hash||'#trang-chu').slice(1);
   const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
+  if(TSCU&&!(nv.type==='ts'&&(nv.id===TSCU.moi||nv.id===TSCU.cu))) TSCU=null;   // rời trang tài sản vừa mở bằng tem mã cũ
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
   V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':'kk');
   document.querySelectorAll('.top2 a[data-r]').forEach(a=>a.removeAttribute('aria-current'));
@@ -2464,6 +2508,10 @@ app.addEventListener('click',e=>{
   if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
   if(act==='quetlt'){ contOpen(V.id); return; }
   if(act==='qrin'||act==='qrso'){ e.preventDefault(); qrOpen(act==='qrso'?{so:true}:{unit:b.dataset.qu,room:b.dataset.qr,key:b.dataset.qk}); return; }
+  if(act==='kqcu'){   // trang tài sản mã mới: dùng kết quả kiểm đã ghi theo Mã TSCĐ cũ (kế toán đổi mã, cùng tài sản)
+    const k=b.dataset.cu, d=(ORPHAN.rows||{})[k], t=BY_KEY[V.id]; if(!d||!t||READONLY) return;
+    if(!S.rows[t.stt]){ const r=touch(t.stt); ['tt','nf','hs','phong','cond','sd','note'].forEach(f=>{ if(d[f]!=null) r[f]=d[f]; }); LOGCTX={tag:'Theo kết quả của mã cũ '+k}; save(); refreshRooms(); toast('Đã dùng kết quả kiểm của mã cũ '+k); }
+    render(); return; }
   if(act==='nsmore'){ NS.lim+=200; nsDraw(); return; }
   if(act==='nsxlsx'){ nsXlsx(b); return; }
   if(act==='logwho'){ if(LV.who!==b.dataset.v){ LV.who=b.dataset.v; LV.need=true; render(); } return; }
@@ -2605,9 +2653,15 @@ function scanItem(a){
 function scanMsg(t,bad){ const m=document.getElementById('scanMsg'); m.className='msg'+(bad?' bad':''); m.textContent=t; }
 function scanGo(a,fromCam){
   if(fromCam&&navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
-  SD.close(); const h='ts-'+encodeURIComponent(a.key);
+  SD.close(); TSCU=null; const h='ts-'+encodeURIComponent(a.key);
   if(location.hash==='#'+h) render(); else location.hash=h;
   flash('ok','✓',`Đã mở tài sản ${a.ma||'STT '+a.stt}`,a.short);
+}
+function scanGoCu(k,a,fromCam){   // tem mang Mã TSCĐ cũ (kế toán đã đổi mã, cùng tài sản) → mở tài sản mã mới, báo rõ
+  if(fromCam&&navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
+  SD.close(); TSCU={cu:k,moi:a.key}; const h='ts-'+encodeURIComponent(a.key);
+  if(location.hash==='#'+h) render(); else location.hash=h;
+  flash('ok','✓',`Tem mã cũ ${k}: đã mở tài sản mã mới ${a.ma||a.key}`,a.short);
 }
 function scanGoXoa(k,fromCam){
   if(fromCam&&navigator.vibrate) try{ navigator.vibrate([60,80,60]); }catch(e){}
@@ -2633,16 +2687,19 @@ function contAdd(it){ const c=SC.cont; it.id=++c.n; c.items.unshift(it); contDra
 function contScan(raw,fromCam){
   const c=SC.cont, txt=String(raw||'').trim(); if(!txt) return;
   if(!fromCam) document.getElementById('scanIn').value='';
-  const k=window.KIEMKE_QR?KIEMKE_QR.parse(txt):null, t=scanParse(txt), a=k!=null?BY_KEY[k]:(BY_KEY[t]||BY_MA[t.toUpperCase()]);
+  const k=window.KIEMKE_QR?KIEMKE_QR.parse(txt):null, t=scanParse(txt);
+  let a=k!=null?BY_KEY[k]:(BY_KEY[t]||BY_MA[t.toUpperCase()]), cuMa='';
+  if(!a){ const kk=k!=null?k:t, kn=maMoi(kk); if(kn!==kk&&BY_KEY[kn]){ a=BY_KEY[kn]; cuMa=kk; } }   // tem mang Mã TSCĐ cũ
   if(!a){ const kk=k!=null?k:t, x=SOQR.xoa[kk]; contAdd({kind:'bad',ma:kk,ten:x?x.ten:'',msg:x?'Tài sản đã xoá khỏi file BBKK':'Không khớp tài sản nào trong sổ'}); contBeep(false); return; }
+  const add=it=>contAdd(cuMa?Object.assign(it,{cuMa}):it);
   const old=c.items.find(x=>x.a===a&&!x.bo);
   if(old){ scanMsg(`Đã quét ${a.ma||'STT '+a.stt} rồi: ${old.msg}.`); return; }
   const r=res(a), here=roomOf(a)===c.name;
-  if(a.hoso){ contAdd({kind:'hoi',a,act:'hoso',msg:'Công trình, dịch vụ: chỉ cần xác nhận hồ sơ'}); contBeep(true); return; }
-  if(r!=='chua'){ contAdd({kind:'da',a,msg:`Đã kiểm trước đó: ${RES_LABEL[r]}${here?'':' · đang ghi ở '+(roomOf(a)||'chưa có vị trí')}`}); contBeep(true); return; }
-  if(!here){ contAdd({kind:'hoi',a,act:'move',msg:roomOf(a)?`Sổ ghi ở ${roomOf(a)}`:'Chưa có vị trí trong sổ'}); contBeep(true); return; }
-  if(a.sl>1){ contAdd({kind:'hoi',a,act:'sl',msg:`Số lượng theo sổ ${nf.format(a.sl)}: nhập số đếm được`}); contBeep(true); return; }
-  contDu(contAdd({kind:'du',a,msg:''}),{}); contBeep(true);
+  if(a.hoso){ add({kind:'hoi',a,act:'hoso',msg:'Công trình, dịch vụ: chỉ cần xác nhận hồ sơ'}); contBeep(true); return; }
+  if(r!=='chua'){ add({kind:'da',a,msg:`Đã kiểm trước đó: ${RES_LABEL[r]}${here?'':' · đang ghi ở '+(roomOf(a)||'chưa có vị trí')}`}); contBeep(true); return; }
+  if(!here){ add({kind:'hoi',a,act:'move',msg:roomOf(a)?`Sổ ghi ở ${roomOf(a)}`:'Chưa có vị trí trong sổ'}); contBeep(true); return; }
+  if(a.sl>1){ add({kind:'hoi',a,act:'sl',msg:`Số lượng theo sổ ${nf.format(a.sl)}: nhập số đếm được`}); contBeep(true); return; }
+  contDu(add({kind:'du',a,msg:''}),{}); contBeep(true);
 }
 function contDu(it,o){
   const c=SC.cont, a=it.a, from=roomOf(a);
@@ -2682,7 +2739,7 @@ function contDraw(){
       :it.act==='move'?`${num}<button type="button" class="btn sm pri" data-cs="move">Chuyển vào phòng này${a.sl>1?' + ghi':' + Đủ'}</button><button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>`
       :it.act==='sl'?`${num}<button type="button" class="btn sm pri" data-cs="sl">Ghi</button><button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>`
       :it.act==='hoso'?'<button type="button" class="btn sm pri" data-cs="hoso">Xác nhận hồ sơ</button><button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>':'';
-    return `<div class="cs-it cs-${it.kind}" data-ci="${it.id}"><span class="cs-ic">${ic(IC[it.kind]||'Info')}</span><div class="cs-tx"><b class="mono">${esc(ma)}</b> ${esc(ten||'')}<small>${esc(it.msg)}</small></div>${ac?`<div class="cs-ac">${ac}</div>`:''}</div>`; }).join('');
+    return `<div class="cs-it cs-${it.kind}" data-ci="${it.id}"><span class="cs-ic">${ic(IC[it.kind]||'Info')}</span><div class="cs-tx"><b class="mono">${esc(ma)}</b> ${esc(ten||'')}<small>${esc(it.msg)}${it.cuMa?' · tem mang mã cũ '+esc(it.cuMa):''}</small></div>${ac?`<div class="cs-ac">${ac}</div>`:''}</div>`; }).join('');
 }
 function scanShow(raw,fromCam){
   if(SC.cont){ contScan(raw,fromCam); return; }
@@ -2691,11 +2748,13 @@ function scanShow(raw,fromCam){
   // 1. tem in từ phần Mã QR: khoá nằm trong đường link → tra đúng khoá, không đoán
   const k=window.KIEMKE_QR?KIEMKE_QR.parse(txt):null;
   if(k!=null){ const a=BY_KEY[k]; if(a){ scanGo(a,fromCam); return; }
+    const kn=maMoi(k); if(kn!==k&&BY_KEY[kn]){ scanGoCu(k,BY_KEY[kn],fromCam); return; }   // tem mang Mã TSCĐ cũ: kế toán đã đổi mã
     if(SOQR.xoa[k]){ scanGoXoa(k,fromCam); return; }
     scanMsg(`Tem có mã “${k}” nhưng không có tài sản này trong danh sách hiện tại.`,true); box.innerHTML=''; return; }
   // 2. nội dung là đúng một Mã TSCĐ (tem chỉ chứa mã, mã vạch, hoặc gõ đủ mã)
   const t=scanParse(txt); const exact=BY_KEY[t]||BY_MA[t.toUpperCase()];
   if(exact){ scanGo(exact,fromCam); return; }
+  const tn=maMoi(t); if(tn!==t&&BY_KEY[tn]){ scanGoCu(t,BY_KEY[tn],fromCam); return; }
   if(SOQR.xoa[t]){ scanGoXoa(t,fromCam); return; }
   if(fromCam){ scanMsg(`Mã quét được “${t.length>40?t.slice(0,40)+'…':t}” không khớp tài sản nào trong sổ. Nếu là đồ ngoài sổ, ghi vào mục Tài sản phát sinh.`,true); box.innerHTML=''; return; }
   const hits=scanFind(t);

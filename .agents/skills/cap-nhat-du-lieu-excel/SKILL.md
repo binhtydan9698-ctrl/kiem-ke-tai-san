@@ -23,6 +23,10 @@ Nguồn duy nhất của danh sách tài sản: **một** file `.xlsx` trong `d�
    - Đọc dòng "Sổ mã QR" của build: "mới cấp" (tài sản mới), "vừa xoá khỏi BBKK" (tài sản bị bỏ khỏi file, mã vẫn giữ),
      cảnh báo "có thể mã bị dùng lại cho tài sản khác" → báo người dùng. Sổ `dữ liệu cập nhật/so-ma-qr.json` do build ghi,
      không sửa tay, không xoá dòng; phải commit cùng file Excel.
+   - Dòng "↪ Kế toán đổi Mã TSCĐ X → Y (tự nhận)": mã cũ rời file, mã mới có tên, ngày ghi sổ, nguyên giá giống hệt → build
+     tự nối (cùng một tài sản) → báo người dùng. Dòng "! Nghi kế toán đổi Mã TSCĐ (chưa nối)" → hỏi người dùng có đúng là cùng
+     tài sản không; đúng thì thêm vào `dữ liệu cập nhật/doi-ma-tscd.json` `{"doi":[{"cu":"X","moi":"Y","ghiChu":"…"}]}`
+     (tạo file nếu chưa có), build lại, kiểm tra dòng "↪", commit cùng file Excel.
 3. Đẩy riêng dữ liệu lên: `npm run day-len-web` (kiểm tra lại, commit cả thư mục dữ liệu gồm Excel và sổ mã QR, pull --rebase, push).
 4. Xác nhận trên web: `npm run kiem-tra-web` (đợi Vercel tối đa 5 phút, phải thấy "✓ Trang web hoạt động bình thường").
 
@@ -32,5 +36,6 @@ Nguồn duy nhất của danh sách tài sản: **một** file `.xlsx` trong `d�
   `[stt, ma, ten, sl, ngay, gia, gc(đơn vị), vt(vị trí), key, sheet, dòngExcel]`.
 - Tài sản có mặt ở nhiều sheet: giá trị lấy từ sheet "Tổng hợp", ô trống thì lấy từ sheet khác (theo thứ tự sheet).
 - Dòng không mã, không số lượng, không nguyên giá, không ngày = phần tên bị xuống dòng, nối vào tài sản có STT liền trước.
-- Đổi Mã TSCĐ của tài sản đã kiểm sẽ làm mất liên kết với kết quả trên Supabase (kết quả lưu theo mã) —
-  cảnh báo người dùng nếu thấy mã cũ biến mất mà mã mới xuất hiện.
+- Kế toán đổi Mã TSCĐ của tài sản: vẫn là tài sản đó (người dùng chốt). Mã cũ nối sang mã mới trong Sổ mã QR (tự nhận hoặc
+  khai báo `doi-ma-tscd.json`): tem mã cũ mở tài sản mã mới, lý lịch gộp. Kết quả kiểm trên Supabase vẫn lưu theo mã cũ (không
+  tự chuyển, không xoá); trang tài sản mã mới hiện kết quả của mã cũ và nút "Dùng kết quả này" để cán bộ bấm.

@@ -51,7 +51,7 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 1. `dữ liệu cập nhật/*.xlsx` là nguồn duy nhất của danh sách tài sản (biên bản gốc: mỗi đơn vị một sheet + "Xem lại" + "Tổng hợp").
 2. `npm run build` (`scripts/build.mjs`) đọc Excel → `dist/data/assets.js` (`window.KIEMKE_DATA = {version, file, sheets, rows}`),
    `dist/data/version.json`, `dist/data/goc.xlsx`, chép `web/` → `dist/`; cập nhật Sổ mã QR → `dist/data/so-ma-qr.js`
-   (`window.KIEMKE_SO_QR = {capNhat, dang: {khoá: ngày cấp}, xoa: {khoá: thông tin lúc còn trong sổ}}`).
+   (`window.KIEMKE_SO_QR = {capNhat, files, dang: {khoá: [lúc vào sổ, file]}, xoa: {khoá: thông tin lúc còn trong sổ}, chan, sang: {mã cũ: mã mới}}`).
    Mỗi dòng: `[stt, ma, ten, sl, ngay(yyyy-mm-dd), gia, gc(đơn vị), vt(vị trí), key, sheet, dòngExcel, nhómLẻ]`.
    `nhómLẻ` = tên sheet lẻ ("Xem lại phân bổ" / "Xem lại" / "Chưa có ghi chú", theo thứ tự ưu tiên `REVIEW_SHEETS`
    trong `web/excel-rules.js`) hoặc `''`. Tài sản sheet lẻ là tài sản **chưa có vị trí** (chưa rõ vì sao kế toán đưa vào
@@ -92,7 +92,15 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 - **Quy tắc lệch 1 chữ (người dùng đặt):** mã QR đi theo thông tin tài sản. Hai dòng lệch dù 1 chữ (tên, ngày ghi sổ, nguyên
   giá) là 2 tài sản khác nhau, bắt buộc khác mã QR; tài sản số lượng lớn (cùng một dòng) dùng chung 1 mã QR. Cùng Mã TSCĐ mà
   lệch thông tin giữa các sheet → build báo ✗ và chặn in tem mã đó (`chan` trong `dist/data/so-ma-qr.js`), `npm test` ✗;
-  khác chỉ ở khoảng trắng thì không tính. Thông tin một mã đổi so với lần trước → Sổ mã QR cảnh báo, cất thông tin cũ vào `cu`.
+  khác chỉ ở khoảng trắng thì không tính. Thông tin một mã đổi so với lần trước → Sổ mã QR cảnh báo, cất thông tin cũ vào `cu`
+  (vẫn cùng mã QR, tem đã dán vẫn dùng).
+- **Quy tắc đổi Mã TSCĐ (người dùng chốt 15/11/2026: "chung quy thì nó vẫn là nó"):** kế toán đổi Mã TSCĐ cho cùng một tài sản
+  thì vẫn là tài sản đó. Sổ mã QR nối mã cũ → mã mới (mã cũ có `sang {ma, luc, cach}`, mã mới có `maCu`; trang có
+  `KIEMKE_SO_QR.sang {cũ: mới}`, `maMoi()` / `maCuCua()`): tem mang mã cũ vẫn mở tài sản mã mới (1 mã QR, 2 Mã TSCĐ), in tem mới
+  thì có thêm mã QR mới (2 mã QR, cùng tài sản), lý lịch gộp lịch sử của mã cũ. Build tự nối khi mã mới giống hệt (tên, ngày ghi
+  sổ, nguyên giá) đúng một mã đã rời BBKK; còn lại báo "nghi đổi mã" → hỏi người dùng, đúng thì khai báo trong
+  `dữ liệu cập nhật/doi-ma-tscd.json` `{"doi":[{"cu","moi","ghiChu"}]}`. Kết quả kiểm trên Supabase KHÔNG tự chuyển sang mã mới:
+  trang tài sản mã mới hiện kết quả của mã cũ (`ORPHAN`, chỉ đọc) và nút "Dùng kết quả này" (ghi qua `save()`).
 - Tem in mặc định chỉ có tiêu đề, Mã TSCĐ, tên (không in phòng, đơn vị vì có thể thay đổi).
 - Không sửa tay `dist/` (sinh khi build, đã `.gitignore`). Không tự sửa file Excel trừ khi người dùng yêu cầu.
 - `web/config.js` chỉ chứa khoá **publishable/anon** (công khai). Không bao giờ đưa khoá `secret`/`service_role` vào repo.

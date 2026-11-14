@@ -357,6 +357,7 @@ function viewQR() {
       <li>Mã QR gắn với <b>Mã TSCĐ</b>. Mã đã cấp <b>không bao giờ cấp lại</b> cho tài sản khác; thêm tài sản mới vào file BBKK thì có mã mới, không trùng mã cũ.</li>
       <li>Tài sản <b>bị xoá khỏi file BBKK vẫn được giữ trong Sổ mã QR</b>: quét tem cũ vẫn xem được thông tin và biết tài sản đã bị xoá ngày nào.</li>
       <li>Hai dòng tài sản <b>lệch thông tin dù 1 chữ</b> (tên, ngày ghi sổ, nguyên giá) là <b>2 tài sản khác nhau, bắt buộc khác mã QR</b>. Tài sản số lượng lớn (cùng một dòng trong sổ) dùng chung 1 mã QR. Mã TSCĐ nào có các dòng lệch thông tin sẽ bị chặn in tem cho tới khi kế toán sửa cho thống nhất.</li>
+      <li>Kế toán <b>đổi Mã TSCĐ</b> cho cùng một tài sản thì <b>vẫn là tài sản đó</b>: mã cũ được nối sang mã mới. Tem mang mã cũ vẫn quét được và mở đúng tài sản (1 mã QR, 2 Mã TSCĐ); in tem mới thì tài sản có thêm mã QR mới, cả 2 tem đều dùng được (2 mã QR, cùng tài sản). Lý lịch tài sản gộp cả lịch sử của mã cũ. App tự nối khi mã cũ rời file BBKK và mã mới có tên, ngày ghi sổ, nguyên giá giống hệt; vừa đổi mã vừa sửa thông tin thì cán bộ Hành chính khai báo để nối.</li>
       <li>Sổ tự cập nhật mỗi lần đưa file Excel lên web và được lưu riêng cùng file Excel (file <span class="mono">so-ma-qr.json</span> trong thư mục “dữ liệu cập nhật”).</li>
     </ol>
     <div id="qrSoBody"></div>
@@ -368,13 +369,16 @@ function viewQR() {
 /* Sổ mã QR: số mã đã cấp, mã của tài sản đã xoá khỏi BBKK (lưu riêng, sinh khi build) */
 function temSoDraw() {
   const box = document.getElementById('qrSoBody'); if (!box) return;
-  const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} }, xoa = Object.entries(so.xoa || {}), nDang = Object.keys(so.dang || {}).length, chan = Object.entries(so.chan || {});
+  const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} }, tatCa = Object.entries(so.xoa || {}), nDang = Object.keys(so.dang || {}).length, chan = Object.entries(so.chan || {});
+  const xoa = tatCa.filter(([, e]) => !e.sang), doi = tatCa.filter(([, e]) => e.sang);   // đã xoá hẳn / kế toán đổi sang mã mới (cùng tài sản)
   box.innerHTML = `<div class="qr-sof">
-      <div><small>Mã đã cấp</small><b class="num">${nf.format(nDang + xoa.length)}</b></div>
+      <div><small>Mã đã cấp</small><b class="num">${nf.format(nDang + tatCa.length)}</b></div>
       <div><small>Đang dùng</small><b class="num">${nf.format(nDang)}</b></div>
       <div><small>Tài sản đã xoá khỏi BBKK</small><b class="num">${nf.format(xoa.length)}</b></div>
+      ${doi.length ? `<div><small>Mã cũ đã đổi sang mã mới</small><b class="num">${nf.format(doi.length)}</b></div>` : ''}
     </div>
     ${chan.length ? `<div class="qr-chan"><b>${chan.length} Mã TSCĐ bị chặn in tem</b> (cùng mã nhưng thông tin lệch giữa các sheet):<ul>${chan.map(([k, l]) => `<li><span class="mono">${esc(k)}</span>: ${esc(l)}</li>`).join('')}</ul></div>` : ''}
+    ${doi.length ? `<p class="qr-info">Kế toán đổi Mã TSCĐ (cùng một tài sản): tem mang mã cũ vẫn quét được, mở tài sản mã mới.</p><div class="tblwrap qr-sot"><table><thead><tr><th>Mã cũ</th><th>Mã mới</th><th>Tên tài sản</th><th>Đổi lúc</th><th>Cách nối</th></tr></thead><tbody>${doi.sort((a, b) => String(b[1].sang.luc || '').localeCompare(String(a[1].sang.luc || ''))).map(([k, e]) => `<tr><td class="mono">${esc(k)}</td><td class="mono"><a href="#ts-${encodeURIComponent(e.sang.ma)}">${esc(e.sang.ma)}</a></td><td>${esc(e.ten)}</td><td class="num">${esc(tuText(e.sang.luc))}</td><td>${e.sang.cach === 'tự nhận' ? 'App tự nhận (thông tin giống hệt)' : 'Cán bộ Hành chính khai báo'}</td></tr>`).join('')}</tbody></table></div>` : ''}
     ${xoa.length ? `<div class="tblwrap qr-sot"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Vị trí theo sổ</th><th>Cấp mã</th><th>Xoá khỏi BBKK</th></tr></thead><tbody>${xoa.sort((a, b) => (b[1].xoa || '').localeCompare(a[1].xoa || '')).map(([k, e]) => `<tr><td class="mono"><a href="#ts-${encodeURIComponent(k)}">${esc(k)}</a></td><td>${esc(e.ten)}</td><td>${esc(e.vt || '—')}</td><td class="num">${dmy(e.tu)}</td><td class="num">${dmy(e.xoa)}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="qr-info">Chưa có tài sản nào bị xoá khỏi file BBKK. Khi có, mã QR của chúng vẫn được giữ và liệt kê ở đây.</p>'}
     <div class="qr-btns"><button type="button" class="btn" data-qa="soxlsx">${ic('FileSpreadsheet')}Tải Sổ mã QR (Excel)</button><span class="qr-info">Sổ cập nhật ngày ${dmy(so.capNhat)}</span></div>`;
@@ -383,8 +387,8 @@ function temSoXlsx() {
   const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} };
   const cot = [['Mã TSCĐ', 12], ['Tên tài sản', 55], ['Đơn vị', 30], ['Vị trí', 18], ['Ngày ghi sổ', 12], ['Nguyên giá', 14], ['Cấp mã QR', 12], ['Trạng thái', 26], ['Nội dung mã QR', 55]];
   const dong = [];
-  ASSETS.filter(temCoMa).forEach(a => dong.push([String(a.ma), a.ten, UNIT[a.unit] ? UNIT[a.unit].ten : a.unit, roomOf(a), dmy(a.ngay), a.gia || 0, dmy(String((Array.isArray(so.dang[a.key]) ? so.dang[a.key][0] : so.dang[a.key]) || '').slice(0, 10)), 'Đang dùng', KIEMKE_QR.payload(a.key)]));
-  Object.entries(so.xoa || {}).forEach(([k, e]) => dong.push([k, e.ten, e.donVi, e.vt, dmy(e.ngay), e.gia || 0, dmy(e.tu), 'Đã xoá khỏi BBKK ngày ' + dmy(e.xoa), KIEMKE_QR.payload(k)]));
+  ASSETS.filter(temCoMa).forEach(a => dong.push([String(a.ma), a.ten, UNIT[a.unit] ? UNIT[a.unit].ten : a.unit, roomOf(a), dmy(a.ngay), a.gia || 0, dmy(String((Array.isArray(so.dang[a.key]) ? so.dang[a.key][0] : so.dang[a.key]) || '').slice(0, 10)), 'Đang dùng' + (maCuCua(a.key).length ? ' (đổi từ mã ' + maCuCua(a.key).join(', ') + ')' : ''), KIEMKE_QR.payload(a.key)]));
+  Object.entries(so.xoa || {}).forEach(([k, e]) => dong.push([k, e.ten, e.donVi, e.vt, dmy(e.ngay), e.gia || 0, dmy(e.tu), e.sang ? 'Kế toán đổi sang Mã TSCĐ ' + e.sang.ma + ' (cùng tài sản, tem cũ vẫn dùng được)' : 'Đã xoá khỏi BBKK ngày ' + dmy(e.xoa), KIEMKE_QR.payload(k)]));
   return window.xuatBangExcel('Sổ mã QR', cot, dong, 'So ma QR - ' + new Date().toLocaleDateString('vi-VN').replace(/\//g, '-'));
 }
 // Mở phần Mã QR đúng tài sản / sheet / phòng đang xem ở phần Kiểm kê (hoặc mở Sổ mã QR)

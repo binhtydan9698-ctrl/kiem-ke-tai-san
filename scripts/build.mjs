@@ -10,7 +10,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import ExcelJS from 'exceljs';
 import { findExcel } from './excel-file.mjs';
-import { SO_FILE, docSo, vietSo, capNhatSo, homNay, bayGio } from './so-ma-qr.mjs';
+import { SO_FILE, docSo, vietSo, capNhatSo, homNay, bayGio, docDoiTay } from './so-ma-qr.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
@@ -118,24 +118,31 @@ fs.writeFileSync(path.join(DIST, 'data', 'version.json'), JSON.stringify(meta));
 fs.copyFileSync(file, path.join(DIST, 'data', 'goc.xlsx'));
 
 /* ---------- Sổ mã QR: mã đã cấp không bao giờ mất, tài sản bị xoá vẫn giữ ---------- */
-const SQ = capNhatSo(rows, docSo(), homNay(), { file: path.basename(file), luc: bayGio() });
+const SQ = capNhatSo(rows, docSo(), homNay(), { file: path.basename(file), luc: bayGio(), doiTay: docDoiTay() });
 // Trên Vercel chỉ tính trong bộ nhớ (sổ được commit từ máy cùng file Excel); trên máy thì ghi lại sổ khi có thay đổi
 if (SQ.doi && !process.env.VERCEL) fs.writeFileSync(SO_FILE, vietSo(SQ.so));
-// cho trang: đang dùng {khoá: [lúc vào sổ, số thứ tự file]}, đã xoá {khoá: thông tin lúc còn trong sổ}
-const soDang = {}, soXoa = {}, soFile = [];
+// cho trang: đang dùng {khoá: [lúc vào sổ, số thứ tự file]}, đã xoá {khoá: thông tin lúc còn trong sổ},
+// đổi mã {mã cũ: mã mới} (kế toán đổi Mã TSCĐ cho cùng một tài sản: tem mã cũ mở tài sản mã mới)
+const soDang = {}, soXoa = {}, soFile = [], soSang = {};
 const fileSo = f => { if (!f) return -1; let i = soFile.indexOf(f); if (i < 0) { soFile.push(f); i = soFile.length - 1; } return i; };
-for (const [k, e] of Object.entries(SQ.so.ma)) { if (e.xoa) soXoa[k] = e; else soDang[k] = [e.tu, fileSo(e.file)]; }
+for (const [k, e] of Object.entries(SQ.so.ma)) { if (e.xoa) soXoa[k] = e; else soDang[k] = [e.tu, fileSo(e.file)]; if (e.sang) soSang[k] = e.sang.ma; }
 fs.writeFileSync(path.join(DIST, 'data', 'so-ma-qr.js'),
   '// Sinh tự động từ "dữ liệu cập nhật/so-ma-qr.json" — đừng sửa tay.\n' +
-  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, files: soFile, dang: soDang, xoa: soXoa, chan: soChan })};\n`);
+  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, files: soFile, dang: soDang, xoa: soXoa, chan: soChan, sang: soSang })};\n`);
 
 const le = X.REVIEW_SHEETS.map(s => `${s} ${rows.filter(r => r[11] === s).length}`).join(', ');
 console.log(`Xong: ${rows.length} tài sản từ ${sheets.length} sheet · phiên bản ${version}`);
 console.log(`  Chưa có vị trí (sheet lẻ): ${le}`);
 console.log(`  Sổ mã QR: ${Object.keys(SQ.so.ma).length} mã đã cấp (đang dùng ${Object.keys(soDang).length}, đã xoá khỏi BBKK ${Object.keys(soXoa).length})`
   + (SQ.moi.length ? ` · mới cấp ${SQ.moi.length}` : '') + (SQ.xoa.length ? ` · vừa xoá khỏi BBKK ${SQ.xoa.length}: ${SQ.xoa.slice(0, 10).join(', ')}` : '')
-  + (SQ.quayLai.length ? ` · quay lại ${SQ.quayLai.length}` : '') + (SQ.doi && process.env.VERCEL ? ' (chưa ghi sổ: đang chạy trên Vercel)' : ''));
+  + (SQ.quayLai.length ? ` · quay lại ${SQ.quayLai.length}` : '') + (Object.keys(soSang).length ? ` · mã cũ đã đổi sang mã mới ${Object.keys(soSang).length}` : '')
+  + (SQ.doi && process.env.VERCEL ? ' (chưa ghi sổ: đang chạy trên Vercel)' : ''));
+SQ.doiMa.forEach(d => console.log(`  ↪ Kế toán đổi Mã TSCĐ ${d.cu} → ${d.moi} (${d.cach}): cùng một tài sản, tem mang mã cũ vẫn mở đúng tài sản`));
 SQ.canhBao.forEach(c => console.warn('  ! ' + c));
+if (SQ.nghiDoi.length) {
+  console.warn(`  ! Nghi kế toán đổi Mã TSCĐ (chưa nối): nếu đúng là cùng một tài sản, khai báo trong "dữ liệu cập nhật/doi-ma-tscd.json" {"doi":[{"cu":"mã cũ","moi":"mã mới"}]}`);
+  SQ.nghiDoi.slice(0, 10).forEach(c => console.warn('    ' + c));
+}
 if (Object.keys(soChan).length) {
   console.warn(`  ✗ ${Object.keys(soChan).length} Mã TSCĐ có thông tin lệch giữa các sheet: theo quy tắc là 2 tài sản khác nhau, phải khác mã QR → đã chặn in tem, cần kế toán sửa cho thống nhất:`);
   Object.entries(soChan).slice(0, 10).forEach(([k, l]) => console.warn(`    Mã ${k}: ${l}`));

@@ -232,6 +232,30 @@ console.log('5. Sổ mã QR ("dữ liệu cập nhật/so-ma-qr.json")');
   const b6 = capNhatSo(rows.map(r => r === b ? motChu : r), so, '2027-06-07');
   const b7 = capNhatSo(rows.map(r => r === b ? Object.assign([...b], { 2: '  ' + String(b[2]).replace(/ /g, '  ') + ' ' }) : r), so, '2027-06-07');
   ok(b6.canhBao.length === 1 && b7.canhBao.length === 0, 'thử: tên lệch 1 chữ → cảnh báo; chỉ khác khoảng trắng → không tính là lệch');
+  // kế toán đổi Mã TSCĐ cho cùng một tài sản (người dùng chốt: "chung quy thì nó vẫn là nó"): mã cũ nối sang mã mới
+  const sangL = Object.entries(so.ma).filter(([, e]) => e.sang);
+  const vong = k => { const s = new Set(); while (so.ma[k] && so.ma[k].sang) { if (s.has(k)) return true; s.add(k); k = so.ma[k].sang.ma; } return false; };
+  ok(sangL.every(([k, e]) => e.xoa && so.ma[e.sang.ma] && (so.ma[e.sang.ma].maCu || []).includes(k) && !vong(k)) && Object.keys(ds.sang || {}).length === sangL.length,
+    `đổi Mã TSCĐ: ${sangL.length} mã cũ nối đúng sang mã mới (mã cũ đã rời BBKK, mã mới có trong sổ, không vòng lặp)`);
+  const gonT = s => String(s || '').replace(/\s+/g, ' ').trim();
+  const trungTT = r => coMa.filter(x => gonT(x[2]) === gonT(r[2]) && String(x[4]) === String(r[4]) && +x[5] === +r[5]).length;
+  const c = coMa.find(r => r[4] && +r[5] > 0 && trungTT(r) === 1 && r !== b) || a;
+  const doiR = Object.assign([...c], { 1: '9999997', 8: '9999997' });
+  const d1 = capNhatSo(rows.map(r => r === c ? doiR : r), so, '2027-07-08', { luc: '2027-07-08 09:30' });
+  ok(d1.doiMa.length === 1 && d1.so.ma[c[8]].sang && d1.so.ma[c[8]].sang.ma === '9999997' && d1.so.ma[c[8]].xoa && (d1.so.ma['9999997'].maCu || []).includes(c[8]),
+    'thử: kế toán đổi Mã TSCĐ (tên, ngày ghi sổ, nguyên giá giống hệt) → tự nối mã cũ sang mã mới, cùng một tài sản');
+  const d2 = capNhatSo(rows, d1.so, '2027-08-09');
+  ok(d2.quayLai.includes(c[8]) && !d2.so.ma[c[8]].sang && !d2.so.ma['9999997'].maCu, 'thử: mã cũ quay lại file BBKK → bỏ nối đổi mã');
+  const doiR2 = Object.assign([...c], { 1: '9999996', 8: '9999996' });
+  const d3 = capNhatSo([...rows.filter(r => r !== c), doiR, doiR2], so, '2027-07-08');
+  ok(!d3.doiMa.length && d3.nghiDoi.length === 2 && !d3.so.ma[c[8]].sang, 'thử: 2 mã mới cùng giống hệt một mã cũ → không tự nối (không đoán), báo nghi đổi mã');
+  const doiR3 = Object.assign([...c], { 1: '9999995', 8: '9999995', 2: String(c[2]) + ' (sửa tên)' });
+  const d4 = capNhatSo(rows.map(r => r === c ? doiR3 : r), so, '2027-07-08');
+  const d5 = capNhatSo(rows.map(r => r === c ? doiR3 : r), so, '2027-07-08', { doiTay: [{ cu: c[8], moi: '9999995' }] });
+  ok(!d4.doiMa.length && d4.nghiDoi.length === 1 && d5.doiMa.length === 1 && d5.doiMa[0].cach === 'khai báo' && d5.so.ma[c[8]].sang.ma === '9999995',
+    'thử: vừa đổi mã vừa sửa tên → chỉ báo nghi, nối khi khai báo trong doi-ma-tscd.json');
+  const d6 = capNhatSo(rows, so, '2027-07-08', { doiTay: [{ cu: c[8], moi: b[8] }] });
+  ok(!d6.doiMa.length && d6.canhBao.length === 1, 'thử: khai báo đổi mã khi mã cũ vẫn còn trong file BBKK → không nối, cảnh báo');
 }
 
 console.log(loi ? `\n✗ ${loi} mục KHÔNG đạt` : '\n✓ Tất cả đều đạt');

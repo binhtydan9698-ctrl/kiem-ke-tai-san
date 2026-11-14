@@ -16,6 +16,7 @@ const KICH_BAN = [
   { ten: 'in-tem', mo: 'In tem mã QR: xem trước, PDF, PNG, CSV, In ngay (đọc lại mọi mã)', cho: 240000 },
   { ten: 'lich-su', mo: 'Lịch sử: Nhập sổ, Lý lịch, Trạng thái sử dụng' },
   { ten: 'quet-lien-tuc', mo: 'Quét liên tục trong phòng' },
+  { ten: 'doi-ma', mo: 'Kế toán đổi Mã TSCĐ: tem mã cũ mở tài sản mã mới, lý lịch gộp' },
   { ten: 'dien-thoai', mo: 'Điện thoại (390px): thanh dưới, không tràn ngang', dt: true },
 ];
 
@@ -30,7 +31,8 @@ const goc = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8');
 const chen = (s, sau, them) => { const i = s.indexOf(sau); if (i < 0) throw new Error('không thấy ' + sau); return s.slice(0, i + sau.length) + them + s.slice(i + sau.length); };
 let trang = chen(goc, '<head>', '<script>try{localStorage.clear()}catch(e){}</script>');
 trang = chen(trang, '<script src="supabase-db.js"></script>', '<script>window.makeSupabaseDb=()=>null;</script>');
-trang = chen(trang, '<script src="data/so-ma-qr.js"></script>', '<script>if(location.search==="?quet-ma")KIEMKE_SO_QR.xoa["1234567"]={ten:"Tài sản thử đã xoá khỏi BBKK",donVi:"GD",vt:"108 Gamma",ngay:"2020-01-01",gia:15000000,tu:"2026-11-14",xoa:"2027-01-02"};</script>');
+trang = chen(trang, '<script src="data/so-ma-qr.js"></script>', '<script>if(location.search==="?quet-ma")KIEMKE_SO_QR.xoa["1234567"]={ten:"Tài sản thử đã xoá khỏi BBKK",donVi:"GD",vt:"108 Gamma",ngay:"2020-01-01",gia:15000000,tu:"2026-11-14",xoa:"2027-01-02"};'
+  + 'if(location.search==="?doi-ma"){const r=KIEMKE_DATA.rows.find(x=>String(x[8])==="6497474");KIEMKE_SO_QR.xoa["7654321"]={ten:r[2],donVi:r[6],vt:r[7],ngay:r[4],gia:r[5],tu:"2026-11-14",file:"BBKK cũ.xlsx",xoa:"2027-01-02",sang:{ma:"6497474",luc:"2027-01-02 09:30",cach:"tự nhận"}};KIEMKE_SO_QR.sang={"7654321":"6497474"};}</script>');
 trang = trang.replace('</body>', '<script src="_thu-kich-ban.js"></script></body>');
 fs.writeFileSync(path.join(DIST, '_thu-giao-dien.html'), trang);
 fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-giao-dien-kich-ban.js'), path.join(DIST, '_thu-kich-ban.js'));

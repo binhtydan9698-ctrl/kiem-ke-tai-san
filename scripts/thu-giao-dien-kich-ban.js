@@ -145,6 +145,48 @@
     ok(!SC.cont && V.type === 'room' && !SD.open, 'đóng lại: về trang phòng, đã vẽ lại');
   };
 
+  // trang thử ?doi-ma: sổ có thêm mã cũ giả 7654321, kế toán đã đổi sang mã 6497474 (cùng tài sản)
+  KB['doi-ma'] = async () => {
+    const CU = '7654321', MOI = '6497474', a = BY_KEY[MOI];
+    const quet = async (t, cam) => { await go('tong-quan'); document.getElementById('scanRes').innerHTML = ''; scanShow(t, cam); await W(450); return decodeURIComponent(location.hash); };
+    const bao = () => [...document.querySelectorAll('.tsx-doi')].map(x => x.textContent).join(' | ');
+    ok(maMoi(CU) === MOI && maCuCua(MOI).includes(CU), 'sổ mã QR: mã cũ nối sang mã mới');
+    ok(await quet(KIEMKE_QR.payload(CU), true) === '#ts-' + MOI && bao().includes('Tem này mang Mã TSCĐ cũ ' + CU), 'quét tem mang mã cũ: mở đúng tài sản mã mới, báo rõ đã đổi mã');
+    ok(/Mã TSCĐ cũ/.test(app.querySelector('.tsx-dl').textContent) && app.querySelector('.tsx-dl').textContent.includes(CU), 'trang tài sản: ghi Mã TSCĐ cũ (tem cũ vẫn dùng được)');
+    ok(await quet(CU, false) === '#ts-' + MOI, 'gõ tay mã cũ: mở tài sản mã mới');
+    await go('tong-quan'); await go('ts-' + CU); await W(300);
+    ok(decodeURIComponent(location.hash) === '#ts-' + MOI && bao().includes(CU), 'mở đường link tem cũ bằng camera điện thoại: chuyển sang tài sản mã mới');
+    await go('tong-quan'); await go('ts-' + MOI);
+    ok(!bao().includes('Tem này mang'), 'mở tài sản bằng mã mới: không báo nhầm "tem mã cũ"');
+    // kết quả kiểm đã ghi theo mã cũ (máy chủ giữ riêng) → bấm dùng cho mã mới
+    const coKq = !!S.rows[a.stt]; ORPHAN.rows = { [CU]: { tt: a.sl, phong: roomOf(a) || '', cond: 'tot', at: Date.now(), by: 'Người thử' } }; render(); await W(300);
+    ok(!coKq || !app.querySelector('[data-act="kqcu"]'), 'mã mới đã có kết quả: không đề nghị lấy kết quả mã cũ');
+    delete S.rows[a.stt]; save(); render(); await W(300);
+    const nut = app.querySelector('[data-act="kqcu"]');
+    ok(!!nut && bao().includes('Mã cũ ' + CU + ' đã được kiểm'), 'mã mới chưa kiểm: hiện kết quả của mã cũ, có nút dùng lại');
+    nut.click(); await W(400);
+    ok(res(a) === 'du' && !app.querySelector('[data-act="kqcu"]'), 'bấm dùng lại: mã mới ghi Đủ theo kết quả của mã cũ (' + res(a) + ')');
+    ok(LOGMINE.some(e => e.key === MOI && /mã cũ/.test(e.tag || '')), 'lịch sử ghi rõ kết quả lấy từ mã cũ');
+    await go('ly-lich-' + CU); await W(400);
+    const ev = [...document.querySelectorAll('.llist.ly > li')].map(li => li.textContent);
+    ok(decodeURIComponent(location.hash) === '#ly-lich-' + MOI, 'lý lịch mã cũ: chuyển sang lý lịch tài sản mã mới');
+    ok(ev.some(t => t.includes(`Kế toán đổi Mã TSCĐ ${CU} → ${MOI}`)) && ev.some(t => t.includes('Mã TSCĐ cũ ' + CU)), 'lý lịch: gộp mã cũ (vào sổ, đổi mã) với mã mới');
+    await go('nhap-so'); const q = document.getElementById('nsq'); q.value = CU; q.dispatchEvent(new Event('input', { bubbles: true })); await W(400);
+    const ns = document.getElementById('nsBody').textContent;
+    ok(ns.includes('Đổi sang mã ' + MOI) && ns.includes('đổi từ mã ' + CU), 'Nhập sổ: tìm mã cũ thấy cả 2 dòng, ghi rõ đổi mã');
+    await go('so-ma-qr'); await W(300);
+    ok(document.getElementById('qrSoBody').textContent.includes(CU) && document.querySelectorAll('.qr-rule li').length >= 6, 'Sổ mã QR: có bảng mã đã đổi và quy tắc đổi Mã TSCĐ');
+    const n = roomOf(a);
+    if (n) {
+      await go('phong-' + slugify(n)); app.querySelector('[data-act="quetlt"]').click(); await W(500);
+      S.rows[a.stt] = null; delete S.rows[a.stt];
+      scanShow(KIEMKE_QR.payload(CU), true); await W(300);
+      const it = SC.cont.items[0];
+      ok(it && it.a === a && it.cuMa === CU && /tem mang mã cũ/.test(txt('scanRes')), 'quét liên tục: tem mã cũ vẫn nhận đúng tài sản, ghi rõ tem mã cũ');
+      SD.close(); await W(400);
+    } else ok(true, 'tài sản thử chưa có phòng (bỏ qua bước quét liên tục)');
+  };
+
   KB['dien-thoai'] = async () => {
     await go('phong-108-gamma'); await W(300);
     const sc = document.getElementById('scanBtn').getBoundingClientRect();
