@@ -42,7 +42,7 @@ kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ f
    chỉ hiện làm gợi ý) cho tới khi cán bộ kiểm trực tiếp rồi phân bổ vào các sheet đơn vị GD … FSC3.
 3. `web/index.html` dựng `ASSETS` từ `KIEMKE_DATA.rows`. Trạng thái kiểm kê trong `S = {rows, xm, units, ps}`:
    - `S.rows[stt]`: kết quả từng tài sản `{tt, nf, hs, phong, cond, note, at, by}`
-   - `S.xm[stt]`: hỏi đại diện `{kq, cach, phanhoi, phong}`
+   - `S.xm[stt]`: mục "Tài sản thất lạc" (`#xac-minh`, hỏi đại diện phòng ban) `{kq, cach, phanhoi, phong}`
    - `S.units[id]`: buổi kiểm của đơn vị · `S.ps[key]`: tài sản phát sinh
 4. Đồng bộ: `save()` so `S` với `LAST` rồi ghi từng tài liệu qua `DB.doc(path).set()`; `listen(col)` nhận thay đổi.
    `web/supabase-db.js` cung cấp `DB` (giả lập API `db` của Claude artifact) trên bảng `kiemke_docs(col, id, data)`.

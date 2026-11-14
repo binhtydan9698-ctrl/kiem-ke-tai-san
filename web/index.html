@@ -197,6 +197,8 @@ main{padding-block:20px 60px}
 .xm .ask b{color:var(--fg)}
 .xm .form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .xm .form .wide{grid-column:1/-1}
+.xsteps{margin:0 0 18px;padding:12px 16px 12px 34px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);font-size:13.5px;color:var(--muted);display:grid;gap:5px}
+.xsteps b{color:var(--fg)} .xsteps i{font-style:normal;color:var(--fg)}
 
 /* xuất */
 .tblwrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
@@ -598,6 +600,13 @@ a.btn{text-decoration:none}
 .nav a[aria-current="page"],.nav .dd.on>.dd-t{background:transparent;color:var(--accent);box-shadow:inset 0 -3px 0 var(--brand);border-radius:0}
 .who i{background:var(--accent-soft);color:var(--accent)}
 .top .scanbtn{background:var(--brand);color:#fff}
+/* máy tính: giữ đầu trang trên 1 dòng ở màn hình laptop 1280–1366px (kể cả khi có số đếm cạnh "Tài sản thất lạc") */
+@media (min-width:861px){
+  .top .wrap{gap:12px}
+  .nav{gap:2px}
+  .nav>a,.nav .dd-t{padding-inline:9px}
+  #whoN{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
 .nav .dd-p a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);box-shadow:none;border-radius:8px}
 
 /* tiêu đề mục hai màu + vạch sọc */
@@ -864,7 +873,7 @@ a.btn{text-decoration:none}
           <a href="#vi-tri" data-r="vi-tri" role="menuitem"><span class="mi"><span data-ic="MapPin"></span></span><span class="mt"><b class="full">Kiểm theo số phòng</b><b class="short">Số phòng</b><small>Đi từng phòng, kiểm tại chỗ mọi tài sản</small></span></a>
         </div></div>
       </div>
-      <a href="#xac-minh" data-r="xac-minh"><span data-ic="MessageCircleQuestion"></span>Hỏi đại diện <span class="pill" id="xmCount" hidden>0</span></a>
+      <a href="#xac-minh" data-r="xac-minh"><span data-ic="MessageCircleQuestion"></span><span class="full">Tài sản thất lạc</span><span class="short">Thất lạc</span> <span class="pill" id="xmCount" hidden>0</span></a>
       <a href="#xuat" data-r="xuat"><span data-ic="FileSpreadsheet"></span><span class="full">Xuất cho kế toán</span><span class="short">Xuất Excel</span></a>
       <a href="#lich-su" data-r="lich-su" title="Lịch sử thao tác: ai làm gì, lúc nào"><span data-ic="History"></span>Lịch sử</a>
     </nav>
@@ -980,7 +989,7 @@ function localKey(c,id){ if(!KEYED[c]) return id; const a=BY_KEY[id]; return a?S
 function desired(){ const m={}; COLS.forEach(c=>Object.entries(S[c]||{}).forEach(([k,v])=>{ const id=docId(c,k); if(v!=null&&id!=null) m[c+'/'+id]=JSON.stringify(docBody(c,v)); })); return m; }
 function restoreFromLast(){ S=blank(); for(const p in LAST){ const i=p.indexOf('/'), c=p.slice(0,i), k=localKey(c,p.slice(i+1)); if(k!=null) S[c][k]=fromBody(c,JSON.parse(LAST[p])); } }
 /* ---------- lịch sử thao tác ----------
-   Mỗi thay đổi kết quả (Đủ, Không thấy, đổi phòng, tình trạng, ghi chú, hỏi đại diện, buổi kiểm, phát sinh) và mỗi lần
+   Mỗi thay đổi kết quả (Đủ, Không thấy, đổi phòng, tình trạng, ghi chú, xác minh tài sản thất lạc, buổi kiểm, phát sinh) và mỗi lần
    xuất file được ghi 1 dòng: ai (tên nhập trên máy), máy nào, lúc nào, tài sản nào, trước → sau.
    Lưu chung trên Supabase: col 'log', mỗi thao tác một tài liệu, id = thời gian (cơ số 36) + mã máy + số ngẫu nhiên,
    nên xếp theo id là xếp theo thời gian. Trang KHÔNG tải lịch sử lúc mở, chỉ đọc khi vào trang #lich-su.
@@ -1007,10 +1016,10 @@ function logRowLines(a,o,n){
   return L;
 }
 function logXmLines(o,n){
-  if(!n) return o?['Bỏ khỏi danh sách hỏi đại diện']:[];
+  if(!n) return o?['Bỏ khỏi mục Tài sản thất lạc']:[];
   const x=o||{}, L=[];
-  if(!o) L.push(`Đưa vào danh sách hỏi đại diện (${lbl(XM_KQ,n.kq||'cho')})`);
-  else if((x.kq||'cho')!==(n.kq||'cho')) L.push(`Hỏi đại diện: ${lbl(XM_KQ,x.kq||'cho')} → ${lbl(XM_KQ,n.kq||'cho')}`);
+  if(!o) L.push(`Đưa vào mục Tài sản thất lạc (${lbl(XM_KQ,n.kq||'cho')})`);
+  else if((x.kq||'cho')!==(n.kq||'cho')) L.push(`Xác minh: ${lbl(XM_KQ,x.kq||'cho')} → ${lbl(XM_KQ,n.kq||'cho')}`);
   if((x.cach||'')!==(n.cach||'')) L.push(n.cach?`Cách liên hệ: ${lbl(XM_CACH,n.cach)}`:'Bỏ cách liên hệ');
   const po=cut(x.phanhoi), pn=cut(n.phanhoi); if(po!==pn) L.push(pn?`Đại diện trả lời: “${pn}”`:'Xoá câu trả lời');
   if((x.phong||'')!==(n.phong||'')&&n.phong) L.push(`Phòng được chỉ: ${n.phong}`);
@@ -1329,7 +1338,7 @@ function flashRes(stt){
     du:['ok','✓','Đã kiểm đủ',`${sub} · ${a.sl}/${a.sl}`],
     thieu:['warn','−',`Thiếu ${a.sl-(+s.tt)}`,`${sub} · thực tế ${s.tt}/${a.sl}`],
     thua:['warn','+',`Thừa ${(+s.tt)-a.sl}`,`${sub} · thực tế ${s.tt}/${a.sl}`],
-    nf:['bad','!','Chưa tìm thấy','Đã đưa vào danh sách hỏi đại diện'],
+    nf:['bad','!','Chưa tìm thấy','Đã đưa vào mục Tài sản thất lạc'],
     hoso:['info','✓','Đã xác nhận hồ sơ',sub],
     chua:['info','↺','Đã xoá kết quả, chờ kiểm lại',sub]};
   const m=M[r]; flash(m[0],m[1],m[2],m[3]);
@@ -1546,7 +1555,7 @@ function viewOverview(){
     <div class="stat acc"><span class="si">${ic('Boxes')}</span><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b><div class="sub"><span>${nf.format(all.sl)} cái</span><span>${money(all.gia)}</span></div></div>
     <div class="stat ok"><span class="si">${ic('CircleCheck')}</span><small>Đã kiểm</small><b>${nf.format(all.da)}</b><div class="sub"><span class="num">${pct}%</span>${barHTML(all)}</div></div>
     <div class="stat warn"><span class="si">${ic('TriangleAlert')}</span><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b><div class="sub"><span>Thiếu ${nf.format(all.thieu)}</span><span>Thừa ${nf.format(all.thua)}</span></div></div>
-    <div class="stat bad"><span class="si">${ic('CircleAlert')}</span><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b><div class="sub"><span>${wait} chờ hỏi</span>${wait?`<a href="#xac-minh">Hỏi đại diện →</a>`:''}</div></div>
+    <div class="stat bad"><span class="si">${ic('CircleAlert')}</span><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b><div class="sub"><span>${wait} chờ xác minh</span>${wait?`<a href="#xac-minh">Xác minh →</a>`:''}</div></div>
     <div class="stat inf"><span class="si">${ic('MapPin')}</span><small>Chưa có vị trí</small><b>${nf.format(all.novt)}</b><div class="sub"><span>${nRooms} phòng, khu vực</span>${all.novt?`<a href="#phong-${NOROOM}">Xem →</a>`:''}</div></div>
   </div>
   <div class="stitle"><h2>Bắt đầu <strong>kiểm kê</strong></h2></div>
@@ -1557,7 +1566,7 @@ function viewOverview(){
     </div>
     <div class="msmall">
       <button type="button" class="tile" data-act="scan"><img src="${IMG}phong-lab.jpg" alt="" loading="lazy"><div class="cap"><p><b>Quét mã tài sản</b><small>Camera đọc QR, mã vạch trên tem</small></p></div></button>
-      ${tile('#xac-minh','can-tin','Hỏi đại diện',wait?`${wait} món chờ phản hồi`:'Không có món nào chờ hỏi')}
+      ${tile('#xac-minh','can-tin','Tài sản thất lạc',wait?`${wait} món chờ xác minh`:'Không có món nào chờ xác minh')}
       ${tile('#xuat','thu-vien','Xuất cho kế toán','File Excel gốc + 3 cột kết quả')}
       ${tile('#phong-'+NOROOM,'sanh-giai-tri','Tài sản chưa có vị trí',`${nf.format(all.novt)} tài sản cần ghi phòng`)}
     </div>
@@ -1733,7 +1742,7 @@ function viewUnit(id){
       <div class="fld"><label for="u-ngay">Ngày kiểm</label><input class="in" type="date" id="u-ngay" data-u="ngay" value="${esc(us.ngay)}"></div>
       <div class="fld"><label for="u-kt">Kế toán đi cùng</label><input class="in" id="u-kt" data-u="ketoan" value="${esc(us.ketoan)}" placeholder="Họ tên kế toán"></div>
       <div class="fld"><span class="lbl">Cán bộ đơn vị có mặt</span><div class="chips">${us.canbo.map((n,i)=>`<span class="chip">${esc(n)}<button data-act="rmcb" data-i="${i}" aria-label="Bỏ ${esc(n)}">×</button></span>`).join('')}<input class="in" id="u-cb" placeholder="Nhập tên, Enter để thêm"></div></div>
-      <div class="fld"><label for="u-dd">Đại diện đơn vị (${esc(u.dd)})</label><input class="in" id="u-dd" data-u="daidien" value="${esc(us.daidien)}" placeholder="Người để hỏi khi không xử lý được"></div>
+      <div class="fld"><label for="u-dd">Đại diện đơn vị (${esc(u.dd)})</label><input class="in" id="u-dd" data-u="daidien" value="${esc(us.daidien)}" placeholder="Người để hỏi khi có tài sản không tìm thấy"></div>
     </div>
   </section>
   <div id="strip">${stripHTML(id,'')}</div>
@@ -1817,9 +1826,14 @@ function viewXM(){
   };
   const wait=items.filter(a=>(S.xm[a.stt]?.kq||'cho')==='cho'), done=items.filter(a=>(S.xm[a.stt]?.kq||'cho')!=='cho');
   app.innerHTML=`${demoBanner()}
-  ${banner('can-tin','Tài sản chưa tìm thấy','Hỏi đại diện đơn vị',`Những món cán bộ có mặt không chỉ ra được. Hỏi Trưởng phòng ban hoặc Chủ nhiệm bộ môn rồi ghi lại kết quả.`)}
+  ${banner('can-tin','Xác minh với đại diện phòng ban','Tài sản thất lạc','Nơi ghi lại thông tin đại diện phòng ban cung cấp về những tài sản đi kiểm mà chưa tìm thấy: hỏi ai, hỏi bằng cách nào, họ trả lời gì và kết quả cuối cùng.')}
+  <ol class="xsteps">
+    <li><b>Khi kiểm</b>: tài sản nào không tìm thấy thì bấm <b>Không thấy</b>. Tài sản đó tự vào trang này.</li>
+    <li><b>Hỏi đại diện phòng ban</b> (Trưởng phòng ban, Chủ nhiệm bộ môn, Trưởng khoa…), chọn cách liên hệ và ghi lại câu trả lời.</li>
+    <li><b>Chọn kết quả</b>: <i>Đã tìm thấy</i> → tính là Đủ · <i>Đã chỉ vị trí khác</i> → bấm “Đến phòng này kiểm lại” · <i>Điều chuyển, Hỏng, Xác nhận mất</i> → ghi vào file cho kế toán.</li>
+  </ol>
   <div class="sect"><h2>Chờ phản hồi</h2><span class="num">${wait.length} món</span></div>
-  <div class="list">${wait.length?wait.map(card).join(''):'<div class="empty">Không còn món nào chờ hỏi.</div>'}</div>
+  <div class="list">${wait.length?wait.map(card).join(''):`<div class="empty">${items.length?'Không còn món nào chờ xác minh.':'Chưa có tài sản nào. Khi kiểm, bấm “Không thấy” ở tài sản nào thì tài sản đó sẽ tự vào đây.'}</div>`}</div>
   ${done.length?`<div class="sect" style="margin-top:22px"><h2>Đã có kết quả</h2><span class="num">${done.length} món</span></div><div class="list">${done.map(card).join('')}</div>`:''}`;
 }
 
@@ -1865,7 +1879,7 @@ function viewXuat(){
 }
 
 /* ---------- trang Lịch sử thao tác (#lich-su) ---------- */
-const LOG_KIND={kiem:['Kiểm tài sản','ClipboardCheck'],hoi:['Hỏi đại diện','MessageCircleQuestion'],buoi:['Buổi kiểm','CalendarCheck'],ps:['Tài sản phát sinh','PackagePlus'],xuat:['Xuất file','FileSpreadsheet'],khac:['Khác','UserPen']};
+const LOG_KIND={kiem:['Kiểm tài sản','ClipboardCheck'],hoi:['Xác minh thất lạc','MessageCircleQuestion'],buoi:['Buổi kiểm','CalendarCheck'],ps:['Tài sản phát sinh','PackagePlus'],xuat:['Xuất file','FileSpreadsheet'],khac:['Khác','UserPen']};
 const LV={who:'me',kind:'',q:'',srv:[],more:false,last:'',loading:false,err:'',tok:0,need:true};
 const LOG_PAGE=200;
 const fold=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[đĐ]/g,'d').toLowerCase();
@@ -1944,7 +1958,7 @@ function logDraw(){
 function logDrawSoon(){ clearTimeout(logDrawSoon._t); logDrawSoon._t=setTimeout(logDraw,200); }
 function viewLog(){
   app.innerHTML=`${demoBanner()}
-  ${banner('vuon','Theo dõi','Lịch sử thao tác','Mỗi lần bấm Đủ, Không thấy, đổi phòng, ghi tình trạng, ghi chú, hỏi đại diện hay xuất file đều được ghi lại: ai làm, lúc nào, trước và sau ra sao.')}
+  ${banner('vuon','Theo dõi','Lịch sử thao tác','Mỗi lần bấm Đủ, Không thấy, đổi phòng, ghi tình trạng, ghi chú, xác minh tài sản thất lạc hay xuất file đều được ghi lại: ai làm, lúc nào, trước và sau ra sao.')}
   <div class="tools ltools">
     <div class="seg" role="group" aria-label="Xem thao tác của ai"><button data-act="logwho" data-v="me" aria-pressed="${LV.who==='me'}">${ic('UserRound')}Của tôi</button><button data-act="logwho" data-v="all" aria-pressed="${LV.who==='all'}">${ic('Users')}Mọi người</button></div>
     <select class="in" id="lk" aria-label="Loại thao tác"><option value="">Mọi loại thao tác</option>${Object.entries(LOG_KIND).map(([k,[n]])=>`<option value="${k}" ${LV.kind===k?'selected':''}>${n}</option>`).join('')}</select>
@@ -2094,10 +2108,11 @@ app.addEventListener('change',e=>{
     if(t.dataset.f==='cond'&&t.value){ const lb=(COND.find(c=>c[0]===t.value)||[])[1]; flash(t.value==='tot'?'ok':'warn',t.value==='tot'?'✓':'!',`Tình trạng: ${lb}`,`${a.ma||'STT '+a.stt} · ${a.short}`); }
     return;
   }
-  if(t.dataset.x && stt){ const x=S.xm[stt]||(S.xm[stt]={kq:'cho'}); x[t.dataset.x]=t.value; x.at=Date.now(); if(ME) x.by=ME;
+  if(t.dataset.x && stt){ const x=S.xm[stt]||(S.xm[stt]={kq:'cho'}); const kq0=x.kq||'cho'; x[t.dataset.x]=t.value; x.at=Date.now(); if(ME) x.by=ME;
     if(t.dataset.x==='kq'){ const r=S.rows[stt]||(S.rows[stt]={});
       if(t.value==='thay'){ r.nf=false; r.tt=BY_STT[stt].sl; }
-      else if(t.value==='hong'){ r.cond='thanh_ly'; }
+      else if(kq0==='thay'){ r.nf=true; r.tt=0; }   // bỏ "Đã tìm thấy" (chọn nhầm) → lại là chưa tìm thấy
+      if(t.value==='hong'){ r.cond='thanh_ly'; }
     }
     save(); viewXM(); updateBadge(); return; }
   if(t.dataset.u){ unitState(V.id)[t.dataset.u]=t.value; save(); return; }

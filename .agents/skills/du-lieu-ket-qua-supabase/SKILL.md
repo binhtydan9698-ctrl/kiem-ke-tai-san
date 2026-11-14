@@ -13,7 +13,7 @@ description: >-
 - `col`:
   - `rows` — kết quả từng tài sản, `id` = **Mã TSCĐ** (tài sản không mã: `stt:<STT>`),
     `data` = `{tt, nf, hs, phong, cond, note, at, by}`
-  - `xm` — hỏi đại diện, `id` = Mã TSCĐ, `data` = `{kq, cach, phanhoi, phong, at, by}`
+  - `xm` — mục "Tài sản thất lạc" (hỏi đại diện phòng ban), `id` = Mã TSCĐ, `data` = `{kq, cach, phanhoi, phong, at, by}`
   - `units` — buổi kiểm của đơn vị, `id` = mã đơn vị (GD, AI, …)
   - `ps` — tài sản phát sinh, `id` = mã đơn vị hoặc `p:<slug-phòng>`, `data` = `{items:[…]}`
   - `log` — lịch sử thao tác (trang `#lich-su`), mỗi thao tác một bản ghi, chỉ thêm, không sửa kết quả kiểm.
