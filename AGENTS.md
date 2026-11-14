@@ -9,7 +9,8 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
 chọn phần, nút tên ở góc trái chuyển phần):
 - **Kiểm kê tài sản 2026** (đang dùng): mọi trang `#tong-quan`, `#don-vi`, `#vi-tri`, `#dv-…`, `#phong-…`, `#xac-minh`,
   `#xuat`, `#lich-su`; mã trong `web/index.html`.
-- **Quản lý mã QR tài sản** (đang xây dựng, `#ma-qr`): mã viết trong `web/ma-qr.js`.
+- **Quản lý mã QR tài sản** (`#ma-qr`, mã trong `web/ma-qr.js`): in tem mã QR (chọn tài sản, chỉnh mẫu tem, xem trước,
+  tải PDF / ảnh PNG / Excel, CSV / In ngay). Quét tem bằng nút Quét mã mở thẳng trang tài sản `#ts-<khoá>` trong phần Kiểm kê.
 
 Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
 biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
@@ -66,6 +67,10 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
   `web/export.js` (trình duyệt) dùng. Đừng chép logic này sang chỗ khác.
 - Tài sản có mặt ở nhiều sheet: build gộp theo `key`, sheet tên "Tổng hợp" được ưu tiên, ô trống lấy từ sheet khác.
   Export điền kết quả vào MỌI lần xuất hiện của tài sản.
+- **Tem mã QR đã in chứa `https://kiem-ke-tai-san-sigma.vercel.app/#ts-<a.key>`** (hoặc chỉ `a.key`). Nội dung mã và cách
+  đọc lại nằm DUY NHẤT trong `web/qr-rules.js` (`globalThis.KIEMKE_QR`), dùng chung cho trang và `npm test` (bước 4 tạo mã
+  cho mọi tài sản rồi giải mã lại). Không đổi dạng link, không bỏ đường dẫn `#ts-`, không đổi cách tạo `key`: tem đã dán
+  sẽ không còn khớp.
 - Không sửa tay `dist/` (sinh khi build, đã `.gitignore`). Không tự sửa file Excel trừ khi người dùng yêu cầu.
 - `web/config.js` chỉ chứa khoá **publishable/anon** (công khai). Không bao giờ đưa khoá `secret`/`service_role` vào repo.
 - Repo **công khai**: không commit `sao-luu/`, `.gemini/`, `.env`, dữ liệu cá nhân hay khoá bí mật.

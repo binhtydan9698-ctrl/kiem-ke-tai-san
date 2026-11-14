@@ -148,5 +148,44 @@ ok(!thieuKq.length, 'mọi dòng tài sản đều có Kết quả kiểm kê' +
 ok(!saiMau.length, 'kết quả ghi đúng tài sản ở mọi sheet' + (saiMau.length ? ` (sai ${saiMau.length}: ${saiMau.slice(0, 5).join(', ')})` : ''));
 ok(!matCongThuc.length, 'giữ nguyên công thức (dòng TỔNG CỘNG…)' + (matCongThuc.length ? ': lệch ở ' + matCongThuc.join(', ') : ''));
 
+/* 4. Mã QR trên tem: mọi tài sản → tạo mã QR → đọc lại bằng bộ giải mã → phải ra đúng tài sản đó */
+console.log('4. Mã QR trên tem (web/qr-rules.js)');
+{
+  const { createRequire } = await import('node:module');
+  const require = createRequire(import.meta.url);
+  const qrcode = require('qrcode-generator');
+  const jsQRm = require('jsqr'); const jsQR = jsQRm.default || jsQRm;
+  await import(pathToFileURL(path.join(ROOT, 'web', 'qr-rules.js')).href);
+  const Q = globalThis.KIEMKE_QR;
+  const { WEB_URL } = await import('./cau-hinh.mjs');
+  ok(Q.WEB.replace(/\/$/, '') === WEB_URL, `mã QR dẫn tới đúng địa chỉ web (${Q.WEB})`);
+  ok(['qr-rules.js', 'ma-qr.js', 'fonts/BeVietnamPro-Regular.ttf', 'fonts/BeVietnamPro-Bold.ttf'].every(f => fs.existsSync(path.join(DIST, f))), 'dist/ có file mã QR và phông chữ in tem');
+  // tạo mã như trang (qrcode-generator, kiểu Byte), vẽ thành ảnh đen trắng có vùng trắng 4 ô, giải mã bằng jsQR
+  const docLai = (text, ecc) => {
+    const q = qrcode(0, ecc); q.addData(text, 'Byte'); q.make();
+    const n = q.getModuleCount(), sc = 3, N = n + 8, W = N * sc, d = new Uint8ClampedArray(W * W * 4).fill(255);
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c))
+      for (let y = 0; y < sc; y++) for (let x = 0; x < sc; x++) { const j = (((r + 4) * sc + y) * W + (c + 4) * sc + x) * 4; d[j] = d[j + 1] = d[j + 2] = 0; }
+    const kq = jsQR(d, W, W); return { n, data: kq && kq.data };
+  };
+  const byKey = new Map(rows.map(r => [r[8], r]));
+  const sai = []; const co = {};
+  for (const kind of ['link', 'ma']) for (const r of rows) {
+    const k = r[8], p = Q.payload(k, kind), kq = docLai(p, 'M');
+    co[kind] = Math.max(co[kind] || 0, kq.n);
+    const ve = kind === 'ma' ? kq.data : Q.parse(kq.data);
+    if (kq.data !== p || ve !== k || byKey.get(ve) !== r) sai.push(`${kind}:${k}`);
+  }
+  ok(!sai.length, `${rows.length} tài sản × 2 kiểu nội dung (đường link ${co.link}×${co.link} ô, chỉ mã ${co.ma}×${co.ma} ô): mã QR đọc lại đúng tài sản`
+    + (sai.length ? ` (sai ${sai.length}: ${sai.slice(0, 5).join(', ')})` : ''));
+  const mau = rows.filter((r, i) => i % 25 === 0); const saiEcc = [];
+  for (const ecc of ['Q', 'H']) for (const r of mau) { const p = Q.payload(r[8], 'link'); if (docLai(p, ecc).data !== p) saiEcc.push(ecc + ':' + r[8]); }
+  ok(!saiEcc.length, `mức chịu trầy xước Q, H cũng đọc lại đúng (${mau.length} tài sản mẫu)` + (saiEcc.length ? `: sai ${saiEcc.slice(0, 5).join(', ')}` : ''));
+  ok(Q.parse('http://localhost:3000/#ts-5467321') === '5467321' && Q.parse(' ' + Q.payload('5467321') + ' ') === '5467321'
+    && Q.parse('5467321') === null && Q.parse('https://vd.vn/#ma=5467321') === null && Q.parse(Q.WEB + '#ts-') === null && Q.parse(Q.WEB + '#ts-%E0%A4%A') === null,
+    'đọc đường link trên tem: nhận mọi tên miền, bỏ qua nội dung lạ hoặc hỏng');
+  ok(['stt:12', 'khong-ma:Sheet 1:20', 'A/B#C?d=1', 'Mã 01'].every(k => Q.parse(Q.payload(k)) === k), 'khoá có ký tự đặc biệt vẫn đọc lại nguyên vẹn');
+}
+
 console.log(loi ? `\n✗ ${loi} mục KHÔNG đạt` : '\n✓ Tất cả đều đạt');
 process.exit(loi ? 1 : 0);

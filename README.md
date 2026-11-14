@@ -4,7 +4,7 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 
 - **Kiểm kê tài sản 2026** (đang dùng): nhiều tổ cùng kiểm trên điện thoại hoặc máy tính, kết quả lưu chung trên
   Supabase, danh sách tài sản lấy từ **một file Excel** trong thư mục `dữ liệu cập nhật/`.
-- **Quản lý mã QR tài sản**: đang xây dựng.
+- **Quản lý mã QR tài sản**: in tem mã QR cho từng tài sản; quét tem bằng nút **Quét mã** mở thẳng tài sản đó.
 
 - Web: https://kiem-ke-tai-san-sigma.vercel.app
 - Mã nguồn: https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
@@ -19,6 +19,8 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | Xem thử trên máy trước khi đẩy | Bấm đúp **`Xem thử trên máy.bat`** → http://localhost:3000 |
 | Kiểm tra file Excel (đối chiếu sheet Tổng hợp với các sheet con…) | Bấm đúp **`Kiểm tra dữ liệu.bat`**: dòng ✗ là cần sửa trong Excel, dòng ! chỉ là ghi chú |
 | Lấy file cho kế toán | Trên web: **Xuất cho kế toán → Tải file Excel cho kế toán** |
+| In tem mã QR | Trên web: **Quản lý mã QR tài sản** → chọn tài sản, chỉnh tem → **Tải PDF để in** (nhà in, máy in tem), ảnh PNG, Excel/CSV (phần mềm máy in tem) hoặc **In ngay** |
+| Quét tem để kiểm | Bấm **Quét mã**, đưa tem vào camera → trang mở thẳng tài sản đó để bấm Đủ / Không thấy |
 | Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |
 
 Sau khi đẩy, khoảng 1 phút sau web có dữ liệu mới. Ai đang mở trang sẽ thấy thông báo **"Tải lại trang"**.

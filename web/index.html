@@ -17,6 +17,9 @@
 <script src="data/assets.js"></script>
 <script src="excel-rules.js"></script>
 <script src="export.js"></script>
+<!-- Tem mã QR: tạo mã (qrcode-generator), quy tắc nội dung mã dùng chung với npm test (qr-rules.js), phần Quản lý mã QR (ma-qr.js) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script src="qr-rules.js"></script>
 <script src="ma-qr.js"></script>
 </head>
 <body>
@@ -630,8 +633,69 @@ a.btn{text-decoration:none}
 .mods-p .mt{display:flex;flex-direction:column;gap:1px;min-width:0}
 .mods-p b{font-size:14px} .mods-p small{font-size:12px;color:var(--muted)}
 /* menu và nút Quét mã chỉ thuộc phần Kiểm kê */
-body:not([data-mod="kk"]) #nav,body:not([data-mod="kk"]) #scanBtn{display:none}
+body:not([data-mod="kk"]) #nav,body[data-mod="hub"] #scanBtn{display:none}
 body:not([data-mod="kk"]) .who{margin-left:auto}
+/* trang một tài sản (#ts-…) */
+.tsx{display:grid;grid-template-columns:auto minmax(0,1fr);gap:20px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;margin:6px 0 18px;box-shadow:var(--shadow-sm)}
+.tsx-qr{display:grid;justify-items:center;gap:4px;padding:6px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.tsx-qr small{font-size:11px;color:#555}
+.tsx-k{font-size:13px;color:var(--muted)} .tsx-k b{color:var(--fg);font-size:15px}
+.tsx h1{font-size:22px;line-height:1.3;margin:4px 0 10px;text-wrap:balance}
+.tsx-dl{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px 18px;margin:0}
+.tsx-dl dt{font-size:12px;color:var(--muted)} .tsx-dl dd{margin:0;font-weight:500}
+.tsx-go{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0 8px}
+.tsx-go .btn{text-decoration:none}
+@media (max-width:560px){.tsx{grid-template-columns:1fr;padding:14px}.tsx-qr{justify-self:start}.tsx h1{font-size:19px}}
+/* trang In tem mã QR (#ma-qr) */
+.qrw{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start;margin-top:4px}
+.qr-col{display:grid;gap:14px;min-width:0}
+.qr-side{position:sticky;top:calc(var(--toph,60px) + 12px)}
+.qr-s,.qr-pv,.qr-ex{display:grid;gap:10px}
+.qrw h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin:0}
+.qrw .qn{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:#fff;font-size:12px;font-weight:700;flex:0 0 auto}
+.qr-g2,.qr-g3,.qr-g4{display:grid;gap:10px;align-items:end}
+.qr-g2{grid-template-columns:repeat(2,minmax(0,1fr))} .qr-g3{grid-template-columns:1.4fr 1fr 1fr} .qr-g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.qrw .fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.qrw .fld label{font-size:12.5px;color:var(--muted)}
+.qrw .fld .in{width:100%}
+.qr-end{justify-content:flex-end;padding-bottom:8px}
+.qr-line{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.qr-line .chk{flex:0 0 auto}
+.qr-line .in{flex:1 1 140px;min-width:0;width:auto}
+.qr-seg{display:flex;flex-wrap:wrap}
+.qr-seg button{flex:1 1 auto}
+.qr-count{margin:0;font-size:14px} .qr-count b{font-size:16px}
+.qr-info{margin:0;font-size:13px;color:var(--muted);line-height:1.5}
+.qr-ok{color:var(--ok)} .qr-warn{color:var(--warn);font-weight:600} .qr-bad{color:var(--bad)}
+.qr-pick summary{cursor:pointer;color:var(--accent);font-size:13.5px;font-weight:600}
+.qr-pt{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 8px}
+.qr-list{max-height:320px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.qr-row{display:grid;grid-template-columns:auto 72px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:13px;cursor:pointer}
+.qr-row:last-child{border-bottom:0}
+.qr-row .qr-nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qr-row .qr-rm{color:var(--muted);font-size:12px;white-space:nowrap}
+.qr-vh span{font-weight:400;color:var(--muted);font-size:13px}
+.qr-pvh{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.qr-nav{display:flex;align-items:center;gap:8px;font-size:13px}
+.qr-stage{background:var(--surface-2);border-radius:8px;padding:16px;display:grid;place-items:center;min-height:200px;overflow:auto}
+.qr-stage svg{display:block;width:100%;height:auto;filter:drop-shadow(0 1px 3px rgba(0,0,0,.18))}
+.qr-stage .qr-page{max-width:520px}
+.qr-cap{margin:0;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qr-test{margin:0;font-size:13px;display:flex;gap:6px;align-items:center;min-height:20px}
+.qr-test svg{width:16px;height:16px;flex:0 0 auto}
+.qr-test.ok{color:var(--ok)} .qr-test.bad{color:var(--bad)}
+.qr-btns{display:flex;flex-wrap:wrap;gap:8px}
+.qr-btns .btn{display:inline-flex;align-items:center;gap:6px}
+.qr-btns .btn svg{width:16px;height:16px}
+.qr-png{display:inline-flex;gap:6px;align-items:center}
+.qr-png .in{width:auto}
+.qr-msg{margin:0;font-size:13.5px;min-height:20px}
+.qr-msg.bad{color:var(--bad)}
+.qr-help{margin:0;padding-left:18px;font-size:13px;color:var(--muted);display:grid;gap:5px}
+.qr-help b{color:var(--fg)}
+.qrw.busy .qr-btns .btn{opacity:.55;pointer-events:none}
+@media (max-width:980px){.qrw{grid-template-columns:1fr}.qr-side{position:static}}
+@media (max-width:560px){.qr-g3{grid-template-columns:1fr 1fr}.qr-g3 .fld:first-child{grid-column:1/-1}.qr-g4{grid-template-columns:1fr 1fr}.qr-row{grid-template-columns:auto 64px minmax(0,1fr) auto}.qr-row .qr-rm{display:none}}
 /* trang chủ Quản lý tài sản */
 .hero.hub{min-height:260px}
 /* trang Mã QR (đang xây dựng) */
@@ -905,7 +969,7 @@ body:not([data-mod="kk"]) .who{margin-left:auto}
       <div class="mods-p">
         <a href="#trang-chu" data-m="hub"><span class="mi"><span data-ic="LayoutGrid"></span></span><span class="mt"><b>Trang chủ Quản lý tài sản</b><small>Chọn phần việc</small></span></a>
         <a href="#tong-quan" data-m="kk"><span class="mi"><span data-ic="ClipboardCheck"></span></span><span class="mt"><b>Kiểm kê tài sản 2026</b><small>Kiểm theo phòng, phòng ban · xuất cho kế toán</small></span></a>
-        <a href="#ma-qr" data-m="qr"><span class="mi"><span data-ic="QrCode"></span></span><span class="mt"><b>Quản lý mã QR tài sản</b><small>Đang xây dựng</small></span></a>
+        <a href="#ma-qr" data-m="qr"><span class="mi"><span data-ic="QrCode"></span></span><span class="mt"><b>Quản lý mã QR tài sản</b><small>In tem mã QR · quét tem mở thẳng tài sản</small></span></a>
       </div>
     </details>
     <nav class="nav" id="nav">
@@ -1971,7 +2035,7 @@ function logLine(l){
 function logItemHTML(e){
   const [kn,icn]=LOG_KIND[e.kind]||LOG_KIND.khac, a=e.key?BY_KEY[e.key]:null, lines=e.lines||[], t=e.t0||e.t;
   const lis=l=>l.map(x=>`<li>${logLine(x)}</li>`).join('');
-  const go=a?`<a class="lnk" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma||a.short)}">Mở tài sản →</a>`
+  const go=a?`<a class="lnk" href="#ts-${encodeURIComponent(a.key)}">Mở tài sản →</a>`
     :e.room?`<a class="lnk" href="#phong-${esc(e.room)}">Mở phòng →</a>`:(e.u&&UNIT[e.u])?`<a class="lnk" href="#dv-${e.u}">Mở sheet ${esc(UNIT[e.u].sheet)} →</a>`:'';
   const meta=[a?`STT ${a.stt}`:'',a?esc(UNIT[a.unit].ten):'',e.t0&&e.t-e.t0>59000?`sửa tới ${hh(e.t)}`:''].filter(Boolean).join(' · ');
   return `<li class="lg k-${esc(e.kind||'khac')}">
@@ -2027,6 +2091,38 @@ async function logXlsx(b){
   finally{ b.disabled=false; b.innerHTML=old; }
 }
 
+/* ---------- trang một tài sản (#ts-<khoá>): nơi tem mã QR dẫn tới ---------- */
+function tsKey(s){ try{ return decodeURIComponent(s); }catch(e){ return s; } }
+function viewTS(key){
+  const a=BY_KEY[key];
+  if(!a){ app.innerHTML=`${demoBanner()}<div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a></div>
+    <div class="empty" style="margin-top:16px"><b>Không có tài sản mã “${esc(key)}” trong danh sách hiện tại.</b><br>Có thể tài sản đã bị bỏ khỏi file Excel biên bản, hoặc tem không phải của trang này.<br><br><button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét lại</button></div>`; return; }
+  const u=UNIT[a.unit], n=roomOf(a), rs=n?slugify(n):NOROOM;
+  app.innerHTML=`${demoBanner()}
+  <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / <a href="#dv-${a.unit}">Sheet ${esc(u.sheet)}</a> / <a href="#phong-${rs}">${esc(n||'Chưa có vị trí')}</a></div>
+  <section class="tsx">
+    <div class="tsx-qr">${qrSvg(KIEMKE_QR.payload(a.key),116)}<small>Mã QR trên tem</small></div>
+    <div class="tsx-in">
+      <div class="tsx-k">Mã TSCĐ <b class="mono">${esc(a.ma||'không mã')}</b> · STT ${a.stt}</div>
+      <h1>${esc(a.ten)}</h1>
+      <dl class="tsx-dl">
+        <div><dt>Đơn vị</dt><dd>${esc(u.ten)}</dd></div>
+        <div><dt>Vị trí</dt><dd>${esc(n||'Chưa có vị trí')}${a.vt0&&n&&n!==a.vt0?` <span class="tag warn">sổ ghi ${esc(a.vt0)}</span>`:''}</dd></div>
+        <div><dt>Số lượng theo sổ</dt><dd class="num">${nf.format(a.sl)}</dd></div>
+        <div><dt>Ngày ghi sổ</dt><dd class="num">${dmy(a.ngay)}</dd></div>
+        <div><dt>Nguyên giá</dt><dd class="num">${money(a.gia)}</dd></div>
+      </dl>
+    </div>
+  </section>
+  <div class="sect"><h2>Kiểm tài sản này</h2></div>
+  ${LHEAD}<div class="list">${rowHTML(a)}</div>
+  <div class="tsx-go">
+    <button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét tem tiếp</button>
+    <a class="btn" href="#phong-${rs}" data-act="goto" data-q="${esc(a.ma||'')}">${ic('MapPin')}Mở ${n?'phòng '+esc(n):'nhóm Chưa có vị trí'}</a>
+    <a class="btn" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma||'')}">${ic('Users')}Mở sheet ${esc(u.sheet)}</a>
+  </div>`;
+}
+
 /* ---------- trang chủ Quản lý tài sản: 2 phần ngang hàng ---------- */
 function viewHub(){
   const all=count(ASSETS); const pct=all.tong?Math.round(all.da/all.tong*100):0;
@@ -2041,7 +2137,7 @@ function viewHub(){
   <div class="stitle"><h2>Chọn <strong>phần việc</strong></h2></div>
   <div class="mbig">
     ${tile('#tong-quan','hoi-truong','Kiểm kê tài sản 2026',`${pct}% đã kiểm · ${nf.format(all.da)}/${nf.format(all.tong)} dòng · số liệu chốt sổ đến hết 31/10/2026`,'big')}
-    ${tile('#ma-qr','phong-lab','Quản lý mã QR tài sản','Đang xây dựng · quản lý tem mã QR gắn trên từng tài sản','big')}
+    ${tile('#ma-qr','phong-lab','Quản lý mã QR tài sản','In tem mã QR cho từng tài sản · quét tem bằng nút Quét mã mở thẳng tài sản','big')}
   </div>`;
 }
 /* phần đang mở: hub = trang chủ, kk = Kiểm kê tài sản, qr = Mã QR tài sản */
@@ -2060,10 +2156,10 @@ function setMod(m){
 
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else viewOverview(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else viewOverview(); }
 function route(){
   const h=(location.hash||'#trang-chu').slice(1);
-  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:{type:'ov'};
+  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
   V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':'kk');
@@ -2240,12 +2336,26 @@ function scanItem(a){
   const r=res(a), n=roomOf(a), canDu=r==='chua'&&!a.hoso&&!READONLY&&READY;
   return `<div class="shit r-${r}" data-stt="${a.stt}">
     <div><div class="nm">${esc(a.short)}</div><div class="sub"><span class="mono">${esc(a.ma||'không mã')}</span> · STT ${a.stt} · ${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div><div class="sub">${ic('MapPin')} ${n?esc(n):'Chưa có vị trí'}</div></div>
-    <div class="acts"><span class="badge ${r}">${RES_LABEL[r]}</span>${canDu?`<button class="btn sm ok" data-sa="du">${ic('Check')}Đủ</button>`:''}<button class="btn sm" data-sa="room">${ic('MapPin')}Mở phòng</button><button class="btn sm" data-sa="unit">${ic('Users')}Mở đơn vị</button></div></div>`;
+    <div class="acts"><span class="badge ${r}">${RES_LABEL[r]}</span><button class="btn sm pri" data-sa="ts">${ic('ArrowRight')}Xem</button>${canDu?`<button class="btn sm ok" data-sa="du">${ic('Check')}Đủ</button>`:''}<button class="btn sm" data-sa="room">${ic('MapPin')}Mở phòng</button><button class="btn sm" data-sa="unit">${ic('Users')}Mở đơn vị</button></div></div>`;
 }
 function scanMsg(t,bad){ const m=document.getElementById('scanMsg'); m.className='msg'+(bad?' bad':''); m.textContent=t; }
+function scanGo(a,fromCam){
+  if(fromCam&&navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
+  SD.close(); const h='ts-'+encodeURIComponent(a.key);
+  if(location.hash==='#'+h) render(); else location.hash=h;
+  flash('ok','✓',`Đã mở tài sản ${a.ma||'STT '+a.stt}`,a.short);
+}
 function scanShow(raw,fromCam){
-  const t=scanParse(raw); const box=document.getElementById('scanRes');
-  if(!t){ box.innerHTML=''; return; }
+  const txt=String(raw||'').trim(), box=document.getElementById('scanRes');
+  if(!txt){ box.innerHTML=''; return; }
+  // 1. tem in từ phần Mã QR: khoá nằm trong đường link → tra đúng khoá, không đoán
+  const k=window.KIEMKE_QR?KIEMKE_QR.parse(txt):null;
+  if(k!=null){ const a=BY_KEY[k]; if(a){ scanGo(a,fromCam); return; }
+    scanMsg(`Tem có mã “${k}” nhưng không có tài sản này trong danh sách hiện tại.`,true); box.innerHTML=''; return; }
+  // 2. nội dung là đúng một Mã TSCĐ (tem chỉ chứa mã, mã vạch, hoặc gõ đủ mã)
+  const t=scanParse(txt); const exact=BY_KEY[t]||BY_MA[t.toUpperCase()];
+  if(exact){ scanGo(exact,fromCam); return; }
+  if(fromCam){ scanMsg(`Mã quét được “${t.length>40?t.slice(0,40)+'…':t}” không khớp tài sản nào trong sổ. Nếu là đồ ngoài sổ, ghi vào mục Tài sản phát sinh.`,true); box.innerHTML=''; return; }
   const hits=scanFind(t);
   if(!hits.length){ scanMsg(`Không tìm thấy tài sản có mã “${t}”. Nếu là đồ ngoài sổ, ghi vào mục Tài sản phát sinh.`,true); box.innerHTML=''; return; }
   scanMsg(hits.length===1?(fromCam?'Đã đọc mã: '+t:'Tìm thấy 1 tài sản'):`Có ${hits.length} tài sản khớp “${t}”${hits.length===8?' (hiện 8 món đầu, gõ thêm để thu hẹp)':''}`);
@@ -2261,7 +2371,10 @@ async function scanStart(){
     SC.cam=new Html5Qrcode('scanCam');
     await SC.cam.start({facingMode:'environment'},
       {fps:10,qrbox:(w,h)=>{ const s=Math.max(160,Math.floor(Math.min(w,h)*.7)); return {width:s,height:Math.floor(s*.75)}; }},
-      text=>{ const now=Date.now(); if(text===SC.last&&now-SC.lastAt<2500) return; SC.last=text; SC.lastAt=now; scanShow(text,true); },
+      (text,r)=>{ const now=Date.now(); if(text===SC.last&&now-SC.lastAt<2500) return;
+        const fmt=r&&r.result&&r.result.format&&r.result.format.formatName||'';
+        if(fmt&&fmt!=='QR_CODE'&&!(SC.pend===text&&now-SC.pendAt<1500)){ SC.pend=text; SC.pendAt=now; scanMsg('Giữ yên để đọc lại mã vạch cho chắc…'); return; }
+        SC.pend=''; SC.last=text; SC.lastAt=now; scanShow(text,true); },
       ()=>{});
     if(!SD.open) scanStop();
   }catch(e){ SC.cam=null; cam.textContent='Không mở được camera. Hãy cho phép trình duyệt dùng camera, hoặc gõ mã bên dưới.'; }
@@ -2284,6 +2397,7 @@ SD.addEventListener('click',e=>{ if(e.target===SD) SD.close(); });
 document.getElementById('scanForm').addEventListener('submit',e=>{ e.preventDefault(); scanShow(document.getElementById('scanIn').value,false); });
 document.getElementById('scanRes').addEventListener('click',e=>{
   const b=e.target.closest('[data-sa]'); if(!b) return; const a=BY_STT[+b.closest('[data-stt]').dataset.stt]; if(!a) return;
+  if(b.dataset.sa==='ts'){ scanGo(a,false); return; }
   if(b.dataset.sa==='du'){ markDu(a.stt); b.closest('.shit').outerHTML=scanItem(a); scanMsg(`Đã ghi Đủ: ${a.ma||'STT '+a.stt}. Quét món tiếp theo.`); return; }
   const n=roomOf(a); const h=b.dataset.sa==='room'?'phong-'+(n?slugify(n):NOROOM):'dv-'+a.unit;
   SD.close();

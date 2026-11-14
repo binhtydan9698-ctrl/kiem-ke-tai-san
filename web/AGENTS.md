@@ -18,10 +18,15 @@
   ảnh campus Đà Nẵng ở `web/img/` (bản 1024px lấy từ daihoc.fpt.edu.vn; người dùng yêu cầu không hiện dòng ghi nguồn ảnh trên trang). Ảnh dưới màn hình đầu
   để `loading="lazy"`. Menu "Tổng quan" xổ ra 3 trang: `#tong-quan`, `#don-vi`, `#vi-tri`.
 - Trang gồm 2 phần ngang hàng dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
-  **Kiểm kê** (mọi trang còn lại) và **Mã QR** (`#ma-qr`, `viewQR` trong `ma-qr.js`). `setMod()` đổi tên/biểu tượng ở
+  **Kiểm kê** (mọi trang còn lại, gồm trang một tài sản `#ts-<khoá>` = `viewTS`) và **Mã QR** (`#ma-qr`, `viewQR` trong `ma-qr.js`). `setMod()` đổi tên/biểu tượng ở
   góc trái (`#mods`) và `body[data-mod=hub|kk|qr]`; menu `#nav` và nút Quét mã chỉ hiện ở phần Kiểm kê.
   Mã của phần Mã QR viết trong `ma-qr.js` (dùng lại `ASSETS`, `banner()`, `ic()`, `esc()`… của `index.html`); thêm
   file `.js` mới thì thêm vào `MA_TRANG` trong `scripts/kiem-tra-web.mjs`.
+- In tem (`ma-qr.js`): một bố cục `temOps()` (mm) vẽ ra cả 4 nơi: xem trước và In ngay (SVG), PDF (jsPDF, nhúng phông
+  `fonts/BeVietnamPro-*.ttf`), ảnh PNG (canvas, ghi dpi). Sửa bố cục chỉ sửa `temGeo`/`temOps`. Trước khi xuất luôn chạy
+  `temVerify` (giải mã lại mọi mã bằng jsQR). Thư viện jsPDF/JSZip/jsQR chỉ tải khi cần (`temLoad`).
+- Quét mã (`scanShow`): tem của app → `KIEMKE_QR.parse` → tra đúng `BY_KEY`; mã khớp nguyên văn → mở `#ts-…`; camera không
+  bao giờ đoán gần đúng; mã vạch (không phải QR) phải đọc giống nhau 2 lần mới nhận.
 - Chèn chữ do người dùng nhập vào HTML luôn qua `esc()`.
 - Trạng thái kiểm kê nằm trong `S`; sau khi đổi `S` phải gọi `save()` rồi làm mới giao diện (`refreshRow`/`render`).
   Không gọi `save()` trong hàm render.
