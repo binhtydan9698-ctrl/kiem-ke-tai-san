@@ -25,6 +25,9 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
 6. Repo GitHub để **riêng tư**. Dù vậy vẫn coi như có thể lộ: không commit khoá, mật khẩu, email thật, dữ liệu cá nhân.
 7. Trang không cho máy tìm kiếm lập chỉ mục (`robots.txt`, tiêu đề `X-Robots-Tag`).
 8. Chỉ thu thập thông tin cần cho quản lý tài sản.
+9. **Ảnh tài sản** (nút ⋯): chỉ chụp tài sản, tem, số máy; không chụp người, giấy tờ cá nhân, màn hình có thông tin cá nhân. Ảnh nằm ở
+   kho Supabase Storage **riêng tư** `anh-tai-san`: không có đường link công khai, thành viên xem qua đường dẫn có hạn 1 giờ, chỉ
+   quyền Kiểm kê / Quản trị tải lên, xoá (máy chủ chặn). Ảnh được thu nhỏ trong trình duyệt trước khi gửi.
 
 ## C. Quy tắc tài khoản đăng nhập
 
@@ -83,7 +86,8 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
 
 1. **Supabase → Authentication → Sign In / Providers → Email**: tắt *Confirm email*; *Minimum password length* = 12; bật *Allow new
    users to sign up* lúc tạo tài khoản (tắt lại khi xong). Gói trả phí có *leaked password protection* thì bật.
-2. **Supabase → SQL Editor**: chạy `supabase/dang-nhap.sql` (bản mới nhất; file đổi thì chạy lại, không mất dữ liệu).
+2. **Supabase → SQL Editor**: chạy `supabase/dang-nhap.sql` (bản mới nhất; file đổi thì chạy lại, không mất dữ liệu). File này tạo
+   luôn kho ảnh tài sản riêng tư `anh-tai-san` (Storage).
 3. Mở trang → **Tạo tài khoản quản trị** → trang bắt **bật xác thực 2 bước** ngay (cài Google / Microsoft Authenticator, quét mã QR)
    → vào Chung › Quản lý đổi mật khẩu nếu đã từng gửi qua chat.
 4. **Khoá dữ liệu tài sản**: Chung › Quản lý › *Sao chép khoá* → Vercel → Settings → Environment Variables → `KIEMKE_KHOA_DU_LIEU`

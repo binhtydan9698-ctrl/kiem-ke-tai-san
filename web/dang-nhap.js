@@ -125,6 +125,15 @@
         async luu(r) { const { data, error } = await sb.from('danh_ba').upsert(r).select().single(); if (error) throw error; return data; },
         async xoa(id) { const { error } = await sb.from('danh_ba').delete().eq('id', id); if (error) throw error; },
       },
+      // kho ảnh riêng tư (Supabase Storage "anh-tai-san", anh.js): tải lên, lấy đường dẫn có hạn 1 giờ, xoá
+      anh: {
+        async tai(p, blob) { const { error } = await sb.storage.from('anh-tai-san').upload(p, blob, { contentType: 'image/jpeg', upsert: false, cacheControl: '3600' }); if (error) throw error; },
+        async url(ps) {
+          const { data, error } = await sb.storage.from('anh-tai-san').createSignedUrls(ps, 3600); if (error) throw error;
+          const m = {}; (data || []).forEach(x => { if (x && x.signedUrl) m[x.path] = x.signedUrl; }); return m;
+        },
+        async xoa(ps) { const { error } = await sb.storage.from('anh-tai-san').remove(ps); if (error) throw error; },
+      },
       theoDoi(f) { sb.auth.onAuthStateChange(ev => { if (ev === 'SIGNED_OUT') f(); }); },
     };
   }

@@ -35,7 +35,7 @@ export function cspTrang(hashMaChinh, supabaseUrl) {
     `script-src 'self' 'sha256-${hashMaChinh}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com`,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob:",
+    `img-src 'self' data: blob:${sb ? ' ' + sb : ''}`,   // ảnh tài sản: đường dẫn có hạn từ kho riêng Supabase Storage
     `connect-src 'self' blob: data:${sb ? ' ' + sb + ' ' + ws : ''}`,
     "worker-src 'self' blob:",
     "media-src 'self' blob:",

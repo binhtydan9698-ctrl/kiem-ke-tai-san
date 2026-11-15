@@ -33,6 +33,7 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | Ghi tài sản cất kho, cho mượn, chờ thanh lý, đã bàn giao… | Dòng tài sản → **Chi tiết, ghi chú** → ô **Trạng thái sử dụng** (tách riêng với Tình trạng hư hỏng) |
 | Biết khi Supabase bị tạm dừng | GitHub tự đọc thử mỗi sáng 8h; không đọc được thì gửi mail báo (tới email nhận thông báo của tài khoản GitHub) |
 | Gom tài sản hết khấu hao đi thanh lý | **Chung → Khấu hao**: chọn số năm khấu hao (đang tạm tính), xem tài sản đã hết và sắp hết trong 12 tháng tới, **Tải Excel danh sách** |
+| Xem mã QR, thêm ảnh cho một tài sản | Bấm nút **⋯** trên dòng tài sản: mã QR (In tem, Mở trang tài sản) và ảnh (tối đa 5 ảnh, **Thêm ảnh** / **Chụp ảnh**); bấm ảnh để xem toàn màn hình, vuốt hoặc bấm mũi tên sang ảnh khác, tải về, chia sẻ. Cần bật đăng nhập; quyền Tra cứu chỉ xem |
 | Biết liên hệ ai về tài sản của một phòng ban, bộ môn | **Chung → Đầu mối**: nhập tên, chức vụ, email công việc cho từng sheet; đầu mối hiện ở trang tài sản, trang sheet, Tài sản thất lạc (không đưa vào file cho kế toán) |
 | Lưu số điện thoại, email của cán bộ liên quan | **Chung → Danh bạ** (chỉ người đã đăng nhập xem được; người có quyền sửa mới thêm, sửa) |
 | Đăng nhập, đổi mật khẩu, quản lý thành viên | Bật một lần bằng `supabase/dang-nhap.sql` (Supabase SQL Editor) + tắt "Confirm email"; sau đó **Chung → Quản lý**: đổi mật khẩu, xác thực 2 bước, đăng xuất (cả trên mọi thiết bị); quản trị thêm, khoá thành viên, đặt quyền, đặt lại mật khẩu |
@@ -81,6 +82,7 @@ web/                   Mã nguồn trang
   index.html           Giao diện + logic kiểm kê
   excel-rules.js       Quy tắc đọc Excel (tiêu đề, dòng tổng, khoá) — dùng chung cho build và xuất
   export.js            Xuất Excel cho kế toán (ExcelJS)
+  anh.js               Nút ⋯ trên dòng tài sản: mã QR + ảnh tài sản, xem ảnh toàn màn hình
   supabase-db.js       Bộ nối Supabase: đọc/ghi + thời gian thực
   config.js            Địa chỉ Supabase + khoá publishable (công khai)
   AGENTS.md            Quy ước riêng cho mã nguồn trang (cho trợ lý AI)

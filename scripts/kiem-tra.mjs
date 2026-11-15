@@ -298,6 +298,12 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
   const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'dang-nhap.sql'), 'utf8');
   ok(/revoke all on public\.thanh_vien, public\.danh_ba, public\.bi_mat, public\.kiemke_docs from anon/.test(sql) && /du_cap_xac_thuc/.test(sql) && /length\(p_mat_khau\) < 12/.test(sql)
     && (sql.match(/security definer set search_path/g) || []).length >= 10, 'dang-nhap.sql: thu hồi quyền người không đăng nhập, bắt xác thực 2 bước, mật khẩu ≥ 12, hàm đặc quyền đều cố định search_path');
+  {
+    const pol = sql.match(/create policy "anh tai san[^;]*;/g) || [];
+    ok(/values \('anh-tai-san', 'anh-tai-san', false,/.test(sql) && /set public = false/.test(sql) && pol.length === 4
+      && pol.every(p => / to authenticated /.test(p) && /bucket_id = 'anh-tai-san' and public\.(la_thanh_vien|duoc_ghi)\(/.test(p)),
+      'dang-nhap.sql: kho ảnh tài sản riêng tư (không công khai), chỉ thành viên xem, chỉ quyền Kiểm kê / Quản trị tải lên, xoá');
+  }
 }
 
 console.log(loi ? `\n✗ ${loi} mục KHÔNG đạt` : '\n✓ Tất cả đều đạt');

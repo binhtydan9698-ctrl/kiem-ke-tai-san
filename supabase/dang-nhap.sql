@@ -207,4 +207,20 @@ create policy "kiemke them" on public.kiemke_docs for insert to authenticated wi
 create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.duoc_ghi(col)) with check (public.duoc_ghi(col));
 create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.duoc_ghi(col) and (col <> 'log' or public.la_quan_tri()));
 
+-- ===== Kho ảnh tài sản (nút ⋯ trên dòng tài sản, web/anh.js) =====
+-- Kho RIÊNG TƯ (public = false): chỉ thành viên đã đăng nhập xem được (qua đường dẫn có hạn); Kiểm kê, Quản trị tải lên / xoá.
+-- Mỗi ảnh tối đa 3 MB (trang đã thu nhỏ ảnh còn khoảng 0,2–0,5 MB), chỉ nhận ảnh JPEG / PNG / WebP.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('anh-tai-san', 'anh-tai-san', false, 3145728, array['image/jpeg', 'image/png', 'image/webp'])
+on conflict (id) do update set public = false, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "anh tai san xem" on storage.objects;
+drop policy if exists "anh tai san them" on storage.objects;
+drop policy if exists "anh tai san sua" on storage.objects;
+drop policy if exists "anh tai san xoa" on storage.objects;
+create policy "anh tai san xem"  on storage.objects for select to authenticated using (bucket_id = 'anh-tai-san' and public.la_thanh_vien());
+create policy "anh tai san them" on storage.objects for insert to authenticated with check (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
+create policy "anh tai san sua"  on storage.objects for update to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh')) with check (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
+create policy "anh tai san xoa"  on storage.objects for delete to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
+
 -- Muốn quay lại như cũ (ai có link đều dùng được): chạy lại supabase/schema.sql (nó cấp lại quyền cho anon).

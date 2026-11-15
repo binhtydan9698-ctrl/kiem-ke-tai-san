@@ -33,6 +33,11 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
   Lịch sử | Chung] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
   thanh dưới cùng [Kiểm kê · Mã QR · Quét mã · Lịch sử · Chung], về trang chủ bằng logo. Trang tài sản, sheet, phòng có nút "In tem mã QR…"
   mở phần Mã QR lọc sẵn (`qrOpen()`); phần Mã QR và Lịch sử có link ngược về Kiểm kê.
+- **Nút ⋯ trên mỗi dòng tài sản** (người dùng thêm 15/11/2026, mã trong `web/anh.js`): hộp mở rộng có mã QR của tài sản (In tem,
+  Mở trang tài sản) và **ảnh tài sản** (tối đa 5 ảnh mỗi tài sản, thu nhỏ 1600px trước khi tải lên + ảnh nhỏ 400px), xem ảnh toàn
+  màn hình kiểu Messenger (nền mờ, đếm ảnh, tải về / chia sẻ / đóng, mũi tên, dải ảnh nhỏ, vuốt, phím mũi tên). Ảnh ở kho riêng tư
+  Supabase Storage `anh-tai-san` (tạo trong `supabase/dang-nhap.sql`): chỉ thành viên xem (đường dẫn có hạn 1 giờ), quyền Kiểm kê /
+  Quản trị tải lên, xoá. Chưa bật đăng nhập thì chưa dùng được ảnh (hộp vẫn có mã QR).
 
 Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
 biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
@@ -82,6 +87,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
      `COND`), `sd` = Trạng thái sử dụng (`SUDUNG`: '' Đang sử dụng, kho, sua, muon, cho_tl, da_tl, bg), hai mục TÁCH RIÊNG.
    - `S.xm[stt]`: mục "Tài sản thất lạc" (`#xac-minh`, hỏi đại diện phòng ban) `{kq, cach, phanhoi, phong}`
    - `S.units[id]`: buổi kiểm của đơn vị · `S.ps[key]`: tài sản phát sinh
+   - `S.anh[stt]`: danh sách ảnh của tài sản `{ds: [{p: đường dẫn ảnh, n: ảnh nhỏ, at, by}]}` (col `anh`, khoá Mã TSCĐ như `rows`);
+     tệp ảnh nằm ở kho `anh-tai-san` (`ts/<khoá>/…jpg`), không vào file cho kế toán, `npm run sao-luu` chỉ lưu danh sách, không lưu tệp ảnh.
 4. Đồng bộ: `save()` so `S` với `LAST` rồi ghi từng tài liệu qua `DB.doc(path).set()`; `listen(col)` nhận thay đổi.
    `web/supabase-db.js` cung cấp `DB` (giả lập API `db` của Claude artifact) trên bảng `kiemke_docs(col, id, data)`.
 5. "Xuất cho kế toán" (`web/export.js`) mở `data/goc.xlsx`, điền cột Thực tế và thêm 3 cột kết quả ở mọi sheet danh sách.

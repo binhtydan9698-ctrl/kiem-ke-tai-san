@@ -23,6 +23,7 @@
 <script src="ma-qr.js"></script>
 <script src="chung.js"></script>
 <script src="dang-nhap.js"></script>
+<script src="anh.js"></script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -246,6 +247,7 @@ th .col{display:block;font-family:var(--f-mono);font-weight:400;color:var(--mute
 .armed{background:var(--warn)!important;border-color:var(--warn)!important;color:var(--surface)!important}
 .toast{display:flex;gap:14px;align-items:center}
 .toast[hidden]{display:none}
+.toast[popover]{top:auto;right:auto;margin:0;border:0;overflow:visible}
 /* báo trạng thái 1 giây */
 .flash{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + var(--toph,58px) + 14px);transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;padding:12px 20px 12px 14px;border-radius:10px;background:var(--surface);border:2px solid var(--idle);box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:240px;max-width:calc(100vw - 32px);pointer-events:none;animation:flashIn 1s ease forwards}
 .flash[hidden]{display:none}
@@ -1045,6 +1047,50 @@ body.dn-cho{padding-bottom:0!important}
 .ql-act{white-space:nowrap}.ql-act .in{width:180px;display:inline-block;margin-right:6px}.ql-act .btn{margin:2px 4px 2px 0}
 .ql-tbl select.in{min-width:170px}
 .db-form{background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);padding:14px 16px;margin:0 0 14px}
+/* Nút ⋯ trên dòng tài sản, hộp Mở rộng (mã QR + ảnh), xem ảnh kiểu Messenger (anh.js) */
+.xt-nut{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:1px 9px;min-height:26px;cursor:pointer;font:inherit;font-size:13px;line-height:1}
+.xt-nut:hover{border-color:var(--accent);color:var(--accent)}
+.xt-nut:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.xt-nut svg{width:16px;height:16px}
+.xt-n{background:var(--accent);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 6px}
+dialog.xt{padding:0;border:0;border-radius:14px;width:min(720px,calc(100vw - 32px));max-height:calc(100dvh - 32px);background:var(--surface);color:var(--fg);box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:auto}
+dialog.xt::backdrop{background:rgba(15,23,42,.55)}
+.xt-dau{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:16px 18px 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.xt-dau small{color:var(--muted);font-size:12.5px}.xt-dau h2{font-size:17px;margin:2px 0 0;line-height:1.35}
+.xt-than{display:grid;gap:16px;padding:14px 18px 18px}
+.xt-qr{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
+.xt-qr>svg{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;width:150px;height:150px}
+.xt-qr small{display:block;color:var(--muted);font-size:12px;overflow-wrap:anywhere;margin:2px 0 8px}
+.xt-b{display:flex;flex-wrap:wrap;gap:8px}
+.xt-anh-dau{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}.xt-anh-dau small{color:var(--muted)}
+.xt-anh-dau label.btn{cursor:pointer}
+.xt-luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.xt-o{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line)}
+.xt-thumb{display:block;width:100%;height:100%;padding:0;border:0;background:none;cursor:zoom-in}
+.xt-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.xt-thumb:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.xt-xoa{position:absolute;top:6px;right:6px;min-width:28px;height:28px;border-radius:999px;border:0;background:rgba(0,0,0,.6);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0 8px}
+.xt-xoa.hoi{background:var(--bad);font-size:12.5px;font-weight:700}
+.xt-cho{display:grid;place-items:center;color:var(--muted);font-size:12.5px}
+dialog.lb{padding:0;border:0;margin:0;width:100vw;height:100dvh;max-width:none;max-height:none;background:#000;color:#fff;overflow:hidden}
+dialog.lb::backdrop{background:#000}
+.lb-nen{position:absolute;inset:-60px;background-size:cover;background-position:center;filter:blur(36px) brightness(.4);transform:scale(1.1)}
+.lb-khung{position:absolute;inset:64px 72px 108px;display:flex;align-items:center;justify-content:center}
+.lb-anh{max-width:100%;max-height:100%;min-width:0;min-height:0;object-fit:contain;box-shadow:0 10px 40px rgba(0,0,0,.5);border-radius:4px}
+.lb-cho{color:#fff}
+.lb-tren{position:absolute;top:max(14px,env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));left:max(16px,env(safe-area-inset-left,0px));display:flex;justify-content:flex-end;align-items:center;gap:10px}
+.lb-dem{margin-right:auto;font-size:13.5px;background:rgba(0,0,0,.45);padding:5px 10px;border-radius:999px}
+.lb-tron{width:44px;height:44px;border-radius:50%;border:0;background:rgba(40,40,40,.85);color:#fff;display:grid;place-items:center;cursor:pointer;font-size:22px;line-height:1}
+.lb-tron:hover{background:rgba(70,70,70,.95)}.lb-tron:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.lb-tron svg{width:22px;height:22px}
+.lb-truoc,.lb-sau{position:absolute;top:50%;transform:translateY(-50%)}
+.lb-truoc{left:-58px}.lb-sau{right:-58px}
+.lb-dai{position:absolute;left:0;right:0;bottom:max(14px,env(safe-area-inset-bottom,0px));display:flex;justify-content:center;gap:8px;overflow-x:auto;padding:0 16px}
+.lb-nho{width:52px;height:52px;flex:0 0 auto;padding:0;border:2px solid transparent;border-radius:8px;overflow:hidden;background:#222;cursor:pointer;opacity:.7}
+.lb-nho img{width:100%;height:100%;object-fit:cover;display:block}
+.lb-nho.chon{border-color:#fff;opacity:1}
+@media (max-width:640px){.lb-khung{inset:64px 8px 96px}.lb-truoc{left:4px}.lb-sau{right:4px}.xt-qr{grid-template-columns:1fr}.xt-qr>svg{width:130px;height:130px}.xt-luoi{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+  dialog.xt{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;max-width:none}}
 .ql-mfa{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
 .ql-mfa img{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;max-width:100%;height:auto}
 .ql-mfa p{margin:0 0 8px;font-size:14px;overflow-wrap:anywhere}
@@ -1144,7 +1190,7 @@ dialog.scan.cont .cam{min-height:170px}
 </header>
 <main class="wrap" id="app"></main>
 <datalist id="dl-phong"></datalist>
-<div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>Hoàn tác</button></div>
+<div class="toast" id="toast" role="status" popover="manual" hidden><span id="toastMsg"></span><button type="button" id="toastUndo" hidden>Hoàn tác</button></div>
 <div class="flash" id="flash" role="status" aria-live="polite" hidden><span class="fi" id="flashIcon"></span><span class="ft"><b id="flashTitle"></b><small id="flashSub"></small></span></div>
 <dialog class="scan" id="scanDlg" aria-labelledby="scanTitle">
   <div class="sh"><b id="scanTitle"><span data-ic="ScanLine"></span>Quét mã tài sản</b><button type="button" class="btn sm" id="scanClose" aria-label="Đóng"><span data-ic="X"></span></button></div>
@@ -1233,12 +1279,12 @@ const BY_UNIT = {}; UNITS.forEach(u=>BY_UNIT[u.id]=[]); ASSETS.forEach(a=>BY_UNI
 
 /* ---------- state ---------- */
 const KEY='kiemke2026.v1';
-function blank(){return {rows:{},units:{},xm:{},ps:{},dm:{},demo:false};}   // dm = Chung › đầu mối theo sheet (chung.js)
+function blank(){return {rows:{},units:{},xm:{},ps:{},dm:{},anh:{},demo:false};}   // dm = Chung › đầu mối theo sheet (chung.js); anh = ảnh từng tài sản (anh.js)
 let S = blank();
 /* Chế độ lưu: 'connecting' → 'shared' (dữ liệu chung trên artifact, mọi tổ thấy nhau) hoặc 'local' (chỉ trình duyệt này) */
 let MODE='connecting', DB=null, USER=null, ME=null, READONLY=false, READY=false, SLOW=false, SYNCERR=false, MIGRATE=null;
 let NAMES={};
-const COLS=['rows','xm','units','ps','dm'];
+const COLS=['rows','xm','units','ps','dm','anh'];
 const LAST={};                                   // đường dẫn tài liệu → JSON đã đồng bộ
 const WR={busy:new Set(),next:new Map()};        // hàng đợi ghi: mỗi tài liệu một lần ghi tại một thời điểm
 const LOADED=new Set();
@@ -1249,7 +1295,7 @@ function fromBody(col,d){ return col==='ps'?(Array.isArray(d.items)?d.items:[]):
 /* Kết quả theo tài sản (rows, xm) lưu trên máy chủ theo MÃ TSCĐ (a.key), trên trang theo STT.
    Nhờ vậy thêm/xoá/đổi thứ tự dòng trong Excel không làm kết quả gắn nhầm tài sản.
    Kết quả của tài sản không còn trong Excel được giữ nguyên trên máy chủ, chỉ không hiện. */
-const KEYED={rows:1,xm:1};
+const KEYED={rows:1,xm:1,anh:1};
 function docId(c,k){ if(!KEYED[c]) return k; const a=BY_STT[k]; return a?a.key:null; }
 function localKey(c,id){ if(!KEYED[c]) return id; const a=BY_KEY[id]; return a?String(a.stt):null; }
 // kết quả (rows, xm) của mã không còn trong Excel: chỉ giữ để đọc (vd. kế toán đổi Mã TSCĐ → trang tài sản mã mới cho dùng lại
@@ -1317,9 +1363,9 @@ function psPlace(k){ return k.startsWith('p:')?(ROOMNAME[k.slice(2)]||k.slice(2)
 /* e = {id, rows:[cũ,mới], xm:[…], units:[…], ps:[…]} của một "đối tượng": tài sản (a:mã), buổi kiểm (u:id), phát sinh (p:id) */
 function logDescribe(sk,e){
   if(sk[0]==='a'){ const a=BY_KEY[e.id]; if(!a) return null;
-    const R=e.rows?logRowLines(a,e.rows[0],e.rows[1]):[], X=e.xm?logXmLines(e.xm[0],e.xm[1]):[];
-    if(!R.length&&!X.length) return null;
-    return {kind:R.length?'kiem':'hoi',key:a.key,ma:a.ma?String(a.ma):'',stt:a.stt,u:a.unit,title:a.short,lines:[...R,...X]}; }
+    const R=e.rows?logRowLines(a,e.rows[0],e.rows[1]):[], X=e.xm?logXmLines(e.xm[0],e.xm[1]):[], P=e.anh?logAnhLines(e.anh[0],e.anh[1]):[];
+    if(!R.length&&!X.length&&!P.length) return null;
+    return {kind:R.length||P.length?'kiem':'hoi',key:a.key,ma:a.ma?String(a.ma):'',stt:a.stt,u:a.unit,title:a.short,lines:[...R,...X,...P]}; }
   if(sk[0]==='u'){ const L=e.units?logUnitLines(e.units[0],e.units[1]):[]; if(!L.length) return null;
     return {kind:'buoi',u:UNIT[e.id]?e.id:'',title:'Buổi kiểm: '+(UNIT[e.id]?.ten||e.id),lines:L}; }
   if(sk[0]==='d'){ const L=e.dm?logDmLines(e.dm[0],e.dm[1]):[]; if(!L.length) return null;   // Chung › đầu mối của một sheet
@@ -1599,11 +1645,15 @@ function unitsIn(list){ const m={}; list.forEach(a=>(m[a.unit]=m[a.unit]||[]).pu
 /* toast + undo */
 let UNDO=null;
 function snap(stts){ UNDO=stts.map(s=>[s, S.rows[s]?JSON.parse(JSON.stringify(S.rows[s])):null, S.xm[s]?JSON.parse(JSON.stringify(S.xm[s])):null]); }
-function toast(msg,undo){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; document.getElementById('toastUndo').hidden=!undo; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,undo?5000:2200); }
+// toast là popover: hiện đè lên cả hộp thoại đang mở (hộp ⋯, In tem…); trình duyệt cũ không có popover thì như cũ
+function toastAn(){ const t=document.getElementById('toast'); t.hidden=true; try{ if(t.hidePopover&&t.matches(':popover-open')) t.hidePopover(); }catch(e){} }
+function toast(msg,undo){ const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=msg; document.getElementById('toastUndo').hidden=!undo; t.hidden=false;
+  try{ if(t.showPopover){ if(t.matches(':popover-open')) t.hidePopover(); t.showPopover(); } }catch(e){}
+  clearTimeout(toast._t); toast._t=setTimeout(toastAn,undo?5000:2200); }
 document.getElementById('toastUndo').addEventListener('click',()=>{
   if(!UNDO) return; UNDO.forEach(([s,r,x])=>{ if(r) S.rows[s]=r; else delete S.rows[s]; if(x) S.xm[s]=x; else delete S.xm[s]; });
   LOGCTX={tag:'Hoàn tác',bulk:UNDO.length>1,title:`Hoàn tác ${UNDO.length} tài sản`};
-  UNDO=null; save(); refreshRooms(); route(); document.getElementById('toast').hidden=true;
+  UNDO=null; save(); refreshRooms(); route(); toastAn();
 });
 
 let ROOMS=[], UROOMS={}, ROOMOPT_BLD='';
@@ -1948,7 +1998,7 @@ function rowHTML(a){
   return `<div class="row r-${r}" data-stt="${a.stt}" data-room="${esc(room)}">
     <div class="c-id"><span class="stt num">STT ${a.stt}</span><span class="ma mono">${esc(a.ma||'không mã')}</span></div>
     <div class="c-name"><div class="nm">${esc(a.short)}</div>
-      <div class="meta"><span>${dmy(a.ngay)}</span><span>${money(a.gia)}</span>${a.ct?`<span class="mono">${esc(a.ct)}</span>`:''}${by}${tags}<button class="lnk" data-act="more">${open?'Ẩn chi tiết':'Chi tiết, ghi chú'}</button></div>
+      <div class="meta"><span>${dmy(a.ngay)}</span><span>${money(a.gia)}</span>${a.ct?`<span class="mono">${esc(a.ct)}</span>`:''}${by}${tags}<button class="lnk" data-act="more">${open?'Ẩn chi tiết':'Chi tiết, ghi chú'}</button><button type="button" class="xt-nut" data-act="xt" aria-label="Mở rộng: mã QR và ảnh của tài sản" title="Mã QR, ảnh">${ic('Ellipsis')||'⋯'}${soAnh(a)?`<span class="xt-n">${soAnh(a)}</span>`:''}</button></div>
       ${open?`<div class="more"><div class="full">${esc(a.ten)}</div><input class="in" id="note-${a.stt}" data-f="note" placeholder="Ghi chú tại chỗ (VD: đang mượn ở phòng 404, số biên bản bàn giao)" value="${esc(s.note||'')}"><label class="sdf" for="sd-${a.stt}"><span>Trạng thái sử dụng</span><select class="in" id="sd-${a.stt}" data-f="sd">${SUDUNG.map(([k,v])=>`<option value="${k}" ${(s.sd||'')===k?'selected':''}>${v}</option>`).join('')}</select></label></div>`:(s.note?`<div class="meta"><span>Ghi chú: ${esc(s.note)}</span></div>`:'')}
     </div>
     ${roomField(a,room)}
@@ -2637,6 +2687,7 @@ app.addEventListener('click',e=>{
   if(act==='nomigrate'){ MIGRATE=null; try{ localStorage.setItem(KEY+'.moved','1'); }catch(e){} render(); return; }
   if(act==='reset'){ if(MODE!=='local') return; S=blank(); LOGCTX={bulk:true,title:'Xoá dữ liệu mẫu'}; save(); refreshRooms(); route(); toast('Đã xoá dữ liệu mẫu'); return; }
   if(act==='more'){ ui.open[stt]=!ui.open[stt]; refreshRow(stt); return; }
+  if(act==='xt'&&a){ moMoRong(a); return; }   // nút ⋯: mã QR + ảnh của tài sản (anh.js)
   if(act==='bulk'){
     if(!ui.bulkArm){ ui.bulkArm=true; b.classList.add('armed'); b.textContent=`Bấm lần nữa: đánh dấu đủ ${bulkCandidates().length} món`; clearTimeout(ui._arm); ui._arm=setTimeout(()=>{ui.bulkArm=false; const x=app.querySelector('[data-act="bulk"]'); if(x){x.classList.remove('armed'); x.textContent=`Đủ tất cả còn lại (${bulkCandidates().length})`;}},4000); return; }
     const list=bulkCandidates(); snap(list.map(x=>x.stt));

@@ -21,6 +21,10 @@ description: >-
   - `xm` — mục "Tài sản thất lạc" (hỏi đại diện phòng ban), `id` = Mã TSCĐ, `data` = `{kq, cach, phanhoi, phong, at, by}`
   - `units` — buổi kiểm của đơn vị, `id` = mã đơn vị (GD, AI, …)
   - `ps` — tài sản phát sinh, `id` = mã đơn vị hoặc `p:<slug-phòng>`, `data` = `{items:[…]}`
+  - `dm` — đầu mối theo sheet (Chung › Đầu mối), `id` = mã sheet, `data` = `{ten, cv, email, at, by}`
+  - `anh` — danh sách ảnh của tài sản (nút ⋯), `id` = Mã TSCĐ (như `rows`), `data` = `{ds:[{p, n, at, by}]}`; `p`, `n` là
+    đường dẫn tệp ảnh lớn / ảnh nhỏ trong kho Storage riêng tư `anh-tai-san` (`ts/<khoá>/…jpg`). Sao lưu chỉ lưu danh sách,
+    không tải tệp ảnh về; xoá một dòng `anh` không xoá tệp trong kho (xoá ảnh trên trang thì xoá cả hai).
   - `log` — lịch sử thao tác (trang `#lich-su`), mỗi thao tác một bản ghi, chỉ thêm, không sửa kết quả kiểm.
     `id` = `<thời gian cơ số 36, 9 ký tự>-<mã máy>-<ngẫu nhiên>` (xếp theo id = xếp theo thời gian),
     `data` = `{id, t, t0?, by (tên nhập trên máy), dev (mã máy), kind: kiem|hoi|buoi|ps|xuat|khac, title, key?, ma?, stt?,

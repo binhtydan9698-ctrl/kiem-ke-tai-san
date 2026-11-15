@@ -21,6 +21,7 @@ const KICH_BAN = [
   { ten: 'chung', mo: 'Chung: khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán' },
   { ten: 'dang-nhap-dau', mo: 'Đăng nhập: lần đầu tạo tài khoản quản trị (đăng nhập giả, không đụng Supabase)' },
   { ten: 'dang-nhap', mo: 'Đăng nhập: mật khẩu, chặn nhập sai, chính sách mật khẩu, xác thực 2 bước, thành viên, quyền, Danh bạ, tự đăng xuất' },
+  { ten: 'anh', mo: 'Nút ⋯ trên dòng tài sản: mã QR, tải ảnh lên (thu nhỏ), xem ảnh kiểu Messenger, quyền' },
   { ten: 'ma-hoa', mo: 'Dữ liệu tài sản mã hoá: chưa đăng nhập không đọc được, đăng nhập xong giải mã và chạy', maHoa: true },
   { ten: 'dien-thoai', mo: 'Điện thoại (390px): thanh dưới, không tràn ngang', dt: true },
 ];

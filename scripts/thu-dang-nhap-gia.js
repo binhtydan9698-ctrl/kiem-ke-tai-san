@@ -1,12 +1,16 @@
 /*
  * Đăng nhập GIẢ cho bộ thử giao diện (npm run thu-giao-dien) — chạy trong trình duyệt, KHÔNG gọi Supabase.
- * Có cùng các hàm như cổng Supabase thật trong web/dang-nhap.js (sbCong). Chỉ bật ở trang thử ?dang-nhap, ?dang-nhap-dau, ?ma-hoa.
+ * Có cùng các hàm như cổng Supabase thật trong web/dang-nhap.js (sbCong). Chỉ bật ở trang thử ?dang-nhap, ?dang-nhap-dau, ?ma-hoa, ?anh.
  * Mật khẩu, mã xác thực ở đây là của bộ thử, không phải của ai. Mã xác thực 2 bước giả: 246810.
  */
-if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa'].includes(location.search)) (function () {
+if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa', '?anh'].includes(location.search)) (function () {
   const tk = location.search === '?dang-nhap-dau' ? [] : [
     { uid: 'u1', ten: 'quantri', ho_ten: 'Quản trị thử', email: 'quantri@vd.vn', mk: 'MatKhauThu#1', quyen: 'admin', khoa: false, mfa: false },
-  ];
+  ].concat(location.search === '?anh' ? [
+    { uid: 'u8', ten: 'kiemvien', ho_ten: 'Kiểm Viên Thử', email: 'kiemvien@vd.vn', mk: 'Kiem-vien-thu-1', quyen: 'kiem', khoa: false, mfa: false },
+    { uid: 'u9', ten: 'tracuu', ho_ten: 'Tra Cứu Thử', email: 'tracuu@vd.vn', mk: 'Tra-cuu-thu-01', quyen: 'xem', khoa: false, mfa: false },
+  ] : []);
+  const kho = new Map();   // kho ảnh giả: đường dẫn → ảnh
   const db = [], MA = '246810';
   let phien = null, aal2 = false, so = 1;
   const loi = m => { throw new Error(m); };
@@ -38,6 +42,12 @@ if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa'].includes(location.search)) (func
     async batMfa() { return { id: 'f-moi', qr: 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="21" height="21"><rect width="21" height="21" fill="#000"/></svg>'), secret: 'JBSWY3DPEHPK3PXP' }; },
     async xacNhanMfa(id, code) { if (code !== MA) loi('Invalid TOTP code entered'); tim(phien).mfa = true; aal2 = true; },
     async tatMfa() { tim(phien).mfa = false; },
+    anh: {
+      async tai(p, blob) { const x = tim(phien); if (!x || !['admin', 'kiem'].includes(x.quyen)) loi('new row violates row-level security policy'); if (kho.has(p)) loi('The resource already exists'); kho.set(p, blob); },
+      async url(ps) { const m = {}; ps.forEach(p => { if (kho.has(p)) m[p] = URL.createObjectURL(kho.get(p)); }); return m; },
+      async xoa(ps) { const x = tim(phien); if (!x || !['admin', 'kiem'].includes(x.quyen)) loi('new row violates row-level security policy'); ps.forEach(p => kho.delete(p)); },
+    },
+    kho,
     danhBa: {
       async ds() { return db.map(r => Object.assign({}, r)); },
       async luu(r) {

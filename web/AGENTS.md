@@ -38,6 +38,11 @@
   Danh bạ `viewDanhBa` (trong `chung.js`): dữ liệu ở bảng Supabase `danh_ba` (KHÔNG ở `kiemke_docs`/`S`), đọc/ghi qua
   `DN.api.danhBa`, bộ nhớ `DN.db.ds`; chỉ hiện khi `DN.cai && DN.toi`; sửa được khi `DN.duocSuaDanhBa()`. Thay đổi ghi lịch sử
   bằng `logEvent({kind:'chung'})`.
+- Nút ⋯ trên dòng tài sản (`anh.js`, `data-act="xt"` → `moMoRong(a)`): `<dialog id="xtDlg">` có mã QR (`qrSvg`, `qrOpen`) và ảnh;
+  trình xem ảnh `<dialog id="xemAnh">` (kiểu Messenger). Danh sách ảnh `S.anh[stt]` (col `anh`, có trong `COLS`, `KEYED`), thêm / xoá
+  qua `save()` nên có lịch sử (`logAnhLines`). Tệp ảnh qua `DN.api.anh` (`tai`, `url` đường dẫn có hạn, `xoa`) — có ở cả `sbCong()`
+  và đăng nhập giả. Chỉ dùng ảnh khi `DN.cai && DN.toi`; tải lên / xoá khi `DN.duocKiemKe() && !READONLY`. Ảnh luôn thu nhỏ trong
+  trình duyệt trước khi tải lên. `toast()` là popover nên nổi trên cả hộp thoại đang mở.
 - Đăng nhập (`dang-nhap.js`, đối tượng `DN`): một kết nối Supabase dùng chung `kiemkeSupabase()` (supabase-db.js, giữ phiên
   trong localStorage `kiemke-dang-nhap`). `connect()` gọi `DN.batDau(tiep)`: hỏi `trang_thai_dang_nhap` → chưa cài thì chạy như
   cũ; đã cài thì màn hình `#dnMan` (`body.dn-cho` ẩn trang) tới khi đăng nhập, rồi mới `listen()` dữ liệu. `DN.toi = {uid, ten,

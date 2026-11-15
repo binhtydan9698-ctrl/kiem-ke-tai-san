@@ -246,6 +246,10 @@
     ok(!kq.includes('thu.nv@vd.vn') && !kq.includes('Nguyễn Văn Thử'), 'kết quả cho kế toán không có đầu mối');
     const src = await (await fetch('export.js')).text();
     ok(!/S\.dm|dmCua|dmText|dmChu/.test(src), 'file “Xuất cho kế toán” không đọc dữ liệu đầu mối');
+    await go('ts-' + aGD.key); app.querySelector('.row [data-act="xt"]').click(); await until(() => document.getElementById('xtDlg') && document.getElementById('xtDlg').open);
+    const dx = document.getElementById('xtDlg');
+    ok(!!dx.querySelector('.xt-qr svg') && /bật đăng nhập/.test(dx.textContent) && !dx.querySelector('input[data-xt="them"]'), 'chưa bật đăng nhập: nút ⋯ vẫn có mã QR; phần ảnh báo cần bật đăng nhập');
+    dx.close();
   };
 
   // Đăng nhập (đăng nhập giả scripts/thu-dang-nhap-gia.js, không đụng Supabase)
@@ -397,6 +401,57 @@
     ok(goc.length > 10000 && goc[0] === 0x50 && goc[1] === 0x4B, 'file Excel gốc giải mã được (dùng cho Xuất cho kế toán)');
     await go('ts-6497474');
     ok(!!app.querySelector('.tsx'), 'mở trang một tài sản bình thường sau khi giải mã');
+  };
+
+  // Nút ⋯ trên dòng tài sản: mã QR + ảnh (kho ảnh giả trong scripts/thu-dang-nhap-gia.js)
+  KB['anh'] = async () => {
+    const A = KIEMKE_AUTH_GIA;
+    const dangNhap = async (ten, mk) => { await until(() => document.getElementById('dnTen')); dien('dnTen', ten); dien('dnMk', mk); document.getElementById('dnNut').click(); await W(400); };
+    const taoAnh = (mau, ten) => new Promise(ok => { const c = document.createElement('canvas'); c.width = 2400; c.height = 1800; const x = c.getContext('2d'); x.fillStyle = mau; x.fillRect(0, 0, 2400, 1800); x.fillStyle = '#fff'; x.font = '240px sans-serif'; x.fillText(ten, 300, 1000); c.toBlob(b => ok(new File([b], ten + '.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.92); });
+    const chon = files => { const inp = document.querySelector('#xtDlg input[data-xt="them"]'); const dt = new DataTransfer(); files.forEach(f => dt.items.add(f)); inp.files = dt.files; inp.dispatchEvent(new Event('change', { bubbles: true })); };
+    await dangNhap('kiemvien', 'Kiem-vien-thu-1'); await until(() => READY);
+    const a = BY_UNIT.GD.find(x => x.ma && String(x.ma) === String(x.key));
+    await go('ts-' + a.key);
+    ok(!!app.querySelector('.row [data-act="xt"]'), 'mỗi dòng tài sản có nút ⋯ (mở rộng)');
+    app.querySelector('.row [data-act="xt"]').click(); await until(() => document.getElementById('xtDlg') && document.getElementById('xtDlg').open);
+    const d = document.getElementById('xtDlg');
+    ok(!!d.querySelector('.xt-qr svg') && d.textContent.includes(KIEMKE_QR.payload(a.key)), 'mở rộng: có mã QR đúng của tài sản');
+    ok(d.querySelectorAll('input[data-xt="them"]').length === 2, 'quyền Kiểm kê: có nút Thêm ảnh và Chụp ảnh');
+    chon([await taoAnh('#c2410c', 'A1'), await taoAnh('#0f766e', 'A2')]);
+    await until(() => d.querySelectorAll('.xt-thumb img').length === 2 && !d.querySelector('.xt-cho'), 30000);
+    const ds = (S.anh[a.stt] || {}).ds || [];
+    ok(ds.length === 2 && A.kho.size === 4, 'tải lên 2 ảnh (mỗi ảnh kèm bản nhỏ), ghi vào danh sách ảnh của tài sản');
+    ok(/Đã thêm 2 ảnh/.test(txt('toastMsg')) && document.getElementById('toast').matches(':popover-open'), 'thông báo “Đã thêm 2 ảnh” nổi trên hộp thoại (không bị che)');
+    const lon = A.kho.get(ds[0].p), bm = await createImageBitmap(lon), nho = await createImageBitmap(A.kho.get(ds[0].n));
+    ok(Math.max(bm.width, bm.height) === 1600 && Math.max(nho.width, nho.height) === 400 && lon.size < 700000, `ảnh thu nhỏ trước khi tải lên: ${bm.width}×${bm.height}, ${Math.round(lon.size / 1024)} KB; ảnh nhỏ ${nho.width}×${nho.height}`);
+    ok(LOGMINE.some(e => e.key === a.key && (e.lines || []).some(l => /Thêm \d ảnh/.test(l))), 'lịch sử ghi lần thêm ảnh (theo tên người làm)');
+    d.querySelector('[data-xt="xem"]').click(); await until(() => document.getElementById('xemAnh') && document.querySelector('#xemAnh .lb-anh'));
+    const lb = document.getElementById('xemAnh');
+    ok(lb.open && /1\/2/.test(lb.querySelector('.lb-dem').textContent) && !!lb.querySelector('.lb-nen') && !!lb.querySelector('[data-lb="tai"]') && !!lb.querySelector('[data-lb="dong"]') && lb.querySelectorAll('.lb-nho').length === 2,
+      'xem ảnh kiểu Messenger: nền mờ, đếm 1/2, nút tải về, đóng, dải ảnh nhỏ');
+    lb.querySelector('[data-lb="sau"]').click(); await W(200);
+    ok(/2\/2/.test(lb.querySelector('.lb-dem').textContent) && lb.querySelectorAll('.lb-nho')[1].classList.contains('chon'), 'bấm mũi tên: sang ảnh 2, dải ảnh nhỏ tô ảnh đang xem');
+    lb.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await W(200);
+    ok(/1\/2/.test(lb.querySelector('.lb-dem').textContent), 'phím mũi tên: quay vòng về ảnh 1');
+    lb.querySelector('[data-lb="dong"]').click(); await W(200);
+    ok(!lb.open && d.open, 'đóng trình xem ảnh: về lại hộp mở rộng');
+    chon([await taoAnh('#333', 'B1'), await taoAnh('#444', 'B2'), await taoAnh('#555', 'B3'), await taoAnh('#666', 'B4')]);
+    await until(() => ((S.anh[a.stt] || {}).ds || []).length === 5 && !d.querySelector('.xt-cho'), 40000);
+    ok(S.anh[a.stt].ds.length === 5 && !d.querySelector('input[data-xt="them"]'), 'tối đa 5 ảnh mỗi tài sản: chọn 4 ảnh khi đã có 2 thì chỉ nhận 3, hết chỗ thì ẩn nút thêm');
+    const xb = d.querySelector('[data-xt="xoa"]'); xb.click(); await W(150);
+    ok(/Xoá\?/.test(xb.textContent) && S.anh[a.stt].ds.length === 5, 'xoá ảnh: bấm lần đầu chỉ hỏi lại');
+    xb.click(); await until(() => S.anh[a.stt].ds.length === 4);
+    ok(S.anh[a.stt].ds.length === 4 && A.kho.size === 8, 'bấm lần nữa: xoá cả ảnh lớn và ảnh nhỏ');
+    d.close(); await W(300);
+    ok((app.querySelector('.row .xt-n') || {}).textContent === '4', 'nút ⋯ trên dòng hiện số ảnh của tài sản');
+    await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500);
+    await dangNhap('tracuu', 'Tra-cuu-thu-01'); await until(() => DN.toi && !document.getElementById('dnMan'));
+    await go('ts-' + a.key); app.querySelector('.row [data-act="xt"]').click();
+    await until(() => d.open && d.querySelectorAll('.xt-thumb img').length === 4);
+    ok(!d.querySelector('input[data-xt="them"]') && !d.querySelector('[data-xt="xoa"]'), 'quyền Tra cứu: xem được 4 ảnh, không có nút thêm, xoá');
+    d.querySelector('[data-xt="xem"]').click(); await until(() => lb.open && lb.querySelector('.lb-anh'));
+    ok(lb.open, 'quyền Tra cứu: mở xem ảnh toàn màn hình được');
+    lb.close(); d.close();
   };
 
   KB['dien-thoai'] = async () => {
