@@ -18,6 +18,14 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
   trong 12 tháng tới, để gom đi thanh lý; Tải Excel danh sách) · `#dau-moi` Đầu mối quản lý tài sản theo sheet (tên, chức vụ,
   email công việc). Đầu mối dùng chung cho các phần khác: hiện ở trang tài sản, trang sheet, Tài sản thất lạc, Lý lịch, Khấu
   hao — **nhưng KHÔNG đưa vào file "Xuất cho kế toán"** (người dùng dặn: chỉ liên kết hiển thị trên app).
+  `#danh-ba` Danh bạ (cần đăng nhập: họ tên, chức vụ, đơn vị, số điện thoại, email, ghi chú; bảng `danh_ba`; số điện thoại tự
+  hiện kèm đầu mối khi cùng email / họ tên) · `#quan-ly` Quản lý ứng dụng (`web/dang-nhap.js`: tài khoản của tôi, đổi mật khẩu,
+  đăng xuất; quản trị: thêm / khoá thành viên, đặt quyền, đặt lại mật khẩu — nơi phát triển tiếp phần quản lý ứng dụng).
+- **Đăng nhập** (người dùng chốt 15/11/2026: đăng nhập thật qua Supabase Auth, **cả app phải đăng nhập**): bật bằng
+  `supabase/dang-nhap.sql` (người dùng tự chạy trong Supabase SQL Editor + tắt "Confirm email"). Chưa chạy thì trang chạy như cũ
+  (`DN.cai=false`). Đã chạy: màn hình đăng nhập trước mọi thứ; lần đầu "Tạo tài khoản quản trị"; RLS chỉ cho thành viên
+  (`thanh_vien`, không khoá) đọc/ghi `kiemke_docs`, `danh_ba`. Quyền: `admin` (tài khoản chính của người dùng) · `sua` (sửa Danh bạ)
+  · `xem`. Tên người kiểm (`ME`) lấy từ tài khoản.
 - Đầu trang 2 tầng: logo FPT University (`web/img/logo-fpt-university.png`, về trang chủ) · 4 phần chính [Kiểm kê | Mã QR |
   Lịch sử | Chung] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
   thanh dưới cùng [Kiểm kê · Mã QR · Quét mã · Lịch sử · Chung], về trang chủ bằng logo. Trang tài sản, sheet, phòng có nút "In tem mã QR…"
@@ -26,7 +34,7 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
 Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
 biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
 
-- Web: https://quan-ly-tai-san-fptudn.vercel.app (tên cũ kiem-ke-tai-san-sigma.vercel.app vẫn mở được) · Repo (công khai): https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
+- Web: https://quan-ly-tai-san-fptudn.vercel.app (tên cũ kiem-ke-tai-san-sigma.vercel.app vẫn mở được) · Repo: https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
 - Người dùng là cán bộ hành chính, **không phải lập trình viên**, làm việc bằng **tiếng Việt**: trả lời, giao diện,
   chú thích code, thông điệp commit đều bằng tiếng Việt; giải thích bằng lời thường, tránh thuật ngữ khi không cần.
 - **Hỏi khi cần người dùng quyết, luôn đưa gợi ý** (người dùng dặn 15/11/2026): chỗ nào là quyết định của người dùng (quy tắc,
@@ -42,8 +50,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
 | `npm run dev` | Build rồi mở máy chủ xem thử http://localhost:3000 (chạy nền; sửa `web/` thì chạy lại) |
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
-| `npm run sao-luu` | Sao lưu kết quả Supabase về `sao-luu/` (chỉ đọc) |
-| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, Chung, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
+| `npm run sao-luu` | Sao lưu kết quả Supabase (và Danh bạ) về `sao-luu/` (chỉ đọc). Đã bật đăng nhập: người dùng tự đặt tạm `$env:KIEMKE_TEN`, `$env:KIEMKE_MK` khi chạy |
+| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, Chung, đăng nhập giả, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
 | `npm run theo-doi-supabase` | Đọc thử Supabase (chỉ đọc). GitHub Actions chạy mỗi sáng 8h (`.github/workflows/theo-doi-supabase.yml`): giữ Supabase không bị tạm dừng; không đọc được thì lần chạy báo lỗi → GitHub gửi mail tới email nhận thông báo của tài khoản chủ repo (người dùng muốn nhận ở địa chỉ email công việc, không ghi địa chỉ vào repo công khai). |
 
 ## Skills trong `.agents/skills/`
@@ -115,11 +123,18 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
 - Tem in mặc định chỉ có tiêu đề, Mã TSCĐ, tên (không in phòng, đơn vị vì có thể thay đổi).
 - Cột ngày trong file BBKK là **"Ngày bắt đầu SD"**: trên trang gọi là "Ngày bắt đầu sử dụng" (người dùng chốt), không gọi
   "ngày ghi sổ". Dữ liệu vẫn là `ngay` / `r[4]`.
-- Danh bạ đầu mối (Chung): chỉ tên, chức vụ, email công việc — không số điện thoại cá nhân (trang mở cho người có link). Lưu
-  trên Supabase qua app, **không bao giờ** ghi vào repo công khai. `export.js` không được đọc `S.dm`.
+- Đầu mối (Chung › Đầu mối, `S.dm`): chỉ tên, chức vụ, email công việc; số điện thoại để ở Danh bạ (bảng `danh_ba`, chỉ thành
+  viên đã đăng nhập đọc được). Cả hai lưu trên Supabase qua app, **không bao giờ** ghi vào repo. `export.js` / `ketQuaKeToan`
+  không được đọc `S.dm` hay danh bạ.
+- **Mật khẩu, tài khoản:** KHÔNG BAO GIỜ ghi mật khẩu (kể cả mật khẩu người dùng gửi trong chat), email cá nhân hay khoá
+  `service_role` vào repo, file cấu hình, bộ nhớ hay lệnh commit. Tài khoản quản trị do người dùng tự tạo trên màn hình "Tạo tài
+  khoản quản trị"; mật khẩu do Supabase Auth giữ. Việc cần tài khoản (sao lưu, kiểm tra) dùng biến môi trường `KIEMKE_TEN` /
+  `KIEMKE_MK` người dùng tự đặt tạm khi chạy lệnh. Muốn đổi quyền / bảng đăng nhập: sửa `supabase/dang-nhap.sql` và nhờ người
+  dùng chạy lại; trang phải giữ chạy được khi SQL chưa chạy (`trangThai()` → `da_cai:false`).
 - Không sửa tay `dist/` (sinh khi build, đã `.gitignore`). Không tự sửa file Excel trừ khi người dùng yêu cầu.
 - `web/config.js` chỉ chứa khoá **publishable/anon** (công khai). Không bao giờ đưa khoá `secret`/`service_role` vào repo.
-- Repo **công khai**: không commit `sao-luu/`, `.gemini/`, `.env`, dữ liệu cá nhân hay khoá bí mật.
+- Repo (người dùng muốn chuyển sang **riêng tư** 15/11/2026; coi như vẫn có thể bị lộ): không commit `sao-luu/`, `.gemini/`,
+  `.env`, dữ liệu cá nhân, danh bạ, mật khẩu hay khoá bí mật.
 - Không ghi/xoá dữ liệu trên Supabase, không `git push --force`, không xoá lịch sử git khi chưa được người dùng đồng ý rõ.
 - Ghi dữ liệu trên trang: mỗi tài liệu một lần ghi tại một thời điểm (hàng đợi `WR`). Không ghi từ hàm render.
 

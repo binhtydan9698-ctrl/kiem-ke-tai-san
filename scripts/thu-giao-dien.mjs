@@ -18,6 +18,8 @@ const KICH_BAN = [
   { ten: 'quet-lien-tuc', mo: 'Quét liên tục trong phòng' },
   { ten: 'doi-ma', mo: 'Kế toán đổi Mã TSCĐ: tem mã cũ mở tài sản mã mới, lý lịch gộp' },
   { ten: 'chung', mo: 'Chung: khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán' },
+  { ten: 'dang-nhap-dau', mo: 'Đăng nhập: lần đầu tạo tài khoản quản trị (đăng nhập giả, không đụng Supabase)' },
+  { ten: 'dang-nhap', mo: 'Đăng nhập: sai/đúng mật khẩu, quản lý thành viên, đổi mật khẩu, quyền, Danh bạ' },
   { ten: 'dien-thoai', mo: 'Điện thoại (390px): thanh dưới, không tràn ngang', dt: true },
 ];
 
@@ -31,13 +33,14 @@ if (b.status !== 0) { console.log(b.stdout + b.stderr); console.log('✗ Build l
 const goc = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8');
 const chen = (s, sau, them) => { const i = s.indexOf(sau); if (i < 0) throw new Error('không thấy ' + sau); return s.slice(0, i + sau.length) + them + s.slice(i + sau.length); };
 let trang = chen(goc, '<head>', '<script>try{localStorage.clear()}catch(e){}</script>');
-trang = chen(trang, '<script src="supabase-db.js"></script>', '<script>window.makeSupabaseDb=()=>null;</script>');
+trang = chen(trang, '<script src="supabase-db.js"></script>', '<script>window.makeSupabaseDb=()=>null;</script><script src="_thu-dang-nhap-gia.js"></script>');
 trang = chen(trang, '<script src="data/so-ma-qr.js"></script>', '<script>if(location.search==="?quet-ma")KIEMKE_SO_QR.xoa["1234567"]={ten:"Tài sản thử đã xoá khỏi BBKK",donVi:"GD",vt:"108 Gamma",ngay:"2020-01-01",gia:15000000,tu:"2026-11-14",xoa:"2027-01-02"};'
   + 'if(location.search==="?doi-ma"){const r=KIEMKE_DATA.rows.find(x=>String(x[8])==="6497474");KIEMKE_SO_QR.xoa["7654321"]={ten:r[2],donVi:r[6],vt:r[7],ngay:r[4],gia:r[5],tu:"2026-11-14",file:"BBKK cũ.xlsx",xoa:"2027-01-02",sang:{ma:"6497474",luc:"2027-01-02 09:30",cach:"tự nhận"}};KIEMKE_SO_QR.sang={"7654321":"6497474"};}</script>');
 trang = trang.replace('</body>', '<script src="_thu-kich-ban.js"></script></body>');
 fs.writeFileSync(path.join(DIST, '_thu-giao-dien.html'), trang);
 fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-giao-dien-kich-ban.js'), path.join(DIST, '_thu-kich-ban.js'));
-const don = () => { for (const f of ['_thu-giao-dien.html', '_thu-kich-ban.js']) try { fs.unlinkSync(path.join(DIST, f)); } catch { } };
+fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-dang-nhap-gia.js'), path.join(DIST, '_thu-dang-nhap-gia.js'));   // đăng nhập giả (?dang-nhap…)
+const don = () => { for (const f of ['_thu-giao-dien.html', '_thu-kich-ban.js', '_thu-dang-nhap-gia.js']) try { fs.unlinkSync(path.join(DIST, f)); } catch { } };
 
 // 2. máy chủ tạm cho dist/
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };

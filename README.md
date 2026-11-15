@@ -34,6 +34,8 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | Biết khi Supabase bị tạm dừng | GitHub tự đọc thử mỗi sáng 8h; không đọc được thì gửi mail báo (tới email nhận thông báo của tài khoản GitHub) |
 | Gom tài sản hết khấu hao đi thanh lý | **Chung → Khấu hao**: chọn số năm khấu hao (đang tạm tính), xem tài sản đã hết và sắp hết trong 12 tháng tới, **Tải Excel danh sách** |
 | Biết liên hệ ai về tài sản của một phòng ban, bộ môn | **Chung → Đầu mối**: nhập tên, chức vụ, email công việc cho từng sheet; đầu mối hiện ở trang tài sản, trang sheet, Tài sản thất lạc (không đưa vào file cho kế toán) |
+| Lưu số điện thoại, email của cán bộ liên quan | **Chung → Danh bạ** (chỉ người đã đăng nhập xem được; người có quyền sửa mới thêm, sửa) |
+| Đăng nhập, đổi mật khẩu, quản lý thành viên | Bật một lần bằng `supabase/dang-nhap.sql` (Supabase SQL Editor) + tắt "Confirm email"; sau đó **Chung → Quản lý**: đổi mật khẩu, đăng xuất; quản trị thêm, khoá thành viên, đặt quyền, đặt lại mật khẩu |
 | Thử giao diện tự động | `npm run thu-giao-dien` (không đụng dữ liệu chung) |
 | Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử → Thao tác trên app** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |
 | Tài sản vào sổ khi nào, từ đâu | **Lịch sử → Nhập sổ** (kế toán qua file BBKK hay cán bộ Hành chính ghi nhận; **Tải Excel**) |

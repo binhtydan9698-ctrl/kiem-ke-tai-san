@@ -1,4 +1,5 @@
 -- Chạy một lần trong Supabase: SQL Editor → New query → dán toàn bộ → Run.
+-- ĐÃ BẬT ĐĂNG NHẬP (đã chạy supabase/dang-nhap.sql) thì KHÔNG chạy lại file này: nó mở lại quyền đọc/ghi cho mọi người có link.
 -- Bảng lưu mọi kết quả kiểm kê: col = loại (rows, xm, units, ps; log = lịch sử thao tác), id = mã tài liệu, data = nội dung.
 
 create table if not exists public.kiemke_docs (

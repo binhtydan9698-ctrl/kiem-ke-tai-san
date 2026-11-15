@@ -10,10 +10,20 @@
   const TABLE = 'kiemke_docs';
   const LOG = 'log';
 
-  window.makeSupabaseDb = function () {
+  // Một kết nối Supabase dùng chung cho cả trang (dữ liệu kiểm kê + đăng nhập trong dang-nhap.js).
+  // Phiên đăng nhập giữ trên máy (localStorage 'kiemke-dang-nhap'); khi đã bật đăng nhập, mọi đọc/ghi đi kèm phiên này.
+  window.kiemkeSupabase = function () {
+    if (window.KIEMKE_SB) return window.KIEMKE_SB;
     const cfg = window.KIEMKE_SUPABASE || {};
     if (!cfg.url || !cfg.anonKey || !window.supabase || !window.supabase.createClient) return null;
-    const sb = window.supabase.createClient(cfg.url, cfg.anonKey, { auth: { persistSession: false } });
+    window.KIEMKE_SB = window.supabase.createClient(cfg.url, cfg.anonKey,
+      { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'kiemke-dang-nhap' } });
+    return window.KIEMKE_SB;
+  };
+
+  window.makeSupabaseDb = function () {
+    const sb = window.kiemkeSupabase();
+    if (!sb) return null;
 
     const subs = {};          // col -> [{next, error}]
     let started = false, subscribedOnce = false, loading = null;

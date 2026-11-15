@@ -25,7 +25,7 @@ for (let lan = 1; lan <= 3; lan++) {          // thử 3 lần, cách nhau 30 gi
   if (lan < 3) await new Promise(r => setTimeout(r, 30000));
 }
 const luc = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
-if (kq.ok) ghi(`✓ ${luc}: Supabase đang hoạt động, đọc được dữ liệu chung. Trang: ${WEB_URL}`);
+if (kq.ok) ghi(`✓ ${luc}: Supabase đang hoạt động (đọc thử được). Trang: ${WEB_URL}`);
 else {
   ghi(`✗ ${luc}: KHÔNG đọc được dữ liệu chung trên Supabase (mã ${kq.ma}: ${kq.noiDung})`);
   ghi('Có thể dự án Supabase đã bị tạm dừng vì lâu không dùng (gói miễn phí) hoặc đang gặp sự cố. Trang Quản lý tài sản sẽ đứng ở "Đang kết nối…" và không lưu được kết quả kiểm.');

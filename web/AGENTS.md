@@ -30,6 +30,15 @@
   đầu mối `S.dm[mã sheet]` (col `dm`, thêm vào `COLS`), hiển thị ở nơi khác bằng `dmText(mã sheet)` / `dmCua()`; câu lịch sử
   `logDmLines` (logDescribe khoá `d:`). Khấu hao `khHet(a, năm)`, `khLoc()`, số năm tạm tính `KHV.nam` (nhớ trong
   localStorage `KEY+'.khNam'`). `export.js` / `ketQuaKeToan` KHÔNG được đọc đầu mối.
+  Danh bạ `viewDanhBa` (trong `chung.js`): dữ liệu ở bảng Supabase `danh_ba` (KHÔNG ở `kiemke_docs`/`S`), đọc/ghi qua
+  `DN.api.danhBa`, bộ nhớ `DN.db.ds`; chỉ hiện khi `DN.cai && DN.toi`; sửa được khi `DN.duocSuaDanhBa()`. Thay đổi ghi lịch sử
+  bằng `logEvent({kind:'chung'})`.
+- Đăng nhập (`dang-nhap.js`, đối tượng `DN`): một kết nối Supabase dùng chung `kiemkeSupabase()` (supabase-db.js, giữ phiên
+  trong localStorage `kiemke-dang-nhap`). `connect()` gọi `DN.batDau(tiep)`: hỏi `trang_thai_dang_nhap` → chưa cài thì chạy như
+  cũ; đã cài thì màn hình `#dnMan` (`body.dn-cho` ẩn trang) tới khi đăng nhập, rồi mới `listen()` dữ liệu. `DN.toi = {uid, ten,
+  hoTen, quyen, email}`; `ME` = họ tên tài khoản; bấm tên ở đầu trang → `#quan-ly`. Mọi lời gọi Supabase cho đăng nhập nằm trong
+  `sbCong()`; bộ thử giao diện thay bằng `window.KIEMKE_AUTH_GIA` (`scripts/thu-dang-nhap-gia.js`, cùng tên hàm) — thêm hàm mới
+  thì thêm ở cả hai. Không hiển thị / ghi mật khẩu vào lịch sử hay toast.
   Nút `data-act="qrin"`
   (`data-qk` tài sản / `data-qu` sheet / `data-qr` phòng) gọi `qrOpen()` mở phần Mã QR lọc sẵn; `data-act="qrso"` mở Sổ mã QR.
 - Sổ mã QR trên trang: `SOQR = window.KIEMKE_SO_QR` (sinh khi build). Tài sản đã xoá khỏi BBKK: `viewTSXoa`; quét tem của nó

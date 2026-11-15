@@ -8,8 +8,13 @@ description: >-
 # Kết quả kiểm kê trên Supabase
 
 - Project Supabase: `cwompprfkqsapkwcuqpd`; khoá **publishable** nằm trong `web/config.js` (công khai, được phép).
-- Bảng `public.kiemke_docs (col, id, data jsonb, updated_at)` — tạo bằng `supabase/schema.sql`; RLS mở cho mọi người
-  có link (đọc + ghi), realtime bật.
+- Bảng `public.kiemke_docs (col, id, data jsonb, updated_at)` — tạo bằng `supabase/schema.sql` (RLS mở cho mọi người có
+  link), realtime bật. **Sau khi chạy `supabase/dang-nhap.sql`** (bật đăng nhập): chỉ thành viên đã đăng nhập đọc/ghi được
+  `kiemke_docs` và `danh_ba`; khoá publishable một mình đọc ra rỗng. KHÔNG chạy lại `schema.sql` khi đã bật đăng nhập (sẽ
+  mở lại quyền cho mọi người). Kiểm tra: `trangThaiDangNhap()` trong `scripts/cau-hinh.mjs`.
+- Đọc khi đã bật đăng nhập: người dùng đặt tạm tài khoản khi chạy lệnh (KHÔNG ghi vào file):
+  `$env:KIEMKE_TEN='…'; $env:KIEMKE_MK='…'; npm run sao-luu` (`dangNhapToken()` → `docTatCa(token)`). Không có tài khoản thì
+  `npm run sao-luu` dừng, báo rõ, không ghi file rỗng. Không bao giờ hỏi xin hay lưu mật khẩu của người dùng.
 - `col`:
   - `rows` — kết quả từng tài sản, `id` = **Mã TSCĐ** (tài sản không mã: `stt:<STT>`),
     `data` = `{tt, nf, hs, phong, cond, note, at, by}`
