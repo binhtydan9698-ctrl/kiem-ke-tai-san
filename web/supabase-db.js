@@ -16,8 +16,16 @@
     if (window.KIEMKE_SB) return window.KIEMKE_SB;
     const cfg = window.KIEMKE_SUPABASE || {};
     if (!cfg.url || !cfg.anonKey || !window.supabase || !window.supabase.createClient) return null;
+    // "Ghi nhớ đăng nhập trên máy này" (màn hình đăng nhập, khoá localStorage 'kiemke-nho'): bỏ chọn → phiên chỉ giữ trong
+    // sessionStorage, đóng trình duyệt là mất (máy dùng chung — BAO-MAT.md)
+    const nho = () => { try { return localStorage.getItem('kiemke-nho') !== '0'; } catch (e) { return true; } };
+    const kho = {
+      getItem: k => { try { return sessionStorage.getItem(k) ?? localStorage.getItem(k); } catch (e) { return null; } },
+      setItem: (k, v) => { try { if (nho()) { localStorage.setItem(k, v); sessionStorage.removeItem(k); } else { sessionStorage.setItem(k, v); localStorage.removeItem(k); } } catch (e) { } },
+      removeItem: k => { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) { } },
+    };
     window.KIEMKE_SB = window.supabase.createClient(cfg.url, cfg.anonKey,
-      { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'kiemke-dang-nhap' } });
+      { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'kiemke-dang-nhap', storage: kho } });
     return window.KIEMKE_SB;
   };
 

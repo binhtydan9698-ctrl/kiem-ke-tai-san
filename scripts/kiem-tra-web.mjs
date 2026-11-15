@@ -38,9 +38,30 @@ for (let i = 0; i < 30; i++) {
 ok(!khac.length, !khac.length ? `Mã trang trên Vercel giống bản trên máy (${MA_TRANG.join(', ')})`
   : `Sau 5 phút trên Vercel vẫn khác bản trên máy: ${khac.join(', ')} (chưa push, hoặc Vercel build lỗi — xem Deployments trên vercel.com)`);
 
-for (const f of ['', 'img/logo-fpt-university.png', 'ma-qr.js', 'chung.js', 'dang-nhap.js', 'qr-rules.js', 'fonts/BeVietnamPro-Regular.ttf', 'fonts/BeVietnamPro-Bold.ttf', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js', 'data/assets.js', 'data/so-ma-qr.js', 'data/goc.xlsx']) {
+for (const f of ['', 'img/logo-fpt-university.png', 'ma-qr.js', 'chung.js', 'dang-nhap.js', 'qr-rules.js', 'fonts/BeVietnamPro-Regular.ttf', 'fonts/BeVietnamPro-Bold.ttf', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js', 'robots.txt']) {
   const r = await fetch(`${WEB_URL}/${f}`);
   ok(r.ok, `/${f} → ${r.status}`);
+}
+// dữ liệu tài sản: thường (chưa khoá) hoặc mã hoá (đã đặt KIEMKE_KHOA_DU_LIEU trên Vercel) — BAO-MAT.md
+{
+  const v = await (await fetch(`${WEB_URL}/data/version.json?t=${Date.now()}`, { cache: 'no-store' })).json().catch(() => ({}));
+  const thuong = ['data/assets.js', 'data/so-ma-qr.js', 'data/goc.xlsx'], mh = ['data/assets.enc', 'data/so-ma-qr.enc', 'data/goc.xlsx.enc'];
+  const st = async f => (await fetch(`${WEB_URL}/${f}`)).status;
+  if (v.ma_hoa) {
+    const a = await Promise.all(thuong.map(st)), b = await Promise.all(mh.map(st));
+    ok(a.every(s => s === 404), `dữ liệu đã khoá: không tải được bản thường (${thuong.map((f, i) => f + ' → ' + a[i]).join(', ')})`);
+    ok(b.every(s => s === 200), `dữ liệu đã khoá: có bản mã hoá (${mh.map((f, i) => f + ' → ' + b[i]).join(', ')})`);
+  } else {
+    const a = await Promise.all(thuong.map(st));
+    ok(a.every(s => s === 200), `dữ liệu tài sản: ${thuong.map((f, i) => f + ' → ' + a[i]).join(', ')} · CHƯA khoá (ai có link vẫn tải được)`);
+  }
+}
+// tiêu đề bảo mật (vercel.json) + chính sách chặn mã lạ (CSP, chèn khi build)
+{
+  const r = await fetch(`${WEB_URL}/?t=${Date.now()}`), h = k => r.headers.get(k) || '', html = await r.text();
+  ok(h('x-content-type-options') === 'nosniff' && /DENY/i.test(h('x-frame-options')) && h('referrer-policy') && h('permissions-policy') && /noindex/.test(h('x-robots-tag')),
+    'tiêu đề bảo mật: nosniff, chặn nhúng trang, referrer, quyền thiết bị, không lập chỉ mục');
+  ok(/<meta http-equiv="Content-Security-Policy" content="[^"]*script-src 'self' 'sha256-/.test(html), 'có chính sách chặn mã lạ (CSP) theo dấu băm');
 }
 try {
   const dem = docs => { const nLog = docs.filter(d => d.col === 'log').length; return `${docs.length - nLog} bản ghi kết quả, ${nLog} dòng lịch sử thao tác`; };
@@ -48,7 +69,8 @@ try {
   if (!tt.da_cai) ok(true, `Supabase đọc được (${dem(await docTatCa())}) · CHƯA bật đăng nhập: ai có link đều đọc, sửa được`);
   else {
     ok(true, `Supabase hoạt động · đã bật đăng nhập (${tt.co_quan_tri ? 'đã có tài khoản quản trị' : 'CHƯA có tài khoản quản trị: mở trang để tạo'})`);
-    const an = await docTatCa();   // không đăng nhập: phải không đọc được gì
+    // không đăng nhập: phải không đọc được gì (bị từ chối 401/403, hoặc ra rỗng)
+    const an = await docTatCa().catch(e => /\b(401|403)\b|permission denied/i.test(e.message) ? [] : Promise.reject(e));
     ok(!an.length, an.length ? `người KHÔNG đăng nhập vẫn đọc được ${an.length} bản ghi — kiểm tra lại quyền (chạy lại supabase/dang-nhap.sql)` : 'người không đăng nhập không đọc được dữ liệu');
     const token = await dangNhapToken().catch(e => { ok(false, e.message); return null; });
     if (token) ok(true, `đọc bằng tài khoản thành viên (KIEMKE_TEN): ${dem(await docTatCa(token))}`);

@@ -12,6 +12,7 @@ create table if not exists public.kiemke_docs (
 
 -- Theo lựa chọn "ai có link đều dùng được": ai có trang đều đọc và ghi được.
 alter table public.kiemke_docs enable row level security;
+grant select, insert, update, delete on public.kiemke_docs to anon, authenticated;   -- (dang-nhap.sql thu hồi quyền của anon)
 
 drop policy if exists "kiemke doc" on public.kiemke_docs;
 drop policy if exists "kiemke them" on public.kiemke_docs;

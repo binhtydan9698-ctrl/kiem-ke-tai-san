@@ -60,6 +60,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
 - `cap-nhat-du-lieu-excel` — thay/sửa file Excel và đưa lên web
 - `trien-khai-len-web` — commit, push, xác nhận Vercel
 - `du-lieu-ket-qua-supabase` — xem/sao lưu/chuyển đổi kết quả kiểm trên Supabase
+- `bao-mat` — **bảo mật, riêng tư, tài khoản đăng nhập** (bộ quy tắc đầy đủ: `BAO-MAT.md`): đọc trước mọi thay đổi đụng tới đăng
+  nhập, quyền, SQL Supabase, khoá, dữ liệu cá nhân, CSP / tiêu đề bảo mật
 
 ## Luồng dữ liệu
 
@@ -89,8 +91,15 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
    loại "Đầu mối (Chung)"). Khấu hao **tạm tính**: file BBKK chưa có số năm khấu hao → `ngày bắt đầu sử dụng + N năm`, N do
    người xem tích chọn (3–10, mặc định 5, nhớ trên máy); không tính công trình, xây lắp, phần mềm (`a.hoso`). Khi người dùng
    có số năm thật từ kế toán thì bổ sung (người dùng đang kiểm tra lại — nhắc khi được hỏi).
+8. Nạp trang (BAO-MAT.md): `index.html` KHÔNG nạp thẳng dữ liệu; mã chính nằm trong `<script type="text/plain" id="kiemke-app">`.
+   `web/dang-nhap.js` (`napVaChay`) đọc `data/version.json`: `ma_hoa=false` → nạp `data/assets.js`, `data/so-ma-qr.js`;
+   `ma_hoa=true` (build trên Vercel có biến `KIEMKE_KHOA_DU_LIEU`) → đăng nhập, lấy khoá `khoa_du_lieu()`, giải mã `data/*.enc`
+   (AES-256-GCM, `scripts/ma-hoa.mjs`) → rồi mới chạy mã chính. Build chèn CSP (dấu băm của khối mã chính) vào `dist/index.html`.
 
 ## Quy ước BẮT BUỘC
+
+- **Bảo mật và riêng tư: theo `BAO-MAT.md`** (người dùng yêu cầu 15/11/2026, lập từ các thư viện đã cấp phép: ui-ux-pro-max, Supabase).
+  Gặp chỗ chưa có quy tắc thì hỏi người dùng, không chọn cách lỏng hơn.
 
 - **Khoá lưu trên Supabase của `rows` và `xm` là `a.key` (= Mã TSCĐ), không phải STT.** Ánh xạ qua `docId()` / `localKey()`.
   Không đổi cách tạo `key` nếu không kèm bước chuyển dữ liệu cũ trên Supabase (xem skill `du-lieu-ket-qua-supabase`).
@@ -140,7 +149,7 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
 
 ## Trước khi báo "xong"
 
-1. `npm test` → "✓ Tất cả đều đạt".
+1. `npm test` → "✓ Tất cả đều đạt" (bước 6 soát bảo mật: CSP, khoá bí mật / email thật trong repo, mã hoá, SQL).
 2. Thay đổi giao diện: `npm run thu-giao-dien` → "✓ Giao diện: tất cả đều đạt" (thêm kịch bản vào
    `scripts/thu-giao-dien-kich-ban.js` cho chức năng mới); xem thử bằng `npm run dev` (skill `xem-thu-cuc-bo`).
    Lỗi nhỏ tự tìm thấy thì tự sửa (chỉ hỏi khi quan trọng); gợi ý thì nêu ra và chờ người dùng chọn, không tự làm.

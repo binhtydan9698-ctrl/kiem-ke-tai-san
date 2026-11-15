@@ -13,9 +13,8 @@
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
 <script src="config.js"></script>
 <script src="supabase-db.js"></script>
-<!-- Danh sách tài sản (sinh khi build từ file Excel) và chức năng xuất Excel cho kế toán -->
-<script src="data/assets.js"></script>
-<script src="data/so-ma-qr.js"></script>
+<!-- Danh sách tài sản (data/assets.js, data/so-ma-qr.js — hoặc bản mã hoá .enc) do dang-nhap.js nạp rồi mới chạy mã chính
+     (khối mã có id kiemke-app ở cuối trang). Chức năng xuất Excel cho kế toán: -->
 <script src="excel-rules.js"></script>
 <script src="export.js"></script>
 <!-- Tem mã QR: tạo mã (qrcode-generator), quy tắc nội dung mã dùng chung với npm test (qr-rules.js), phần Quản lý mã QR (ma-qr.js) -->
@@ -1045,6 +1044,13 @@ body.dn-cho{padding-bottom:0!important}
 .ql-act{white-space:nowrap}.ql-act .in{width:180px;display:inline-block;margin-right:6px}.ql-act .btn{margin:2px 4px 2px 0}
 .ql-tbl select.in{min-width:170px}
 .db-form{background:var(--surface);border:1px solid var(--accent);border-radius:var(--r);padding:14px 16px;margin:0 0 14px}
+.ql-mfa{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+.ql-mfa img{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;max-width:100%;height:auto}
+.ql-mfa p{margin:0 0 8px;font-size:14px;overflow-wrap:anywhere}
+.ql-mfa .in{width:130px}
+.ql-buoc{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px}
+.dn-hien small{color:var(--muted)}
+@media (max-width:560px){.ql-mfa{grid-template-columns:1fr}}
 .db-tools{flex-wrap:wrap;align-items:center}.db-tools select.in{width:auto;max-width:220px}
 @media (max-width:900px){.ql-dl{grid-template-columns:repeat(2,minmax(0,1fr))}.ql-f,.ql-f5{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.ql-dl,.ql-f,.ql-f5{grid-template-columns:1fr}.dn-the{padding:22px 18px}}
@@ -1150,7 +1156,9 @@ dialog.scan.cont .cam{min-height:170px}
   </div>
 </dialog>
 
-<script>
+<!-- Mã chính: KHÔNG tự chạy. dang-nhap.js nạp dữ liệu (đăng nhập + giải mã nếu dữ liệu đã mã hoá) rồi mới chạy khối này.
+     Chính sách CSP (chèn khi build) chỉ cho chạy đúng khối này theo dấu băm: sửa mã thì build lại là xong. -->
+<script type="text/plain" id="kiemke-app">
 // Danh sách tài sản sinh từ file Excel trong "dữ liệu cập nhật/" (xem scripts/build.mjs)
 const DATA = window.KIEMKE_DATA || {rows:[]};
 const RAW = DATA.rows;
@@ -1434,7 +1442,7 @@ function ready(){
   route(); setSync(); resolveNames();
 }
 function startLocal(){ MODE='local'; S=loadLocal()||seedDemo(blank()); COLS.forEach(c=>{ if(!S[c]) S[c]={}; }); LOGPREV=desired();
-  const di=()=>{ if(DN.toi){ ME=DN.toi.hoTen||DN.toi.ten; showMe(); } READY=true; refreshRooms(); route(); setSync(); };
+  const di=()=>{ if(DN.toi){ ME=DN.toi.hoTen||DN.toi.ten; showMe(); } READY=true; refreshRooms(); route(); setSync(); DN.ghiDangNhap(); };
   if(window.KIEMKE_AUTH_GIA) DN.batDau(di); else di(); }   // KIEMKE_AUTH_GIA: đăng nhập giả của bộ thử giao diện (npm run thu-giao-dien)
 async function init(){
   setSync(); route();
@@ -1457,7 +1465,7 @@ async function init(){
       document.getElementById('whoI').addEventListener('click',whoClick);
       COLS.forEach(listen);
       setTimeout(()=>{ if(LOADED.size<COLS.length){ SLOW=true; if(!READY) ready(); else setSync(); } },10000);
-      setSync(); render();
+      setSync(); render(); DN.ghiDangNhap();   // ghi "Đăng nhập" (thiết bị) vào Lịch sử
     });
     setSync(); render(); return;
   }

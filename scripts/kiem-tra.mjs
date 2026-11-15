@@ -258,5 +258,47 @@ console.log('5. Sổ mã QR ("dữ liệu cập nhật/so-ma-qr.json")');
   ok(!d6.doiMa.length && d6.canhBao.length === 1, 'thử: khai báo đổi mã khi mã cũ vẫn còn trong file BBKK → không nối, cảnh báo');
 }
 
+/* 6. Bảo mật và riêng tư (BAO-MAT.md) */
+console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
+{
+  const { maHoa, giaiMaWeb, docKhoa, bamMaChinh } = await import('./ma-hoa.mjs');
+  const html = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8'), src = fs.readFileSync(path.join(ROOT, 'web', 'index.html'), 'utf8');
+  const csp = (/<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(html) || [])[1] || '';
+  ok(csp && csp.includes(`'sha256-${bamMaChinh(html)}'`) && !/unsafe-eval/.test(csp) && !/script-src[^;]*unsafe-inline/.test(csp) && /object-src 'none'/.test(csp),
+    'trang có chính sách chặn mã lạ (CSP): chỉ khối mã chính theo dấu băm, không unsafe-eval / unsafe-inline cho mã');
+  const inline = [...src.matchAll(/<script(?![^>]*\bsrc=)([^>]*)>/g)].filter(m => !/type="text\/plain" id="kiemke-app"/.test(m[1]));
+  ok(!inline.length && !/\son[a-z]+\s*=\s*["']/i.test(src.replace(/<script type="text\/plain" id="kiemke-app">[\s\S]*?<\/script>/, '')), 'không có mã chạy thẳng trong HTML ngoài khối mã chính, không gắn sự kiện kiểu onclick=');
+  const cdn = [...src.matchAll(/<script src="(https?:[^"]+)"/g)].map(m => m[1]);
+  ok(cdn.every(u => /@\d+\.\d+\.\d+|\/\d+\.\d+\.\d+\//.test(u)), `thư viện ngoài đều cố định phiên bản (${cdn.length} thư viện)`);
+  const cfg = fs.readFileSync(path.join(ROOT, 'web', 'config.js'), 'utf8').replace(/^\s*\/\/.*$/gm, '');   // bỏ dòng chú thích (có lời dặn "service_role")
+  ok(!/service_role|sb_secret_|c2VydmljZV9yb2xl/.test(cfg), 'web/config.js chỉ có khoá công khai (không có khoá secret / service_role)');
+  // file đang được Git theo dõi: không có khoá bí mật, không có email thật (trừ ví dụ ten@fe.edu.vn)
+  const tracked = spawnSync('git', ['-c', 'core.quotepath=false', 'ls-files'], { cwd: ROOT, encoding: 'utf8' }).stdout.split('\n').filter(f => f && /\.(js|mjs|json|html|md|sql|yml|txt|css)$/i.test(f));
+  const lo = [];
+  for (const f of tracked) {
+    if (f === 'scripts/kiem-tra.mjs') continue;   // chính file này chứa các mẫu cần tìm
+    let t = ''; try { t = fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch { continue; }
+    if (/sb_secret_|-----BEGIN [A-Z ]*PRIVATE KEY|c2VydmljZV9yb2xl|KIEMKE_KHOA_DU_LIEU\s*=\s*['"][A-Za-z0-9+/]{40,}/.test(t)) lo.push(f + ' (khoá bí mật)');
+    const em = (t.match(/[a-z0-9._%+-]+@(fe|fpt)\.edu\.vn/gi) || []).filter(e => !/^ten@/i.test(e));
+    if (em.length) lo.push(f + ' (email: ' + [...new Set(em)].slice(0, 2).join(', ') + ')');
+  }
+  ok(!lo.length, `${tracked.length} file trong repo: không có khoá bí mật, không có email thật` + (lo.length ? ': ' + lo.slice(0, 4).join('; ') : ''));
+  const gi = fs.readFileSync(path.join(ROOT, '.gitignore'), 'utf8');
+  ok(['sao-luu/', '.env'].every(x => gi.includes(x)), '.gitignore chặn sao-luu/ (bản sao dữ liệu) và .env (khoá trên máy)');
+  const vj = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')), hd = (vj.headers || []).flatMap(h => h.headers.map(x => x.key.toLowerCase()));
+  ok(['x-content-type-options', 'x-frame-options', 'referrer-policy', 'permissions-policy', 'strict-transport-security', 'x-robots-tag'].every(k => hd.includes(k)), 'vercel.json có đủ tiêu đề bảo mật');
+  ok(/Disallow: \//.test(fs.readFileSync(path.join(ROOT, 'web', 'robots.txt'), 'utf8')), 'robots.txt: không cho máy tìm kiếm lập chỉ mục');
+  // mã hoá dữ liệu tài sản: Node mã hoá → giải mã đúng như trình duyệt (WebCrypto)
+  const khoa = (await import('node:crypto')).randomBytes(32), b64 = khoa.toString('base64'), mau = Buffer.from(JSON.stringify({ rows: rows.slice(0, 50) }));
+  const enc = maHoa(khoa, mau), dec = await giaiMaWeb(b64, enc);
+  ok(dec.equals(mau) && !enc.includes(Buffer.from(String(rows[0][2]).slice(0, 12))), 'mã hoá dữ liệu tài sản: giải mã kiểu trình duyệt ra đúng, bản mã không lộ tên tài sản');
+  let sai = false; try { await giaiMaWeb(Buffer.alloc(32, 7).toString('base64'), enc); } catch { sai = true; }
+  let ngan = false; try { docKhoa({ KIEMKE_KHOA_DU_LIEU: 'abc' }); } catch { ngan = true; }
+  ok(sai && ngan && docKhoa({}) === null, 'sai khoá thì không giải mã được; khoá sai độ dài bị từ chối; không có khoá thì build bản thường');
+  const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'dang-nhap.sql'), 'utf8');
+  ok(/revoke all on public\.thanh_vien, public\.danh_ba, public\.bi_mat, public\.kiemke_docs from anon/.test(sql) && /du_cap_xac_thuc/.test(sql) && /length\(p_mat_khau\) < 12/.test(sql)
+    && (sql.match(/security definer set search_path/g) || []).length >= 10, 'dang-nhap.sql: thu hồi quyền người không đăng nhập, bắt xác thực 2 bước, mật khẩu ≥ 12, hàm đặc quyền đều cố định search_path');
+}
+
 console.log(loi ? `\n✗ ${loi} mục KHÔNG đạt` : '\n✓ Tất cả đều đạt');
 process.exit(loi ? 1 : 0);

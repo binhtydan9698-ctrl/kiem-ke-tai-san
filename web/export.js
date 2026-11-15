@@ -26,10 +26,14 @@
     const X = window.KIEMKE_EXCEL;
     if (!X) throw new Error('thiếu excel-rules.js');
     await loadExcelJS();
-    const res = await fetch('data/goc.xlsx', { cache: 'no-store' });
-    if (!res.ok) throw new Error('không tìm thấy file Excel gốc trên máy chủ');
+    // file gốc: dang-nhap.js cung cấp kiemkeTepGoc() (tự giải mã khi dữ liệu trên web đã mã hoá — BAO-MAT.md)
+    const goc = window.kiemkeTepGoc ? await window.kiemkeTepGoc() : await (async () => {
+      const res = await fetch('data/goc.xlsx', { cache: 'no-store' });
+      if (!res.ok) throw new Error('không tìm thấy file Excel gốc trên máy chủ');
+      return res.arrayBuffer();
+    })();
     const wb = new window.ExcelJS.Workbook();
-    await wb.xlsx.load(await res.arrayBuffer());
+    await wb.xlsx.load(goc);
 
     const done = new Set();
     for (const ws of wb.worksheets) {

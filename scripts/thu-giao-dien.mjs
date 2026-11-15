@@ -4,6 +4,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -19,7 +20,8 @@ const KICH_BAN = [
   { ten: 'doi-ma', mo: 'Kế toán đổi Mã TSCĐ: tem mã cũ mở tài sản mã mới, lý lịch gộp' },
   { ten: 'chung', mo: 'Chung: khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán' },
   { ten: 'dang-nhap-dau', mo: 'Đăng nhập: lần đầu tạo tài khoản quản trị (đăng nhập giả, không đụng Supabase)' },
-  { ten: 'dang-nhap', mo: 'Đăng nhập: sai/đúng mật khẩu, quản lý thành viên, đổi mật khẩu, quyền, Danh bạ' },
+  { ten: 'dang-nhap', mo: 'Đăng nhập: mật khẩu, chặn nhập sai, chính sách mật khẩu, xác thực 2 bước, thành viên, quyền, Danh bạ, tự đăng xuất' },
+  { ten: 'ma-hoa', mo: 'Dữ liệu tài sản mã hoá: chưa đăng nhập không đọc được, đăng nhập xong giải mã và chạy', maHoa: true },
   { ten: 'dien-thoai', mo: 'Điện thoại (390px): thanh dưới, không tràn ngang', dt: true },
 ];
 
@@ -27,30 +29,42 @@ let loi = 0;
 const ok = (dk, msg) => { if (dk) console.log('  ✓ ' + msg); else { loi++; console.log('  ✗ ' + msg); } };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// 1. build + trang thử (chỉ lưu trên máy; kịch bản "quet-ma" có thêm 1 tài sản giả đã xoá khỏi BBKK)
-const b = spawnSync(process.execPath, [path.join('scripts', 'build.mjs')], { cwd: ROOT, encoding: 'utf8' });
-if (b.status !== 0) { console.log(b.stdout + b.stderr); console.log('✗ Build lỗi, dừng.'); process.exit(1); }
-const goc = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8');
+// 1. build (bản thường vào dist/, bản MÃ HOÁ với khoá thử vào thư mục tạm) + trang thử chỉ lưu trên máy.
+//    Mọi thứ bộ thử chèn vào trang đều là file .js riêng (không chèn mã trực tiếp) để trang chạy dưới đúng CSP như trên web.
+const dung = env => { const r = spawnSync(process.execPath, [path.join('scripts', 'build.mjs')], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, KIEMKE_KHOA_DU_LIEU: '', ...env } }); if (r.status !== 0) { console.log(r.stdout + r.stderr); console.log('✗ Build lỗi, dừng.'); process.exit(1); } };
+dung({});
+const MAHOA = fs.mkdtempSync(path.join(os.tmpdir(), 'thu-ma-hoa-')), KHOA_THU = crypto.randomBytes(32).toString('base64');
+dung({ KIEMKE_DIST: MAHOA, KIEMKE_KHOA_DU_LIEU: KHOA_THU });
 const chen = (s, sau, them) => { const i = s.indexOf(sau); if (i < 0) throw new Error('không thấy ' + sau); return s.slice(0, i + sau.length) + them + s.slice(i + sau.length); };
-let trang = chen(goc, '<head>', '<script>try{localStorage.clear()}catch(e){}</script>');
-trang = chen(trang, '<script src="supabase-db.js"></script>', '<script>window.makeSupabaseDb=()=>null;</script><script src="_thu-dang-nhap-gia.js"></script>');
-trang = chen(trang, '<script src="data/so-ma-qr.js"></script>', '<script>if(location.search==="?quet-ma")KIEMKE_SO_QR.xoa["1234567"]={ten:"Tài sản thử đã xoá khỏi BBKK",donVi:"GD",vt:"108 Gamma",ngay:"2020-01-01",gia:15000000,tu:"2026-11-14",xoa:"2027-01-02"};'
-  + 'if(location.search==="?doi-ma"){const r=KIEMKE_DATA.rows.find(x=>String(x[8])==="6497474");KIEMKE_SO_QR.xoa["7654321"]={ten:r[2],donVi:r[6],vt:r[7],ngay:r[4],gia:r[5],tu:"2026-11-14",file:"BBKK cũ.xlsx",xoa:"2027-01-02",sang:{ma:"6497474",luc:"2027-01-02 09:30",cach:"tự nhận"}};KIEMKE_SO_QR.sang={"7654321":"6497474"};}</script>');
-trang = trang.replace('</body>', '<script src="_thu-kich-ban.js"></script></body>');
-fs.writeFileSync(path.join(DIST, '_thu-giao-dien.html'), trang);
-fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-giao-dien-kich-ban.js'), path.join(DIST, '_thu-kich-ban.js'));
-fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-dang-nhap-gia.js'), path.join(DIST, '_thu-dang-nhap-gia.js'));   // đăng nhập giả (?dang-nhap…)
-const don = () => { for (const f of ['_thu-giao-dien.html', '_thu-kich-ban.js', '_thu-dang-nhap-gia.js']) try { fs.unlinkSync(path.join(DIST, f)); } catch { } };
+const TEP1 = 'try{localStorage.clear()}catch(e){}\nwindow.__CSP=[];document.addEventListener("securitypolicyviolation",e=>window.__CSP.push((e.effectiveDirective||e.violatedDirective)+" "+(e.blockedURI||"")));\n';
+const TEP2 = `window.makeSupabaseDb=()=>null;window.__KHOA_THU=${JSON.stringify(KHOA_THU)};
+window.kiemkeSauKhiNap=function(){   // kịch bản "quet-ma": 1 tài sản giả đã xoá khỏi BBKK; "doi-ma": mã cũ giả đã đổi sang 6497474
+  if(location.search==="?quet-ma")KIEMKE_SO_QR.xoa["1234567"]={ten:"Tài sản thử đã xoá khỏi BBKK",donVi:"GD",vt:"108 Gamma",ngay:"2020-01-01",gia:15000000,tu:"2026-11-14",xoa:"2027-01-02"};
+  if(location.search==="?doi-ma"){const r=KIEMKE_DATA.rows.find(x=>String(x[8])==="6497474");KIEMKE_SO_QR.xoa["7654321"]={ten:r[2],donVi:r[6],vt:r[7],ngay:r[4],gia:r[5],tu:"2026-11-14",file:"BBKK cũ.xlsx",xoa:"2027-01-02",sang:{ma:"6497474",luc:"2027-01-02 09:30",cach:"tự nhận"}};KIEMKE_SO_QR.sang={"7654321":"6497474"};}
+};\n`;
+const TEP_THU = ['_thu-giao-dien.html', '_thu-1.js', '_thu-2.js', '_thu-kich-ban.js', '_thu-dang-nhap-gia.js'];
+for (const d of [DIST, MAHOA]) {
+  let trang = chen(fs.readFileSync(path.join(d, 'index.html'), 'utf8'), '<head>', '<script src="_thu-1.js"></script>');
+  trang = chen(trang, '<script src="supabase-db.js"></script>', '<script src="_thu-2.js"></script><script src="_thu-dang-nhap-gia.js"></script>');
+  trang = trang.replace('</body>', '<script src="_thu-kich-ban.js"></script></body>');
+  fs.writeFileSync(path.join(d, '_thu-giao-dien.html'), trang);
+  fs.writeFileSync(path.join(d, '_thu-1.js'), TEP1); fs.writeFileSync(path.join(d, '_thu-2.js'), TEP2);
+  fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-giao-dien-kich-ban.js'), path.join(d, '_thu-kich-ban.js'));
+  fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-dang-nhap-gia.js'), path.join(d, '_thu-dang-nhap-gia.js'));   // đăng nhập giả (?dang-nhap…, ?ma-hoa)
+}
+const don = () => { for (const f of TEP_THU) try { fs.unlinkSync(path.join(DIST, f)); } catch { } try { fs.rmSync(MAHOA, { recursive: true, force: true }); } catch { } };
 
-// 2. máy chủ tạm cho dist/
+// 2. máy chủ tạm: dist/ ở "/", bản mã hoá ở "/ma-hoa/"
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript; charset=utf-8', '.json': 'application/json', '.jpg': 'image/jpeg', '.png': 'image/png', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
 const may = http.createServer((req, res) => {
-  const p = decodeURIComponent(new URL(req.url, 'http://x').pathname), f = path.join(DIST, p.endsWith('/') ? p + 'index.html' : p);
-  if (!f.startsWith(DIST) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
+  let p = decodeURIComponent(new URL(req.url, 'http://x').pathname), goc = DIST;
+  if (p.startsWith('/ma-hoa/')) { goc = MAHOA; p = p.slice(7); }
+  const f = path.join(goc, p.endsWith('/') ? p + 'index.html' : p);
+  if (!f.startsWith(goc) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' }); fs.createReadStream(f).pipe(res);
 });
 await new Promise(r => may.listen(0, '127.0.0.1', r));
-const GOC = `http://localhost:${may.address().port}/_thu-giao-dien.html`;
+const GOC = `http://localhost:${may.address().port}/_thu-giao-dien.html`, GOC_MH = `http://localhost:${may.address().port}/ma-hoa/_thu-giao-dien.html`;
 
 // 3. trình duyệt chạy ngầm, điều khiển qua DevTools
 const ung = [process.env.CHROME_PATH, 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Microsoft/Edge/Application/msedge.exe',
@@ -80,7 +94,7 @@ for (const k of KICH_BAN) {
   console.log(`${++so}. ${k.mo}`);
   await gui('Emulation.setDeviceMetricsOverride', k.dt ? { width: 390, height: 844, deviceScaleFactor: 2, mobile: true } : { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
   loiTrang.length = 0;
-  await gui('Page.navigate', { url: `${GOC}?${k.ten}` });
+  await gui('Page.navigate', { url: `${k.maHoa ? GOC_MH : GOC}?${k.ten}` });
   const t0 = Date.now(); let kq = null;
   while (Date.now() - t0 < (k.cho || 120000)) {
     await sleep(500);
@@ -91,6 +105,9 @@ for (const k of KICH_BAN) {
   kq.kq.forEach(([d, m]) => ok(d, m));
   const loiJs = [...new Set([...kq.err, ...loiTrang])];
   ok(!loiJs.length, 'không có lỗi JavaScript trên trang' + (loiJs.length ? ': ' + loiJs.slice(0, 3).join(' | ').slice(0, 300) : ''));
+  // chính sách chặn mã lạ (CSP) không được chặn nhầm chức năng nào (bỏ qua pdf.js — chỉ bộ thử dùng để đọc lại PDF)
+  const csp = JSON.parse((await gui('Runtime.evaluate', { expression: 'JSON.stringify(window.__CSP||[])', returnByValue: true })).result?.result?.value || '[]').filter(x => !/pdf\.worker|pdf\.js/.test(x));
+  ok(!csp.length, 'không vi phạm chính sách chặn mã lạ (CSP)' + (csp.length ? ': ' + [...new Set(csp)].slice(0, 4).join(' | ') : ''));
 }
 
 ws.close(); tr.kill(); may.close(); don();

@@ -8,10 +8,13 @@
 --     nhập, email công việc, mật khẩu. Sau đó quản trị tạo tài khoản thành viên trong Chung › Quản lý.
 -- File này KHÔNG chứa mật khẩu hay email của ai (repo có thể công khai). Mật khẩu do Supabase Auth giữ (đã băm).
 --
--- Cài đặt Supabase cần có (Authentication → Sign In / Providers → Email):
+-- Cài đặt Supabase cần có (Authentication → Sign In / Providers → Email) — xem đủ ở BAO-MAT.md mục F:
 --   * TẮT "Confirm email"  (không gửi mail xác nhận; tài khoản dùng được ngay)
---   * BẬT "Allow new users to sign up" (trang tạo tài khoản thành viên bằng đăng ký; người lạ tự đăng ký cũng KHÔNG
---     đọc được gì vì không có trong thanh_vien)
+--   * BẬT "Allow new users to sign up" khi tạo tài khoản (quản trị đầu tiên, thành viên mới); người lạ tự đăng ký cũng KHÔNG
+--     đọc được gì vì không có trong thanh_vien. Không thêm thành viên thì có thể TẮT để chặn đăng ký rác.
+--   * "Minimum password length": 12 (trang cũng kiểm tra; hàm đặt lại mật khẩu của quản trị bắt 12–72 ký tự)
+-- Bảo mật thêm trong file này: xác thực 2 bước (tài khoản đã bật thì phiên phải qua bước 2 mới đọc được dữ liệu),
+-- khoá giải mã dữ liệu tài sản (bảng bi_mat), thu hồi mọi quyền của người không đăng nhập trên các bảng.
 
 -- ===== bảng =====
 create table if not exists public.thanh_vien (
@@ -35,15 +38,38 @@ create table if not exists public.danh_ba (
   cap_nhat_boi text not null default ''
 );
 
+-- khoá giải mã dữ liệu tài sản (BAO-MAT.md): tạo ngẫu nhiên MỘT LẦN ngay trong Supabase; quản trị chép sang Vercel
+-- (biến KIEMKE_KHOA_DU_LIEU). Không có policy nào: không ai đọc thẳng bảng này được, chỉ qua hàm khoa_du_lieu() (thành viên).
+create table if not exists public.bi_mat (
+  ten      text primary key,
+  gia_tri  text not null,
+  tao_luc  timestamptz not null default now()
+);
+insert into public.bi_mat (ten, gia_tri) values ('khoa_du_lieu', encode(extensions.gen_random_bytes(32), 'base64'))
+on conflict (ten) do nothing;
+
 -- ===== hàm kiểm tra quyền (security definer: đọc thanh_vien không vướng RLS) =====
+-- tài khoản đã bật xác thực 2 bước thì phiên phải qua bước 2 (aal2) mới được tính là thành viên
+create or replace function public.du_cap_xac_thuc() returns boolean
+language sql stable security definer set search_path = public, auth as $$
+  select coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2'
+      or not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status = 'verified')
+$$;
+
 create or replace function public.quyen_cua_toi() returns text
 language sql stable security definer set search_path = public as $$
-  select quyen from public.thanh_vien where user_id = auth.uid() and not khoa
+  select quyen from public.thanh_vien where user_id = auth.uid() and not khoa and public.du_cap_xac_thuc()
 $$;
 
 create or replace function public.la_thanh_vien() returns boolean
 language sql stable security definer set search_path = public as $$
-  select exists (select 1 from public.thanh_vien where user_id = auth.uid() and not khoa)
+  select public.du_cap_xac_thuc() and exists (select 1 from public.thanh_vien where user_id = auth.uid() and not khoa)
+$$;
+
+-- khoá giải mã dữ liệu tài sản: chỉ thành viên đã đăng nhập (đủ bước xác thực)
+create or replace function public.khoa_du_lieu() returns text
+language sql stable security definer set search_path = public as $$
+  select gia_tri from public.bi_mat where ten = 'khoa_du_lieu' and public.la_thanh_vien()
 $$;
 
 create or replace function public.la_quan_tri() returns boolean
@@ -111,24 +137,31 @@ create or replace function public.quan_tri_dat_mat_khau(p_uid uuid, p_mat_khau t
 language plpgsql security definer set search_path = public, auth, extensions as $$
 begin
   if not public.la_quan_tri() then raise exception 'Chỉ quản trị mới đặt lại được mật khẩu'; end if;
-  if length(p_mat_khau) < 8 then raise exception 'Mật khẩu cần ít nhất 8 ký tự'; end if;
+  if length(p_mat_khau) < 12 or length(p_mat_khau) > 72 then raise exception 'Mật khẩu cần 12–72 ký tự'; end if;
   if not exists (select 1 from public.thanh_vien where user_id = p_uid) then raise exception 'Không có thành viên này'; end if;
   update auth.users set encrypted_password = extensions.crypt(p_mat_khau, extensions.gen_salt('bf')), updated_at = now()
   where id = p_uid;
 end $$;
 
 -- ===== ai được gọi hàm nào =====
-revoke all on function public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
-  public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(), public.quan_tri_them_thanh_vien(text, text, text, text),
-  public.quan_tri_dat_mat_khau(uuid, text) from public, anon;
-grant execute on function public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
-  public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(), public.quan_tri_them_thanh_vien(text, text, text, text),
-  public.quan_tri_dat_mat_khau(uuid, text) to authenticated;
+revoke all on function public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
+  public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
+  public.quan_tri_them_thanh_vien(text, text, text, text), public.quan_tri_dat_mat_khau(uuid, text) from public, anon;
+grant execute on function public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
+  public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
+  public.quan_tri_them_thanh_vien(text, text, text, text), public.quan_tri_dat_mat_khau(uuid, text) to authenticated;
 grant execute on function public.trang_thai_dang_nhap(), public.email_dang_nhap(text) to anon, authenticated;
+
+-- người không đăng nhập (anon) không còn quyền gì trên các bảng (RLS vẫn là lớp thứ hai)
+revoke all on public.thanh_vien, public.danh_ba, public.bi_mat, public.kiemke_docs from anon;
+revoke all on public.bi_mat from authenticated;
+grant select, insert, update, delete on public.kiemke_docs, public.danh_ba to authenticated;
+grant select, update, delete on public.thanh_vien to authenticated;
 
 -- ===== quyền trên bảng (RLS) =====
 alter table public.thanh_vien enable row level security;
 alter table public.danh_ba enable row level security;
+alter table public.bi_mat enable row level security;   -- không có policy nào: chỉ đọc qua khoa_du_lieu()
 
 drop policy if exists "tv xem" on public.thanh_vien;
 drop policy if exists "tv sua" on public.thanh_vien;
@@ -157,4 +190,4 @@ create policy "kiemke them" on public.kiemke_docs for insert to authenticated wi
 create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.la_thanh_vien()) with check (public.la_thanh_vien());
 create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.la_thanh_vien());
 
--- Muốn quay lại như cũ (ai có link đều dùng được): chạy lại supabase/schema.sql.
+-- Muốn quay lại như cũ (ai có link đều dùng được): chạy lại supabase/schema.sql (nó cấp lại quyền cho anon).

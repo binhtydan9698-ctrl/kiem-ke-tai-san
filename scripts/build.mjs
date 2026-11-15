@@ -11,9 +11,12 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import ExcelJS from 'exceljs';
 import { findExcel } from './excel-file.mjs';
 import { SO_FILE, docSo, vietSo, capNhatSo, homNay, bayGio, docDoiTay } from './so-ma-qr.mjs';
+import { docKhoa, maHoa, cspTrang, bamMaChinh } from './ma-hoa.mjs';
+import { supabaseConfig } from './cau-hinh.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = path.join(ROOT, 'dist');
+const DIST = process.env.KIEMKE_DIST ? path.resolve(process.env.KIEMKE_DIST) : path.join(ROOT, 'dist');   // KIEMKE_DIST: bộ thử dựng bản mã hoá ra thư mục tạm
+const KHOA = docKhoa();   // có khoá (Vercel) → dữ liệu tài sản chỉ ghi dạng mã hoá (BAO-MAT.md)
 
 // Quy tắc nhận diện tiêu đề / dòng tổng / khoá tài sản dùng chung với web/export.js
 await import(pathToFileURL(path.join(ROOT, 'web', 'excel-rules.js')).href);
@@ -114,7 +117,6 @@ fs.cpSync(path.join(ROOT, 'web'), DIST, { recursive: true, filter: s => !/\.md$/
 fs.writeFileSync(path.join(DIST, 'data', 'assets.js'),
   `// Sinh tự động từ "${path.relative(ROOT, file).replace(/\\/g, '/')}" — đừng sửa tay, sửa file Excel.\n` +
   `window.KIEMKE_DATA=${JSON.stringify({ ...meta, rows })};\n`);
-fs.writeFileSync(path.join(DIST, 'data', 'version.json'), JSON.stringify(meta));
 fs.copyFileSync(file, path.join(DIST, 'data', 'goc.xlsx'));
 
 /* ---------- Sổ mã QR: mã đã cấp không bao giờ mất, tài sản bị xoá vẫn giữ ---------- */
@@ -126,12 +128,32 @@ if (SQ.doi && !process.env.VERCEL) fs.writeFileSync(SO_FILE, vietSo(SQ.so));
 const soDang = {}, soXoa = {}, soFile = [], soSang = {};
 const fileSo = f => { if (!f) return -1; let i = soFile.indexOf(f); if (i < 0) { soFile.push(f); i = soFile.length - 1; } return i; };
 for (const [k, e] of Object.entries(SQ.so.ma)) { if (e.xoa) soXoa[k] = e; else soDang[k] = [e.tu, fileSo(e.file)]; if (e.sang) soSang[k] = e.sang.ma; }
+const soQR = { capNhat: SQ.so.capNhat, files: soFile, dang: soDang, xoa: soXoa, chan: soChan, sang: soSang };
 fs.writeFileSync(path.join(DIST, 'data', 'so-ma-qr.js'),
   '// Sinh tự động từ "dữ liệu cập nhật/so-ma-qr.json" — đừng sửa tay.\n' +
-  `window.KIEMKE_SO_QR=${JSON.stringify({ capNhat: SQ.so.capNhat, files: soFile, dang: soDang, xoa: soXoa, chan: soChan, sang: soSang })};\n`);
+  `window.KIEMKE_SO_QR=${JSON.stringify(soQR)};\n`);
+
+/* ---------- Bảo mật (BAO-MAT.md) ---------- */
+// 1. Có khoá (Vercel): danh sách tài sản, Sổ mã QR, file Excel gốc CHỈ ghi dạng mã hoá; trang giải mã sau khi đăng nhập
+if (KHOA) {
+  const ghiMaHoa = (ten, noiDung) => fs.writeFileSync(path.join(DIST, 'data', ten), maHoa(KHOA, noiDung));
+  ghiMaHoa('assets.enc', JSON.stringify({ ...meta, rows }));
+  ghiMaHoa('so-ma-qr.enc', JSON.stringify(soQR));
+  ghiMaHoa('goc.xlsx.enc', buf);
+  for (const f of ['assets.js', 'so-ma-qr.js', 'goc.xlsx']) fs.rmSync(path.join(DIST, 'data', f), { force: true });
+}
+fs.writeFileSync(path.join(DIST, 'data', 'version.json'), JSON.stringify({ ...meta, ma_hoa: !!KHOA }));
+// 2. Chính sách chặn mã lạ (CSP): chỉ khối mã chính của trang (theo dấu băm) và các CDN đã cho phép mới chạy được
+{
+  const f = path.join(DIST, 'index.html'), html = fs.readFileSync(f, 'utf8');
+  let sbUrl = ''; try { sbUrl = supabaseConfig().url; } catch { }
+  const csp = cspTrang(bamMaChinh(html), sbUrl);
+  if (!/<meta charset="utf-8">/i.test(html)) throw new Error('index.html thiếu <meta charset="utf-8"> để chèn CSP');
+  fs.writeFileSync(f, html.replace(/<meta charset="utf-8">/i, m => `${m}\n<meta http-equiv="Content-Security-Policy" content="${csp}">`));
+}
 
 const le = X.REVIEW_SHEETS.map(s => `${s} ${rows.filter(r => r[11] === s).length}`).join(', ');
-console.log(`Xong: ${rows.length} tài sản từ ${sheets.length} sheet · phiên bản ${version}`);
+console.log(`Xong: ${rows.length} tài sản từ ${sheets.length} sheet · phiên bản ${version}` + (KHOA ? ' · dữ liệu tài sản đã MÃ HOÁ (chỉ thành viên đăng nhập mở được)' : ''));
 console.log(`  Chưa có vị trí (sheet lẻ): ${le}`);
 console.log(`  Sổ mã QR: ${Object.keys(SQ.so.ma).length} mã đã cấp (đang dùng ${Object.keys(soDang).length}, đã xoá khỏi BBKK ${Object.keys(soXoa).length})`
   + (SQ.moi.length ? ` · mới cấp ${SQ.moi.length}` : '') + (SQ.xoa.length ? ` · vừa xoá khỏi BBKK ${SQ.xoa.length}: ${SQ.xoa.slice(0, 10).join(', ')}` : '')

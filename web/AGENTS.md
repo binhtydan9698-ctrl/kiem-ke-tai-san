@@ -3,6 +3,11 @@
 - HTML + JavaScript thuần, **không** framework, **không** bước bundle. `index.html` chứa CSS + logic chính;
   các file `.js` khác nạp bằng `<script src>` theo thứ tự trong `<head>`. Không đổi sang ES module / React
   trừ khi người dùng yêu cầu.
+- **Bảo mật (BAO-MAT.md, skill `bao-mat`)**: logic chính nằm trong `<script type="text/plain" id="kiemke-app">` (thẻ đứng đầu dòng,
+  đúng 1 khối), do `dang-nhap.js` (`napVaChay`) chạy sau khi nạp / giải mã dữ liệu. CSP chỉ cho chạy đúng khối này (dấu băm tính
+  khi build) và CDN jsDelivr, cdnjs: KHÔNG thêm `<script>` viết thẳng khác, `onclick=`, `eval`, `new Function`; không nhắc nguyên
+  văn thẻ mở của khối mã chính trong chú thích HTML. Thêm CDN / dịch vụ ngoài → sửa `cspTrang()` (`scripts/ma-hoa.mjs`).
+  File Excel gốc lấy qua `kiemkeTepGoc()`, không `fetch('data/…')` trực tiếp. Bộ thử chạy dưới đúng CSP (vi phạm = lỗi).
 - Thư viện ngoài chỉ nạp từ CDN với **phiên bản cố định** (supabase-js 2.118.0 qua jsDelivr, exceljs 4.4.0 qua cdnjs).
 - `excel-rules.js` được dùng chung với Node (`scripts/build.mjs`, `scripts/kiem-tra.mjs`): giữ nó chạy được ở cả hai
   (chỉ gắn vào `globalThis`, không dùng DOM).

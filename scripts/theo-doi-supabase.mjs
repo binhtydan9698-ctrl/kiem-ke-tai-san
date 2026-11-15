@@ -12,7 +12,10 @@ const ghi = s => { console.log(s); if (process.env.GITHUB_STEP_SUMMARY) fs.appen
 async function docThu() {
   const c = new AbortController(), t = setTimeout(() => c.abort(), 20000);
   try {
-    const r = await fetch(`${url}/rest/v1/${table}?select=col&limit=1`, { headers: { apikey: key, Authorization: 'Bearer ' + key }, signal: c.signal });
+    // đã bật đăng nhập (dang-nhap.sql): hỏi trạng thái (không đụng dữ liệu, người không đăng nhập vẫn gọi được);
+    // chưa bật (404): đọc thử 1 dòng như cũ
+    let r = await fetch(`${url}/rest/v1/rpc/trang_thai_dang_nhap`, { method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' }, body: '{}', signal: c.signal });
+    if (r.status === 404) r = await fetch(`${url}/rest/v1/${table}?select=col&limit=1`, { headers: { apikey: key }, signal: c.signal });
     return { ok: r.ok, ma: r.status, noiDung: (await r.text()).slice(0, 300) };
   } catch (e) { return { ok: false, ma: 0, noiDung: String(e && e.message || e) }; }
   finally { clearTimeout(t); }

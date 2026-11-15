@@ -226,14 +226,14 @@
     f('ten', 'Nguyễn Văn Thử'); f('cv', 'Chủ nhiệm bộ môn'); f('email', 'sai-email');
     document.querySelector('[data-dm="GD"] [data-ch="dmluu"]').click(); await W(300);
     ok(!dmCua('GD') && /Email chưa đúng/.test(txt('toastMsg')), 'email sai dạng: không lưu, báo rõ');
-    f('email', 'thu.nv@fe.edu.vn'); document.querySelector('[data-dm="GD"] [data-ch="dmluu"]').click(); await W(400);
-    ok(dmCua('GD') && dmCua('GD').email === 'thu.nv@fe.edu.vn' && document.querySelector('[data-dm="GD"]').textContent.includes('thu.nv@fe.edu.vn'), 'lưu đầu mối sheet GD: tên, chức vụ, email');
+    f('email', 'thu.nv@vd.vn'); document.querySelector('[data-dm="GD"] [data-ch="dmluu"]').click(); await W(400);
+    ok(dmCua('GD') && dmCua('GD').email === 'thu.nv@vd.vn' && document.querySelector('[data-dm="GD"]').textContent.includes('thu.nv@vd.vn'), 'lưu đầu mối sheet GD: tên, chức vụ, email');
     ok(LOGMINE.some(e => e.kind === 'chung' && /Họ tên: trống → Nguyễn Văn Thử/.test((e.lines || []).join(' '))), 'lịch sử ghi lần thêm đầu mối');
     const aGD = BY_UNIT.GD.find(a => a.ma && String(a.ma) === String(a.key));
     await go('ts-' + aGD.key);
     ok(app.querySelector('.tsx-dl').textContent.includes('Nguyễn Văn Thử'), 'trang tài sản: hiện đầu mối quản lý');
     await go('dv-GD');
-    ok((app.querySelector('.dm-l') || {}).textContent.includes('thu.nv@fe.edu.vn'), 'trang sheet: hiện đầu mối');
+    ok((app.querySelector('.dm-l') || {}).textContent.includes('thu.nv@vd.vn'), 'trang sheet: hiện đầu mối');
     await go('ly-lich-' + aGD.key); await W(300);
     ok(app.textContent.includes('Nguyễn Văn Thử'), 'lý lịch tài sản: hiện đầu mối');
     S.rows[aGD.stt] = { tt: 0, nf: true, at: Date.now() }; save(); await go('xac-minh');
@@ -243,7 +243,7 @@
     ok(!o.length || o.every(td => td.textContent.includes('Nguyễn Văn Thử')), 'khấu hao: cột Đầu mối hiện đúng người');
     KHV.dv = '';
     const kq = JSON.stringify(ketQuaKeToan(aGD));
-    ok(!kq.includes('thu.nv@fe.edu.vn') && !kq.includes('Nguyễn Văn Thử'), 'kết quả cho kế toán không có đầu mối');
+    ok(!kq.includes('thu.nv@vd.vn') && !kq.includes('Nguyễn Văn Thử'), 'kết quả cho kế toán không có đầu mối');
     const src = await (await fetch('export.js')).text();
     ok(!/S\.dm|dmCua|dmText|dmChu/.test(src), 'file “Xuất cho kế toán” không đọc dữ liệu đầu mối');
   };
@@ -253,12 +253,16 @@
   KB['dang-nhap-dau'] = async () => {
     await until(() => document.getElementById('dnMan'));
     ok(/Tạo tài khoản quản trị/.test(txt('dnMan')) && document.body.classList.contains('dn-cho') && getComputedStyle(document.querySelector('.top')).display === 'none', 'lần đầu: hiện màn hình tạo tài khoản quản trị, ẩn toàn bộ trang');
-    dien('dnTen', 'Sai Ten'); dien('dnHoTen', 'Người Quản Trị'); dien('dnEmail', 'qt@vd.vn'); dien('dnMk', 'MatKhau#2026'); dien('dnMk2', 'MatKhau#2026');
-    document.getElementById('dnNut').click(); await W(300);
+    const tao = async (ten, mk, mk2) => { dien('dnTen', ten); dien('dnHoTen', 'Người Quản Trị'); dien('dnEmail', 'qt@vd.vn'); dien('dnMk', mk); dien('dnMk2', mk2 == null ? mk : mk2); document.getElementById('dnNut').click(); await W(300); };
+    await tao('Sai Ten', 'Hoa-sen-nam-2026');
     ok(/chữ thường không dấu/.test(txt('dnLoi')) && !READY, 'tên đăng nhập có chữ hoa, dấu cách: báo lỗi, chưa vào trang');
-    dien('dnTen', 'quantri2'); dien('dnMk2', 'khac'); document.getElementById('dnNut').click(); await W(300);
+    await tao('quantri2', 'Ngan#2026');
+    ok(/ít nhất 12/.test(txt('dnLoi')), 'chính sách mật khẩu: dưới 12 ký tự bị chặn');
+    await tao('quantri2', 'quantri2-hoa-sen');
+    ok(/không được chứa tên đăng nhập/.test(txt('dnLoi')), 'chính sách mật khẩu: chứa tên đăng nhập bị chặn');
+    await tao('quantri2', 'Hoa-sen-nam-2026', 'khac');
     ok(/chưa giống nhau/.test(txt('dnLoi')), 'nhập lại mật khẩu khác: báo lỗi');
-    dien('dnMk2', 'MatKhau#2026'); document.getElementById('dnNut').click();
+    await tao('quantri2', 'Hoa-sen-nam-2026');
     await until(() => READY && !document.getElementById('dnMan'));
     ok(READY && DN.toi && DN.toi.quyen === 'admin' && ME === 'Người Quản Trị', 'tạo xong: vào trang với quyền quản trị, tên người kiểm lấy từ tài khoản');
     ok(KIEMKE_AUTH_GIA.tk.length === 1 && KIEMKE_AUTH_GIA.tk[0].ten === 'quantri2', 'đã tạo đúng 1 tài khoản quản trị');
@@ -268,32 +272,59 @@
     const A = KIEMKE_AUTH_GIA;
     const dangNhap = async (ten, mk) => { await until(() => document.getElementById('dnTen')); dien('dnTen', ten); dien('dnMk', mk); document.getElementById('dnNut').click(); await W(400); };
     await until(() => document.getElementById('dnMan'));
-    ok(!READY && /Đăng nhập/.test(txt('dnNut')) && !document.getElementById('dnHoTen'), 'mở trang: phải đăng nhập, chưa thấy dữ liệu');
+    ok(!READY && /Đăng nhập/.test(txt('dnNut')) && !document.getElementById('dnHoTen') && !!document.getElementById('dnNho'), 'mở trang: phải đăng nhập, có ô "Ghi nhớ đăng nhập trên máy này"');
+    ok(document.getElementById('dnTen').autocomplete === 'username' && document.getElementById('dnMk').autocomplete === 'current-password', 'ô đăng nhập hỗ trợ trình quản lý mật khẩu (autocomplete)');
     await dangNhap('quantri', 'sai-mat-khau');
     ok(/Sai tên đăng nhập hoặc mật khẩu/.test(txt('dnLoi')) && !READY, 'sai mật khẩu: báo lỗi, không vào được');
     await dangNhap('khongco', 'MatKhauThu#1');
     ok(/Sai tên đăng nhập hoặc mật khẩu/.test(txt('dnLoi')), 'sai tên đăng nhập: báo lỗi chung (không lộ tên nào có thật)');
+    for (let i = 0; i < 3; i++) await dangNhap('quantri', 'sai-nua-' + i);
+    await dangNhap('quantri', 'MatKhauThu#1');
+    ok(/Thử lại sau \d+ giây/.test(txt('dnLoi')) && !READY, 'nhập sai 5 lần: tạm khoá ô đăng nhập 60 giây, kể cả khi gõ đúng');
+    try { sessionStorage.removeItem('kiemke-sai'); } catch (e) { }
     await dangNhap('QuanTri', 'MatKhauThu#1'); await until(() => READY);
     ok(READY && DN.toi && DN.toi.ten === 'quantri' && txt('whoN') === 'Quản trị thử', 'đăng nhập đúng (gõ chữ hoa vẫn nhận): vào trang, đầu trang hiện tên tài khoản');
+    ok(LOGMINE.some(e => e.kind === 'chung' && e.title === 'Đăng nhập'), 'lịch sử ghi lần đăng nhập (thiết bị, trình duyệt)');
 
     await go('quan-ly'); await until(() => document.querySelector('.ql-tbl'));
     ok(/Tài khoản của tôi/.test(app.textContent) && document.querySelectorAll('.ql-tbl tbody tr').length === 1, 'Quản lý: tài khoản của tôi và danh sách thành viên (quản trị)');
+    ok(/Khoá dữ liệu tài sản/.test(app.textContent) && /Chưa khoá/.test(app.textContent), 'quản trị thấy mục Khoá dữ liệu tài sản (bản thử chưa khoá)');
     const them = async (ten, hoTen, email, mk, quyen) => { dien('qtTen', ten); dien('qtHoTen', hoTen); dien('qtEmail', email); dien('qtMk', mk); dien('qtQuyen', quyen); document.querySelector('#qlThem button[type="submit"]').click(); await W(400); };
     await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', '123', 'xem');
-    ok(/ít nhất 8/.test(txt('qlThemLoi')) && A.tk.length === 1, 'mật khẩu ban đầu quá ngắn: không tạo');
-    await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', 'BanDau#2026', 'xem');
+    ok(/ít nhất 12/.test(txt('qlThemLoi')) && A.tk.length === 1, 'mật khẩu ban đầu quá ngắn: không tạo');
+    await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', '123456789012', 'xem');
+    ok(/chỉ gồm chữ số|phổ biến/.test(txt('qlThemLoi')) && A.tk.length === 1, 'mật khẩu toàn số / quá phổ biến: không tạo');
+    await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', 'Ban-dau-2026!', 'xem');
     await until(() => document.querySelectorAll('.ql-tbl tbody tr').length === 2);
     ok(A.tk.length === 2 && A.tk[1].quyen === 'xem', 'thêm thành viên với quyền "Xem danh bạ"');
-    ok(LOGMINE.some(e => e.kind === 'chung' && /Thêm thành viên thanhvien1/.test(e.title)) && !JSON.stringify(LOGMINE).includes('BanDau#2026'), 'lịch sử ghi lần thêm thành viên, không ghi mật khẩu');
+    ok(LOGMINE.some(e => e.kind === 'chung' && /Thêm thành viên thanhvien1/.test(e.title)) && !JSON.stringify(LOGMINE).includes('Ban-dau-2026!'), 'lịch sử ghi lần thêm thành viên, không ghi mật khẩu');
     const tr = () => document.querySelector(`.ql-tbl tr[data-uid="${A.tk[1].uid}"]`);
     tr().querySelector('[data-ql="mk"]').click(); await W(200);
-    dien('qlDat-' + A.tk[1].uid, 'DatLai#2026'); tr().querySelector('[data-ql="datmk"]').click(); await W(400);
-    ok(A.tk[1].mk === 'DatLai#2026', 'quản trị đặt lại mật khẩu cho thành viên quên mật khẩu');
-    const doi = async (cu, moi, moi2) => { dien('qlMkCu', cu); dien('qlMkMoi', moi); dien('qlMkMoi2', moi2); document.querySelector('#qlMk button[type="submit"]').click(); await W(400); };
-    await doi('sai', 'MoiMoi#2026', 'MoiMoi#2026');
+    dien('qlDat-' + A.tk[1].uid, 'Dat-lai-2026!'); tr().querySelector('[data-ql="datmk"]').click(); await W(400);
+    ok(A.tk[1].mk === 'Dat-lai-2026!', 'quản trị đặt lại mật khẩu cho thành viên quên mật khẩu');
+    const doi = async (cu, moi, moi2) => { dien('qlMkCu', cu); dien('qlMkMoi', moi); dien('qlMkMoi2', moi2 == null ? moi : moi2); document.querySelector('#qlMk button[type="submit"]').click(); await W(400); };
+    await doi('sai', 'Moi-moi-2026!');
     ok(/hiện tại chưa đúng/.test(txt('qlMkLoi')) && A.tk[0].mk === 'MatKhauThu#1', 'đổi mật khẩu: sai mật khẩu hiện tại thì không đổi');
-    await doi('MatKhauThu#1', 'MoiMoi#2026', 'MoiMoi#2026');
-    ok(A.tk[0].mk === 'MoiMoi#2026' && /Đã đổi mật khẩu/.test(txt('toastMsg')), 'đổi mật khẩu của mình thành công');
+    await doi('MatKhauThu#1', 'Ngay-15031990!');
+    ok(/ngày tháng/.test(txt('qlMkLoi')) && A.tk[0].mk === 'MatKhauThu#1', 'mật khẩu có ngày sinh: cảnh báo trước, chưa đổi');
+    await doi('MatKhauThu#1', 'Moi-moi-2026!');
+    ok(A.tk[0].mk === 'Moi-moi-2026!' && /Đã đổi mật khẩu/.test(txt('toastMsg')), 'đổi mật khẩu của mình thành công');
+
+    // xác thực 2 bước
+    await until(() => app.querySelector('[data-ql="mfabat"]'));
+    app.querySelector('[data-ql="mfabat"]').click(); await until(() => document.getElementById('qlMfaMa'));
+    ok(!!app.querySelector('.ql-mfa img') && /JBSWY3DPEHPK3PXP/.test(app.textContent), 'bật xác thực 2 bước: hiện mã QR và mã nhập tay cho ứng dụng xác thực');
+    dien('qlMfaMa', '000000'); app.querySelector('[data-ql="mfaxn"]').click(); await W(300);
+    ok(/Mã xác thực không đúng/.test(txt('qlMfaLoi')) && !A.tk[0].mfa, 'mã xác thực sai: chưa bật');
+    dien('qlMfaMa', '246810'); app.querySelector('[data-ql="mfaxn"]').click(); await until(() => /Đang bật/.test(app.textContent));
+    ok(A.tk[0].mfa && /Đang bật/.test(app.textContent), 'mã đúng: đã bật xác thực 2 bước');
+    app.querySelector('[data-ql="ra"]').click(); await W(500);
+    await dangNhap('quantri', 'Moi-moi-2026!'); await until(() => document.getElementById('dnMa'));
+    ok(!READY || !DN.toi, 'đăng nhập bằng mật khẩu xong: còn phải nhập mã xác thực 2 bước');
+    dien('dnMa', '111111'); document.getElementById('dnNut').click(); await W(300);
+    ok(/Mã xác thực không đúng/.test(txt('dnLoi')) && !DN.toi, 'mã xác thực sai: không vào được');
+    dien('dnMa', '246810'); document.getElementById('dnNut').click(); await until(() => DN.toi && !document.getElementById('dnMan'));
+    ok(DN.toi && DN.toi.ten === 'quantri', 'mã xác thực đúng: vào trang');
 
     await go('danh-ba'); await until(() => DN.db.tai);
     app.querySelector('[data-db="moi"]').click(); await W(300);
@@ -306,17 +337,40 @@
     ok(!!app.querySelector('.tsx-dl a[href="tel:0905123456"]'), 'đầu mối ở trang tài sản: có thêm số điện thoại lấy từ danh bạ');
     ok(!JSON.stringify(ketQuaKeToan(aGD)).includes('0905'), 'số điện thoại không vào kết quả cho kế toán');
 
-    await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(400);
+    await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500);
     ok(!!document.getElementById('dnMan') && document.body.classList.contains('dn-cho'), 'đăng xuất: về màn hình đăng nhập, ẩn trang');
-    await dangNhap('thanhvien1', 'DatLai#2026'); await until(() => !document.getElementById('dnMan'));
+    await dangNhap('thanhvien1', 'Dat-lai-2026!'); await until(() => !document.getElementById('dnMan'));
     ok(DN.toi && DN.toi.quyen === 'xem', 'thành viên đăng nhập được bằng mật khẩu quản trị vừa đặt lại');
     await go('danh-ba'); await until(() => DN.db.tai);
     ok(app.textContent.includes('Lê Thị Danh') && !app.querySelector('[data-db="moi"]') && !app.querySelector('[data-db="sua"]'), 'quyền "Xem danh bạ": xem được, không có nút thêm, sửa');
     await go('quan-ly');
-    ok(/Tài khoản của tôi/.test(app.textContent) && !app.querySelector('.ql-tbl') && !document.getElementById('qlThem'), 'thành viên không phải quản trị: không thấy phần Thành viên');
-    A.tk[1].khoa = true; app.querySelector('[data-ql="ra"]').click(); await W(400);
-    await dangNhap('thanhvien1', 'DatLai#2026');
+    ok(/Tài khoản của tôi/.test(app.textContent) && !app.querySelector('.ql-tbl') && !document.getElementById('qlThem') && !/Khoá dữ liệu tài sản/.test(app.textContent), 'thành viên không phải quản trị: không thấy phần Thành viên, Khoá dữ liệu');
+    // tự đăng xuất khi để máy không dùng quá 8 giờ
+    try { localStorage.setItem('kiemke-hoat-dong', String(Date.now() - 9 * 3600e3)); } catch (e) { }
+    ok(DN.kiemTraNhanRoi() === true, 'không dùng trang quá 8 giờ: tự đăng xuất');
+    await until(() => document.getElementById('dnMan'));
+    ok(/không dùng trang hơn 8 giờ/.test(txt('dnLoi')), 'màn hình đăng nhập báo rõ vì sao bị đăng xuất');
+    A.tk[1].khoa = true;
+    await dangNhap('thanhvien1', 'Dat-lai-2026!');
     ok(!!document.getElementById('dnMan') && /Sai tên đăng nhập/.test(txt('dnLoi')), 'tài khoản bị khoá: không đăng nhập được');
+  };
+
+  // bản build có khoá KIEMKE_KHOA_DU_LIEU: dữ liệu tài sản chỉ có dạng mã hoá
+  KB['ma-hoa'] = async () => {
+    await until(() => document.getElementById('dnMan'));
+    ok(typeof KIEMKE_DATA === 'undefined' && typeof ASSETS === 'undefined', 'chưa đăng nhập: trang chưa có dữ liệu tài sản, mã chính chưa chạy');
+    const st = async p => (await fetch(p, { cache: 'no-store' })).status;
+    ok(await st('data/assets.js') === 404 && await st('data/goc.xlsx') === 404 && await st('data/so-ma-qr.js') === 404, 'không tải được bản thường của danh sách tài sản, Sổ mã QR, file Excel gốc');
+    const enc = new Uint8Array(await (await fetch('data/assets.enc')).arrayBuffer()), chu = new TextDecoder('utf-8', { fatal: false }).decode(enc);
+    ok(enc.length > 1000 && !/Máy tính|Mã TSCĐ|6497474|Gamma/.test(chu), 'tải trộm file mã hoá (data/assets.enc): không đọc được tên, mã, phòng');
+    dien('dnTen', 'quantri'); dien('dnMk', 'MatKhauThu#1'); document.getElementById('dnNut').click();
+    await until(() => typeof READY !== 'undefined' && READY, 30000);
+    ok(typeof ASSETS !== 'undefined' && ASSETS.length > 1000 && !!BY_KEY['6497474'], `đăng nhập xong: giải mã đủ ${typeof ASSETS !== 'undefined' ? ASSETS.length : 0} tài sản, trang chạy bình thường`);
+    ok(Object.keys(KIEMKE_SO_QR.dang || {}).length > 1000, 'Sổ mã QR giải mã đủ');
+    const goc = new Uint8Array(await kiemkeTepGoc());
+    ok(goc.length > 10000 && goc[0] === 0x50 && goc[1] === 0x4B, 'file Excel gốc giải mã được (dùng cho Xuất cho kế toán)');
+    await go('ts-6497474');
+    ok(!!app.querySelector('.tsx'), 'mở trang một tài sản bình thường sau khi giải mã');
   };
 
   KB['dien-thoai'] = async () => {
