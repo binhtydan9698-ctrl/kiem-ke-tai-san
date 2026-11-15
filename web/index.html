@@ -1027,6 +1027,7 @@ body.dn-cho{padding-bottom:0!important}
 .dn-goi{margin:0;font-size:12.5px;color:var(--muted)}
 .dn-dau{display:grid;gap:4px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45}
 .dn-dau b{font-size:14px}
+.dn-qr{display:flex;justify-content:center}.dn-qr img{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;max-width:100%;height:auto}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .dn-logo{background:#fff;padding:4px 8px;border-radius:6px}}
 :root[data-theme="dark"] .dn-logo{background:#fff;padding:4px 8px;border-radius:6px}
 /* Chung › Quản lý, Danh bạ */
@@ -1363,7 +1364,7 @@ function logPut(d,reuse){
   if(i>=0) LOGMINE[i]=e; else LOGMINE.unshift(e);
   if(LOGMINE.length>1000) LOGMINE.length=1000;
   clearTimeout(logPut._t); logPut._t=setTimeout(logKeep,400);
-  if(MODE==='shared'&&DB&&!READONLY) WR.next.set('log/'+id,JSON.stringify(e));
+  if(MODE==='shared'&&DB&&(!READONLY||DN.toi)) WR.next.set('log/'+id,JSON.stringify(e));   // tài khoản Tra cứu vẫn ghi lịch sử (biết ai dùng)
   if(V.type==='log') logDrawSoon();
   if(V.type==='lylich'&&V.id&&(e.key===V.id||(e.keys||[]).includes(V.id))) llDrawSoon();
   return e;
@@ -1442,7 +1443,7 @@ function ready(){
   route(); setSync(); resolveNames();
 }
 function startLocal(){ MODE='local'; S=loadLocal()||seedDemo(blank()); COLS.forEach(c=>{ if(!S[c]) S[c]={}; }); LOGPREV=desired();
-  const di=()=>{ if(DN.toi){ ME=DN.toi.hoTen||DN.toi.ten; showMe(); } READY=true; refreshRooms(); route(); setSync(); DN.ghiDangNhap(); };
+  const di=()=>{ if(DN.toi){ ME=DN.toi.hoTen||DN.toi.ten; showMe(); if(!DN.duocKiemKe()){ READONLY=true; document.body.classList.add('ro'); } } READY=true; refreshRooms(); route(); setSync(); DN.ghiDangNhap(); };
   if(window.KIEMKE_AUTH_GIA) DN.batDau(di); else di(); }   // KIEMKE_AUTH_GIA: đăng nhập giả của bộ thử giao diện (npm run thu-giao-dien)
 async function init(){
   setSync(); route();
@@ -1459,7 +1460,7 @@ async function init(){
     document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') checkData(); });
     // Đăng nhập (dang-nhap.js): đã bật trên Supabase thì phải đăng nhập rồi mới đọc dữ liệu; chưa bật thì chạy như cũ
     DN.batDau(()=>{
-      if(DN.toi){ ME=DN.toi.hoTen||DN.toi.ten; showMe(); }
+      if(DN.toi){ ME=DN.toi.hoTen||DN.toi.ten; showMe(); if(!DN.duocKiemKe()){ READONLY=true; document.body.classList.add('ro'); } }   // Tra cứu: chỉ xem
       else{ try{ ME=localStorage.getItem(KEY+'.name')||''; }catch(e){} showMe(); }
       document.getElementById('whoN').addEventListener('click',whoClick);
       document.getElementById('whoI').addEventListener('click',whoClick);
@@ -1676,12 +1677,14 @@ let pendingQ='', pendingU='';
 function demoBanner(){
   if(MODE==='shared'){
     let h='';
-    if(READONLY) h+=`<div class="demo ro"><b>Chế độ chỉ xem.</b> Bạn xem được tiến độ kiểm kê chung nhưng không ghi kết quả. Cần quyền Contributor trở lên để kiểm.</div>`;
+    if(READONLY) h+=DN.toi?`<div class="demo ro"><b>Tài khoản Tra cứu: chỉ xem.</b> Bạn xem được mọi thông tin nhưng không ghi kết quả kiểm kê. Cần ghi kết quả thì nhờ quản trị cấp quyền Kiểm kê.</div>`
+      :`<div class="demo ro"><b>Chế độ chỉ xem.</b> Bạn xem được tiến độ kiểm kê chung nhưng không ghi kết quả. Cần quyền Contributor trở lên để kiểm.</div>`;
     if(SLOW) h+=`<div class="demo"><b>Chưa kết nối được dữ liệu chung.</b> Số liệu đang hiện có thể chưa mới, trang sẽ tự cập nhật khi có mạng.</div>`;
     if(NEWDATA) h+=`<div class="demo"><span><b>File Excel dữ liệu vừa được cập nhật.</b> Tải lại trang để thấy danh sách tài sản mới; kết quả đã kiểm vẫn giữ nguyên.</span><button class="btn sm pri" data-act="reload">Tải lại trang</button></div>`;
     if(MIGRATE) h+=`<div class="demo"><span>Máy này còn <b>${Object.keys(MIGRATE.rows||{}).length} kết quả kiểm</b> lưu riêng từ trước khi dùng dữ liệu chung.</span><button class="btn sm pri" data-act="migrate">Đưa lên dữ liệu chung</button><button class="btn sm" data-act="nomigrate" style="margin-left:0">Bỏ qua</button></div>`;
     return h;
   }
+  if(READONLY&&DN.toi) return `<div class="demo ro"><b>Tài khoản Tra cứu: chỉ xem.</b> Bạn xem được mọi thông tin nhưng không ghi kết quả kiểm kê. Cần ghi kết quả thì nhờ quản trị cấp quyền Kiểm kê.</div>`;
   return S.demo?`<div class="demo"><b>Đang xem dữ liệu kiểm mẫu.</b> Một phần sheet GD đã được điền sẵn để bạn thấy giao diện khi đang kiểm. Danh sách tài sản là dữ liệu thật từ file kế toán.<button class="btn sm" data-act="reset">Xoá dữ liệu mẫu, bắt đầu từ đầu</button></div>`:'';
 }
 

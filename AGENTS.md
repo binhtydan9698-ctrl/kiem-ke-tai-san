@@ -24,8 +24,11 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
 - **Đăng nhập** (người dùng chốt 15/11/2026: đăng nhập thật qua Supabase Auth, **cả app phải đăng nhập**): bật bằng
   `supabase/dang-nhap.sql` (người dùng tự chạy trong Supabase SQL Editor + tắt "Confirm email"). Chưa chạy thì trang chạy như cũ
   (`DN.cai=false`). Đã chạy: màn hình đăng nhập trước mọi thứ; lần đầu "Tạo tài khoản quản trị"; RLS chỉ cho thành viên
-  (`thanh_vien`, không khoá) đọc/ghi `kiemke_docs`, `danh_ba`. Quyền: `admin` (tài khoản chính của người dùng) · `sua` (sửa Danh bạ)
-  · `xem`. Tên người kiểm (`ME`) lấy từ tài khoản.
+  (`thanh_vien`, không khoá) đọc `kiemke_docs`, `danh_ba`. Quyền (người dùng chốt 15/11/2026): `xem` **Tra cứu** (chỉ xem, trang
+  ở chế độ chỉ xem, vẫn ghi lịch sử) · `kiem` **Kiểm kê** (thêm ghi kết quả kiểm kê, phát sinh, thất lạc) · `admin` **Quản trị**
+  (toàn quyền: danh bạ, đầu mối, thành viên, khoá dữ liệu; **bắt buộc xác thực 2 bước** — chưa bật thì phải bật ngay sau mật khẩu,
+  máy chủ chỉ cho toàn quyền khi phiên đã qua bước 2). Người dùng khác chỉ cần mật khẩu. Máy chủ chặn ghi theo quyền
+  (`duoc_ghi(col)`). Tên người kiểm (`ME`) lấy từ tài khoản.
 - Đầu trang 2 tầng: logo FPT University (`web/img/logo-fpt-university.png`, về trang chủ) · 4 phần chính [Kiểm kê | Mã QR |
   Lịch sử | Chung] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
   thanh dưới cùng [Kiểm kê · Mã QR · Quét mã · Lịch sử · Chung], về trang chủ bằng logo. Trang tài sản, sheet, phòng có nút "In tem mã QR…"

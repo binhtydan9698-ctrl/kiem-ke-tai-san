@@ -18,7 +18,9 @@ Bộ quy tắc đầy đủ: **`BAO-MAT.md`** (gốc repo, người dùng duyệ
    thẳng trong HTML, không `onclick=`, không `eval`. Thêm CDN / dịch vụ mới → sửa `cspTrang()` trong `scripts/ma-hoa.mjs`.
 5. Dữ liệu tài sản: build có khoá → chỉ `data/*.enc`; trang nạp qua `napVaChay()`; file gốc lấy bằng `kiemkeTepGoc()`.
    Không thêm chỗ nào `fetch('data/assets.js'|'data/goc.xlsx')` trực tiếp.
-6. Chính sách mật khẩu `DN.kiemTraMatKhau()` (12–72 ký tự…) dùng ở mọi chỗ đặt mật khẩu; SQL đặt lại mật khẩu cũng bắt 12–72.
-7. Trước khi báo xong: `npm test` (bước 6), `npm run thu-giao-dien` (không vi phạm CSP), đã push thì `npm run kiem-tra-web`.
+6. Quyền: `xem` Tra cứu (READONLY + body.ro, vẫn ghi log) · `kiem` Kiểm kê · `admin` Quản trị (bắt buộc 2 lớp: `hoanTat()` →
+   `hienBatMfa()`; SQL `quyen_cua_toi()` hạ admin chưa aal2 xuống `xem`, `duoc_ghi(col)` chặn ghi theo quyền). Người khác không bật 2 lớp.
+7. Chính sách mật khẩu `DN.kiemTraMatKhau()` (12–72 ký tự…) dùng ở mọi chỗ đặt mật khẩu; SQL đặt lại mật khẩu cũng bắt 12–72.
+8. Trước khi báo xong: `npm test` (bước 6), `npm run thu-giao-dien` (không vi phạm CSP), đã push thì `npm run kiem-tra-web`.
    Thay đổi về đăng nhập / quyền / khoá: rà theo mục B–D của `BAO-MAT.md`; nói rõ cho người dùng việc họ phải làm trong
    Supabase / Vercel (mục F) và điều chưa kiểm tra được trên Supabase thật.

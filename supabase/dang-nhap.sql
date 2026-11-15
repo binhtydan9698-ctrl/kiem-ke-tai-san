@@ -13,18 +13,24 @@
 --   * BẬT "Allow new users to sign up" khi tạo tài khoản (quản trị đầu tiên, thành viên mới); người lạ tự đăng ký cũng KHÔNG
 --     đọc được gì vì không có trong thanh_vien. Không thêm thành viên thì có thể TẮT để chặn đăng ký rác.
 --   * "Minimum password length": 12 (trang cũng kiểm tra; hàm đặt lại mật khẩu của quản trị bắt 12–72 ký tự)
--- Bảo mật thêm trong file này: xác thực 2 bước (tài khoản đã bật thì phiên phải qua bước 2 mới đọc được dữ liệu),
--- khoá giải mã dữ liệu tài sản (bảng bi_mat), thu hồi mọi quyền của người không đăng nhập trên các bảng.
+-- Bảo mật thêm trong file này: 3 mức quyền (Tra cứu / Kiểm kê / Quản trị, máy chủ chặn ghi theo quyền); quản trị BẮT BUỘC
+-- xác thực 2 bước (chưa qua bước 2 thì chỉ có quyền tra cứu); khoá giải mã dữ liệu tài sản (bảng bi_mat); thu hồi mọi quyền
+-- của người không đăng nhập trên các bảng.
 
 -- ===== bảng =====
+-- quyen: 'xem' Tra cứu (chỉ xem) · 'kiem' Kiểm kê (xem + ghi kết quả kiểm kê) · 'admin' Quản trị (toàn quyền, bắt buộc 2 lớp)
 create table if not exists public.thanh_vien (
   user_id       uuid primary key references auth.users(id) on delete cascade,
   ten_dang_nhap text not null unique check (ten_dang_nhap ~ '^[a-z0-9._-]{3,40}$'),
   ho_ten        text not null default '',
-  quyen         text not null default 'xem' check (quyen in ('admin', 'sua', 'xem')),  -- admin: toàn quyền · sua: xem + sửa danh bạ · xem: xem danh bạ
+  quyen         text not null default 'xem',
   khoa          boolean not null default false,
   tao_luc       timestamptz not null default now()
 );
+-- (bản trước có quyền 'sua' = sửa danh bạ → đổi thành 'kiem')
+alter table public.thanh_vien drop constraint if exists thanh_vien_quyen_check;
+update public.thanh_vien set quyen = 'kiem' where quyen = 'sua';
+alter table public.thanh_vien add constraint thanh_vien_quyen_check check (quyen in ('admin', 'kiem', 'xem'));
 
 create table if not exists public.danh_ba (
   id           uuid primary key default gen_random_uuid(),
@@ -56,9 +62,11 @@ language sql stable security definer set search_path = public, auth as $$
       or not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status = 'verified')
 $$;
 
+-- quyền đang có hiệu lực: quản trị chỉ có toàn quyền khi phiên đã qua xác thực 2 bước (aal2); chưa qua → coi như tra cứu
 create or replace function public.quyen_cua_toi() returns text
 language sql stable security definer set search_path = public as $$
-  select quyen from public.thanh_vien where user_id = auth.uid() and not khoa and public.du_cap_xac_thuc()
+  select case when quyen = 'admin' and coalesce(auth.jwt() ->> 'aal', 'aal1') <> 'aal2' then 'xem' else quyen end
+  from public.thanh_vien where user_id = auth.uid() and not khoa and public.du_cap_xac_thuc()
 $$;
 
 create or replace function public.la_thanh_vien() returns boolean
@@ -75,6 +83,15 @@ $$;
 create or replace function public.la_quan_tri() returns boolean
 language sql stable security definer set search_path = public as $$
   select coalesce(public.quyen_cua_toi() = 'admin', false)
+$$;
+
+-- được ghi loại dữ liệu kiểm kê nào: lịch sử (log) — mọi thành viên (để biết ai làm gì, kể cả người chỉ tra cứu);
+-- đầu mối (dm) — chỉ quản trị; kết quả kiểm kê, buổi kiểm, phát sinh, thất lạc (rows, units, ps, xm) — Kiểm kê và Quản trị
+create or replace function public.duoc_ghi(p_col text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select case when p_col = 'log' then public.la_thanh_vien()
+              when p_col = 'dm' then public.la_quan_tri()
+              else coalesce(public.quyen_cua_toi() in ('admin', 'kiem'), false) end
 $$;
 
 -- trước khi đăng nhập: đã bật đăng nhập chưa, đã có quản trị chưa (không lộ dữ liệu)
@@ -125,7 +142,7 @@ language plpgsql security definer set search_path = public, auth as $$
 declare v_uid uuid;
 begin
   if not public.la_quan_tri() then raise exception 'Chỉ quản trị mới thêm được thành viên'; end if;
-  if p_quyen not in ('admin', 'sua', 'xem') then raise exception 'Quyền không hợp lệ'; end if;
+  if p_quyen not in ('admin', 'kiem', 'xem') then raise exception 'Quyền không hợp lệ'; end if;
   select id into v_uid from auth.users where lower(email) = lower(trim(p_email));
   if v_uid is null then raise exception 'Chưa có tài khoản với email này'; end if;
   insert into public.thanh_vien (user_id, ten_dang_nhap, ho_ten, quyen)
@@ -144,10 +161,10 @@ begin
 end $$;
 
 -- ===== ai được gọi hàm nào =====
-revoke all on function public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
+revoke all on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
   public.quan_tri_them_thanh_vien(text, text, text, text), public.quan_tri_dat_mat_khau(uuid, text) from public, anon;
-grant execute on function public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
+grant execute on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
   public.quan_tri_them_thanh_vien(text, text, text, text), public.quan_tri_dat_mat_khau(uuid, text) to authenticated;
 grant execute on function public.trang_thai_dang_nhap(), public.email_dang_nhap(text) to anon, authenticated;
@@ -176,9 +193,9 @@ drop policy if exists "db them" on public.danh_ba;
 drop policy if exists "db sua" on public.danh_ba;
 drop policy if exists "db xoa" on public.danh_ba;
 create policy "db xem"  on public.danh_ba for select to authenticated using (public.la_thanh_vien());
-create policy "db them" on public.danh_ba for insert to authenticated with check (public.quyen_cua_toi() in ('admin', 'sua'));
-create policy "db sua"  on public.danh_ba for update to authenticated using (public.quyen_cua_toi() in ('admin', 'sua')) with check (public.quyen_cua_toi() in ('admin', 'sua'));
-create policy "db xoa"  on public.danh_ba for delete to authenticated using (public.quyen_cua_toi() in ('admin', 'sua'));
+create policy "db them" on public.danh_ba for insert to authenticated with check (public.la_quan_tri());   -- danh bạ: chỉ quản trị sửa
+create policy "db sua"  on public.danh_ba for update to authenticated using (public.la_quan_tri()) with check (public.la_quan_tri());
+create policy "db xoa"  on public.danh_ba for delete to authenticated using (public.la_quan_tri());
 
 -- Dữ liệu kiểm kê: thay quyền "ai có link đều dùng được" (schema.sql) bằng "chỉ thành viên đã đăng nhập"
 drop policy if exists "kiemke doc" on public.kiemke_docs;
@@ -186,8 +203,8 @@ drop policy if exists "kiemke them" on public.kiemke_docs;
 drop policy if exists "kiemke sua" on public.kiemke_docs;
 drop policy if exists "kiemke xoa" on public.kiemke_docs;
 create policy "kiemke doc"  on public.kiemke_docs for select to authenticated using (public.la_thanh_vien());
-create policy "kiemke them" on public.kiemke_docs for insert to authenticated with check (public.la_thanh_vien());
-create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.la_thanh_vien()) with check (public.la_thanh_vien());
-create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.la_thanh_vien());
+create policy "kiemke them" on public.kiemke_docs for insert to authenticated with check (public.duoc_ghi(col));
+create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.duoc_ghi(col)) with check (public.duoc_ghi(col));
+create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.duoc_ghi(col) and (col <> 'log' or public.la_quan_tri()));
 
 -- Muốn quay lại như cũ (ai có link đều dùng được): chạy lại supabase/schema.sql (nó cấp lại quyền cho anon).

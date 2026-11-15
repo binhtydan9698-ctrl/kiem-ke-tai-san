@@ -35,14 +35,17 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
    nghi bị lộ** (kể cả khi đã gửi mật khẩu qua chat, tin nhắn).
 3. Không ai, kể cả trợ lý, được biết hay lưu mật khẩu của người khác. Quản trị đặt lại mật khẩu thì gửi riêng, người đó đổi ngay.
 4. Mật khẩu chỉ Supabase Auth giữ (đã băm). Trang không ghi mật khẩu vào đâu.
-5. **Xác thực 2 bước** (mã 6 số từ Google Authenticator / Microsoft Authenticator): **bắt buộc nên bật cho tài khoản quản trị**.
-   Tài khoản đã bật mà phiên chưa qua bước 2 thì máy chủ không cho đọc dữ liệu.
+5. **Xác thực 2 bước** (mã OTP 6 số từ Google Authenticator / Microsoft Authenticator) **bắt buộc với tài khoản quản trị** (người
+   dùng chốt 15/11/2026): quản trị chưa bật thì phải bật ngay sau mật khẩu mới vào được trang; máy chủ chỉ cho toàn quyền khi phiên
+   đã qua bước 2 (chưa qua thì chỉ có quyền tra cứu). Người dùng khác chỉ cần mật khẩu riêng (để biết ai đang dùng). OTP qua SMS
+   không dùng: cần gói Supabase trả phí + nhà mạng gửi SMS, đăng ký tên thương hiệu, kém an toàn hơn (chiếm SIM).
 6. Nhập sai 5 lần → ô đăng nhập khoá 60 giây trên máy đó (Supabase còn giới hạn tần suất ở máy chủ).
 7. Báo lỗi chung "Sai tên đăng nhập hoặc mật khẩu", không cho biết tài khoản nào có thật.
 8. **Phiên đăng nhập**: không dùng trang quá 8 giờ thì tự đăng xuất; máy dùng chung thì bỏ chọn "Ghi nhớ đăng nhập trên máy này";
    mất máy hay lộ mật khẩu thì bấm "Đăng xuất trên mọi thiết bị".
-9. **Quyền tối thiểu**: *Xem danh bạ* · *Xem và sửa danh bạ* · *Quản trị*. Ai cũng kiểm kê được. Khoá tài khoản có hiệu lực ngay, kể
-   cả máy đang mở trang.
+9. **Quyền tối thiểu** (máy chủ chặn theo quyền): *Tra cứu* — chỉ xem mọi thông tin, kể cả danh bạ; trang ở chế độ chỉ xem ·
+   *Kiểm kê* — thêm ghi kết quả kiểm kê, tài sản phát sinh, thất lạc · *Quản trị* — toàn quyền (danh bạ, đầu mối, thành viên, khoá
+   dữ liệu). Mọi thành viên đều ghi lịch sử theo tên. Khoá tài khoản có hiệu lực ngay, kể cả máy đang mở trang.
 10. Lịch sử ghi lại: đăng nhập (thiết bị, trình duyệt), đăng xuất, thêm / khoá / đổi quyền / đặt lại mật khẩu thành viên, bật / tắt xác
     thực 2 bước, sao chép khoá dữ liệu.
 11. Màn hình đăng nhập cho dán mật khẩu, dùng trình quản lý mật khẩu, có nút hiện mật khẩu (ui-ux-pro-max #107, #60, #58).
@@ -81,7 +84,8 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
 1. **Supabase → Authentication → Sign In / Providers → Email**: tắt *Confirm email*; *Minimum password length* = 12; bật *Allow new
    users to sign up* lúc tạo tài khoản (tắt lại khi xong). Gói trả phí có *leaked password protection* thì bật.
 2. **Supabase → SQL Editor**: chạy `supabase/dang-nhap.sql` (bản mới nhất; file đổi thì chạy lại, không mất dữ liệu).
-3. Mở trang → **Tạo tài khoản quản trị** → vào Chung › Quản lý: **bật xác thực 2 bước**, đổi mật khẩu nếu đã từng gửi qua chat.
+3. Mở trang → **Tạo tài khoản quản trị** → trang bắt **bật xác thực 2 bước** ngay (cài Google / Microsoft Authenticator, quét mã QR)
+   → vào Chung › Quản lý đổi mật khẩu nếu đã từng gửi qua chat.
 4. **Khoá dữ liệu tài sản**: Chung › Quản lý › *Sao chép khoá* → Vercel → Settings → Environment Variables → `KIEMKE_KHOA_DU_LIEU`
    (Production + Preview) → Save → Deployments → Redeploy.
 5. **GitHub**: repo → Settings → *Change visibility* → Private.

@@ -2,7 +2,9 @@
    - Bật bằng supabase/dang-nhap.sql. Chưa chạy SQL đó (DN.cai=false): trang chạy như cũ, ai có đường link đều dùng được.
    - Đã bật: mở trang phải đăng nhập (tên đăng nhập + mật khẩu [+ mã xác thực 2 bước nếu đã bật]); dữ liệu chỉ thành viên
      đọc/ghi được (RLS trên Supabase). Lần đầu (chưa có thành viên nào): màn hình "Tạo tài khoản quản trị".
-   - Quyền: admin (toàn quyền, quản lý thành viên) · sua (xem + sửa Danh bạ) · xem (xem Danh bạ). Ai cũng kiểm kê được.
+   - Quyền (người dùng chốt 15/11/2026): xem = Tra cứu (chỉ xem; trang bật chế độ chỉ xem) · kiem = Kiểm kê (xem + ghi kết quả
+     kiểm kê) · admin = Quản trị (toàn quyền; BẮT BUỘC xác thực 2 bước: chưa bật thì phải bật ngay sau mật khẩu, máy chủ chỉ cho
+     toàn quyền khi phiên đã qua bước 2). Người dùng khác chỉ cần mật khẩu.
    - Nạp dữ liệu (napVaChay): mã chính của trang (<script type="text/plain" id="kiemke-app">) chỉ chạy sau khi có dữ liệu tài sản.
      data/version.json có ma_hoa=true (build có khoá KIEMKE_KHOA_DU_LIEU) → phải đăng nhập, lấy khoá qua khoa_du_lieu(), giải mã
      data/*.enc (AES-256-GCM) rồi mới chạy; người ngoài tải file .enc cũng không đọc được.
@@ -11,7 +13,7 @@
    File nạp trong <head>: chỉ dùng app, render()… của index.html khi mã chính đã chạy. */
 (function () {
   const g = window;
-  g.QUYEN_TK = [['xem', 'Xem danh bạ'], ['sua', 'Xem và sửa danh bạ'], ['admin', 'Quản trị (toàn quyền)']];
+  g.QUYEN_TK = [['xem', 'Tra cứu (chỉ xem)'], ['kiem', 'Kiểm kê (xem + ghi kết quả kiểm)'], ['admin', 'Quản trị (toàn quyền, bắt buộc 2 lớp)']];
   const DN = g.DN = { cai: false, toi: null, api: null, coQuanTri: true, maHoa: false, tv: null, tvTai: false, tvLoi: '', db: { ds: [], tai: false, loi: '' }, mfa: null };
   const QLV = { mk: '', mfaMoi: null };   // đang đặt lại mật khẩu cho thành viên nào; đang bật xác thực 2 bước
   const NHAN_ROI_GIO = 8;                 // không dùng trang quá 8 giờ → tự đăng xuất (máy dùng chung)
@@ -128,7 +130,8 @@
   }
 
   DN.laQuanTri = () => !!(DN.toi && DN.toi.quyen === 'admin');
-  DN.duocSuaDanhBa = () => !!(DN.toi && ['admin', 'sua'].includes(DN.toi.quyen));
+  DN.duocSuaDanhBa = () => DN.laQuanTri();   // danh bạ, đầu mối: chỉ quản trị sửa
+  DN.duocKiemKe = () => !!(DN.toi && ['admin', 'kiem'].includes(DN.toi.quyen));
 
   /* ---------- nạp dữ liệu rồi mới chạy mã chính ---------- */
   const napScript = src => new Promise((ok, loi) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => loi(new Error('Không tải được ' + src)); document.head.appendChild(s); });
@@ -180,8 +183,7 @@
     try {
       if (await phienSan()) {
         if (nhanRoiQua()) { await DN.api.dangXuat(); hienMan('Bạn đã được đăng xuất vì không dùng trang hơn ' + NHAN_ROI_GIO + ' giờ. Đăng nhập lại.'); return; }
-        if (await DN.api.canMa2()) { hienMa2(); return; }
-        const t = await DN.api.toiLaAi(); if (t) { vao(t, false); return; }
+        if (await hoanTat(false)) return;
       }
     } catch (e) { }
     hienMan(tb || '');
@@ -196,7 +198,7 @@
     const m = document.getElementById('dnMan'); if (m) m.remove();
     if (DN.api.theoDoi && !DN.theo) { DN.theo = true; DN.api.theoDoi(() => { if (DN.toi && !DN.dangRa) location.reload(); }); }
     if (DN.tiep) { const f = DN.tiep; DN.tiep = null; f(); }
-    else { ME = DN.toi.hoTen || DN.toi.ten; showMe(); render(); DN.ghiDangNhap(); }
+    else { ME = DN.toi.hoTen || DN.toi.ten; READONLY = !DN.duocKiemKe(); document.body.classList.toggle('ro', READONLY); showMe(); render(); DN.ghiDangNhap(); }
     DN.taiDanhBa();
   }
   // ghi "Đăng nhập" vào Lịch sử (gọi sau khi trang đã sẵn sàng ghi)
@@ -204,6 +206,7 @@
     if (!DN.vuaDangNhap || typeof logEvent !== 'function') return;
     const tb = DN.vuaDangNhap; DN.vuaDangNhap = null;
     try { logEvent({ kind: 'chung', title: 'Đăng nhập', lines: [tb] }); } catch (e) { }
+    if (DN.batMfaLanDau) { DN.batMfaLanDau = false; try { logEvent({ kind: 'chung', title: 'Bật xác thực 2 bước (bắt buộc với quản trị)', lines: [] }); } catch (e) { } }
   };
   DN.dangXuat = async function (phamVi, thongBao) {
     DN.dangRa = true;
@@ -295,14 +298,44 @@
             throw er;
           }
           sai.ghi({});
-          if (await DN.api.canMa2()) { hienMa2(); return; }
         }
-        const t = await DN.api.toiLaAi();
-        if (!t) { try { await DN.api.dangXuat(); } catch (er) { } throw new Error('Tài khoản chưa được cấp quyền vào trang hoặc đã bị khoá. Liên hệ người quản trị.'); }
-        vao(t, true);
+        if (!(await hoanTat(true))) { try { await DN.api.dangXuat(); } catch (er) { } throw new Error('Tài khoản chưa được cấp quyền vào trang hoặc đã bị khoá. Liên hệ người quản trị.'); }
       } catch (er) { loi(viLoi(er)); nut.disabled = false; nut.textContent = cu; }
     });
     setTimeout(() => document.getElementById('dnTen')?.focus(), 30);
+  }
+  // sau mật khẩu: còn bước 2 thì hỏi mã; quản trị chưa bật 2 bước thì bắt bật ngay; xong thì vào trang. false = không có quyền
+  async function hoanTat(moi) {
+    if (await DN.api.canMa2()) { hienMa2(); return true; }
+    const t = await DN.api.toiLaAi(); if (!t) return false;
+    if (t.quyen === 'admin' && !((await DN.api.dsYeuTo()) || []).some(f => f.status === 'verified')) { hienBatMfa(t, moi); return true; }
+    vao(t, moi); return true;
+  }
+  async function hienBatMfa(t, moi) {
+    const m = khung(`<div class="dn-dau"><b>Bật xác thực 2 bước (bắt buộc với quản trị)</b><span>Tài khoản quản trị có toàn quyền nên cần thêm lớp mã 6 số.
+      Cài ứng dụng <b>Google Authenticator</b> hoặc <b>Microsoft Authenticator</b> trên điện thoại, chọn thêm tài khoản rồi quét mã QR dưới đây.</span></div>
+      <div id="dnMfa"><p class="dn-goi">Đang tạo mã…</p></div>`);
+    let f;
+    try { f = await DN.api.batMfa(); }
+    catch (e) { m.querySelector('#dnMfa').innerHTML = `<p class="dn-loi" role="alert">${E(viLoi(e))}</p><button type="button" class="btn pri dn-nut" id="dnLai">Thử lại</button>`; m.querySelector('#dnLai').addEventListener('click', () => location.reload()); return; }
+    m.querySelector('#dnMfa').innerHTML = `<form id="dnForm3" novalidate>
+      <div class="dn-qr"><img src="${E(f.qr)}" alt="Mã QR để thêm vào ứng dụng xác thực" width="180" height="180"></div>
+      <p class="dn-goi">Không quét được thì nhập tay mã này vào ứng dụng: <span class="mono">${E(f.secret)}</span></p>
+      ${fld('dnMa', 'Mã 6 số ứng dụng hiện ra', 'text', 'one-time-code', '6 chữ số')}
+      <p class="dn-loi" id="dnLoi" role="alert"></p>
+      <button type="submit" class="btn pri dn-nut" id="dnNut">Xác nhận và vào trang</button>
+      <button type="button" class="btn dn-nut" id="dnHuy">Đăng xuất</button></form>`;
+    m.querySelector('#dnHuy').addEventListener('click', async () => { try { await DN.api.dangXuat(); } catch (e) { } hienMan(''); });
+    m.querySelector('#dnForm3').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nut = document.getElementById('dnNut'), loi = x => { document.getElementById('dnLoi').textContent = x; };
+      const ma = (document.getElementById('dnMa').value || '').replace(/\s/g, '');
+      if (!/^\d{6}$/.test(ma)) { loi('Nhập đủ 6 chữ số.'); return; }
+      nut.disabled = true; loi('');
+      try { await DN.api.xacNhanMfa(f.id, ma); DN.batMfaLanDau = true; vao(t, moi); }
+      catch (er) { loi(viLoi(er)); nut.disabled = false; }
+    });
+    setTimeout(() => document.getElementById('dnMa')?.focus(), 30);
   }
   function hienMa2() {
     const m = khung(`<form id="dnForm2" novalidate>
@@ -321,9 +354,7 @@
       nut.disabled = true; loi('');
       try {
         await DN.api.xacThuc2(ma);
-        const t = await DN.api.toiLaAi();
-        if (!t) { try { await DN.api.dangXuat(); } catch (er) { } throw new Error('Tài khoản chưa được cấp quyền vào trang hoặc đã bị khoá. Liên hệ người quản trị.'); }
-        vao(t, true);
+        if (!(await hoanTat(true))) { try { await DN.api.dangXuat(); } catch (er) { } throw new Error('Tài khoản chưa được cấp quyền vào trang hoặc đã bị khoá. Liên hệ người quản trị.'); }
       } catch (er) { loi(viLoi(er)); nut.disabled = false; }
     });
     setTimeout(() => document.getElementById('dnMa')?.focus(), 30);
@@ -347,14 +378,14 @@
     const f = DN.mfa, bat = f && f.ds.some(x => x.status === 'verified'), moi = QLV.mfaMoi;
     return `<section class="ql-the">
       <h2>${ic('ShieldCheck')}Xác thực 2 bước</h2>
-      <p class="note">Khi bật, đăng nhập cần thêm mã 6 số từ ứng dụng trên điện thoại (Google Authenticator, Microsoft Authenticator…). Người biết mật khẩu của bạn cũng không vào được nếu không có điện thoại.${DN.laQuanTri() ? ' <b>Nên bật cho tài khoản quản trị.</b>' : ''}</p>
+      <p class="note">Bắt buộc với tài khoản quản trị: đăng nhập cần thêm mã 6 số từ ứng dụng trên điện thoại (Google Authenticator, Microsoft Authenticator…). Người biết mật khẩu của bạn cũng không vào được nếu không có điện thoại. Đổi điện thoại thì bấm “Chuyển sang điện thoại mới” khi còn giữ điện thoại cũ.</p>
       ${!f || !f.tai ? '<div class="empty">Đang kiểm tra…</div>' : f.loi ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>${E(f.loi)}</div></div>`
         : moi ? `<div class="ql-mfa"><img src="${E(moi.qr)}" alt="Mã QR để thêm vào ứng dụng xác thực" width="180" height="180"><div>
             <p>1. Mở ứng dụng xác thực, chọn thêm tài khoản, quét mã QR bên cạnh (hoặc nhập mã: <span class="mono">${E(moi.secret)}</span>).</p>
             <p>2. Nhập mã 6 số ứng dụng hiện ra:</p>
             <div class="ql-b"><input class="in" id="qlMfaMa" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 chữ số" aria-label="Mã xác thực"><button type="button" class="btn pri" data-ql="mfaxn">Xác nhận và bật</button><button type="button" class="btn" data-ql="mfahuy">Huỷ</button></div>
             <p class="dn-loi" id="qlMfaLoi" role="alert"></p></div></div>`
-        : bat ? `<p><span class="tag info">Đang bật</span></p><div class="ql-b"><button type="button" class="btn" data-ql="mfatat">Tắt xác thực 2 bước</button></div>`
+        : bat ? `<p><span class="tag info">Đang bật</span></p><div class="ql-b"><button type="button" class="btn" data-ql="mfadoi">${ic('Smartphone')}Chuyển sang điện thoại mới</button></div>`
         : `<p><span class="tag warn">Chưa bật</span></p><div class="ql-b"><button type="button" class="btn pri" data-ql="mfabat">${ic('Smartphone')}Bật xác thực 2 bước</button></div>`}
     </section>`;
   }
@@ -374,7 +405,7 @@
     const l = DN.tv;
     return `<section class="ql-the">
       <h2>${ic('Users')}Thành viên</h2>
-      <p class="note">Chỉ người có tài khoản mới mở được trang. Mọi thành viên đều kiểm kê, in tem, xem lịch sử được; quyền dưới đây quyết định việc với Danh bạ và quản lý. Khoá tài khoản có hiệu lực ngay, kể cả máy đang đăng nhập.</p>
+      <p class="note">Chỉ người có tài khoản mới mở được trang; ai làm gì đều ghi lịch sử theo tên. <b>Tra cứu</b>: chỉ xem mọi thông tin (kể cả danh bạ), không ghi được gì. <b>Kiểm kê</b>: thêm ghi kết quả kiểm kê, tài sản phát sinh, thất lạc. <b>Quản trị</b>: toàn quyền (danh bạ, đầu mối, thành viên), bắt buộc xác thực 2 bước. Khoá tài khoản có hiệu lực ngay, kể cả máy đang đăng nhập.</p>
       ${DN.tvLoi ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>${E(DN.tvLoi)}</div></div>` : ''}
       ${!l ? '<div class="empty">Đang tải danh sách thành viên…</div>' : `<div class="tblwrap ql-tbl"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Quyền</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th></th></tr></thead><tbody>${l.map(x => {
         const toi = x.user_id === DN.toi.uid, u = E(x.user_id);
@@ -411,8 +442,8 @@
     }
     const ad = t.quyen === 'admin';
     if (ad && !DN.tv && !DN.tvTai) qlTaiTv();
-    if (!DN.mfa) qlTaiMfa();
-    app.innerHTML = `${demoBanner()}${banner('hoi-truong', 'Chung', 'Quản lý ứng dụng', ad ? 'Tài khoản của bạn, mật khẩu, xác thực 2 bước, thành viên và khoá dữ liệu tài sản.' : 'Tài khoản của bạn, mật khẩu và xác thực 2 bước.')}
+    if (ad && !DN.mfa) qlTaiMfa();
+    app.innerHTML = `${demoBanner()}${banner('hoi-truong', 'Chung', 'Quản lý ứng dụng', ad ? 'Tài khoản của bạn, mật khẩu, xác thực 2 bước, thành viên và khoá dữ liệu tài sản.' : 'Tài khoản của bạn và mật khẩu.')}
     <section class="ql-the">
       <h2>${ic('UserRound')}Tài khoản của tôi</h2>
       <dl class="ql-dl"><div><dt>Họ tên</dt><dd>${E(t.hoTen || '—')}</dd></div><div><dt>Tên đăng nhập</dt><dd class="mono">${E(t.ten)}</dd></div><div><dt>Email</dt><dd>${E(t.email || '—')}</dd></div><div><dt>Quyền</dt><dd>${E(lbl(QUYEN_TK, t.quyen))}</dd></div></dl>
@@ -428,8 +459,7 @@
         <p class="note">Mật khẩu nên là một câu dễ nhớ, không dùng ngày sinh, tên, số điện thoại; không dùng chung với tài khoản khác. Để máy không dùng quá ${NHAN_ROI_GIO} giờ thì trang tự đăng xuất. Mất điện thoại / lộ mật khẩu: bấm “Đăng xuất trên mọi thiết bị” rồi đổi mật khẩu.</p>
       </form>
     </section>
-    ${qlMfaHTML()}
-    ${ad ? qlKhoaHTML() + qlTvHTML() : ''}`;
+    ${ad ? qlMfaHTML() + qlKhoaHTML() + qlTvHTML() : ''}`;
   };
 
   function qlBind() {
@@ -450,13 +480,19 @@
         } catch (er) { toast(viLoi(er)); }
         b.disabled = false; return;
       }
-      if (v === 'mfabat') { b.disabled = true; try { QLV.mfaMoi = await DN.api.batMfa(); render(); setTimeout(() => document.getElementById('qlMfaMa')?.focus(), 30); } catch (er) { toast(viLoi(er)); b.disabled = false; } return; }
-      if (v === 'mfahuy') { QLV.mfaMoi = null; render(); return; }
+      if (v === 'mfadoi') { QLV.mfaCu = ((DN.mfa && DN.mfa.ds) || []).filter(y => y.status === 'verified').map(y => y.id); }
+      if (v === 'mfabat' || v === 'mfadoi') { b.disabled = true; try { QLV.mfaMoi = await DN.api.batMfa(); render(); setTimeout(() => document.getElementById('qlMfaMa')?.focus(), 30); } catch (er) { toast(viLoi(er)); b.disabled = false; } return; }
+      if (v === 'mfahuy') { QLV.mfaMoi = null; QLV.mfaCu = null; render(); return; }
       if (v === 'mfaxn') {
         const ma = (document.getElementById('qlMfaMa')?.value || '').replace(/\s/g, ''), l = t => { const p = document.getElementById('qlMfaLoi'); if (p) p.textContent = t; };
         if (!/^\d{6}$/.test(ma)) { l('Nhập đủ 6 chữ số.'); return; }
         b.disabled = true;
-        try { await DN.api.xacNhanMfa(QLV.mfaMoi.id, ma); QLV.mfaMoi = null; ghi('Bật xác thực 2 bước'); toast('Đã bật xác thực 2 bước'); await qlTaiMfa(true); }
+        try {
+          await DN.api.xacNhanMfa(QLV.mfaMoi.id, ma);
+          const cu = QLV.mfaCu || []; for (const id of cu) await DN.api.tatMfa(id);   // bỏ điện thoại cũ sau khi điện thoại mới đã chạy
+          QLV.mfaMoi = null; QLV.mfaCu = null;
+          ghi(cu.length ? 'Chuyển xác thực 2 bước sang điện thoại mới' : 'Bật xác thực 2 bước'); toast(cu.length ? 'Đã chuyển sang điện thoại mới' : 'Đã bật xác thực 2 bước'); await qlTaiMfa(true);
+        }
         catch (er) { l(viLoi(er)); b.disabled = false; }
         return;
       }

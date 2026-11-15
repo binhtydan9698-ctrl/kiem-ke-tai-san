@@ -53,7 +53,7 @@
 
   g.viewDauMoi = function () {
     chBind();
-    const co = UNITS.filter(u => dmCua(u.id)).length, khoa = READONLY || (MODE === 'shared' && !READY);
+    const co = UNITS.filter(u => dmCua(u.id)).length, khoa = READONLY || (MODE === 'shared' && !READY) || (g.DN && DN.cai && !DN.laQuanTri());   // đã bật đăng nhập: chỉ quản trị sửa đầu mối
     const hang = u => {
       const d = (S.dm || {})[u.id] || {}, n = (BY_UNIT[u.id] || []).length;
       if (DMV.sua === u.id) return `<div class="dm-it dm-ed" data-dm="${u.id}">
@@ -81,7 +81,7 @@
   };
 
   function dmLuu(uid) {
-    if (READONLY) { toast('Bạn chỉ có quyền xem, không lưu được'); return; }
+    if (READONLY || (g.DN && DN.cai && !DN.laQuanTri())) { toast('Chỉ quản trị sửa được đầu mối'); return; }
     if (MODE === 'shared' && !READY) { toast('Đang tải dữ liệu chung, thử lại sau giây lát'); return; }
     const v = k => (document.getElementById(`dm-${k}-${uid}`)?.value || '').trim().replace(/\s+/g, ' ');
     const ten = v('ten'), cv = v('cv'), email = v('email').toLowerCase();
@@ -122,7 +122,7 @@
         <div class="ql-b"><button type="submit" class="btn pri">${ic('Check')}Lưu</button><button type="button" class="btn" data-db="huy">Huỷ</button>${DBV.sua !== 'moi' ? `<button type="button" class="btn dm-del" data-db="xoa">${DBV.xoa === DBV.sua ? 'Bấm lần nữa để xoá' : 'Xoá khỏi danh bạ'}</button>` : ''}</div>
       </form>` : '';
     app.innerHTML = `${demoBanner()}${ban}
-    <div class="ch-note">${ic('Lock')}<div>Chỉ <b>thành viên đã đăng nhập</b> xem được danh bạ${sua ? '; bạn được thêm, sửa' : ' (bạn chỉ có quyền xem)'}. Danh bạ không đưa vào file “Xuất cho kế toán”. Số điện thoại tự hiện kèm <a href="#dau-moi">đầu mối</a> khi cùng email hoặc họ tên.</div></div>
+    <div class="ch-note">${ic('Lock')}<div>Chỉ <b>thành viên đã đăng nhập</b> xem được danh bạ${sua ? '; bạn được thêm, sửa' : ' (chỉ quản trị được thêm, sửa)'}. Danh bạ không đưa vào file “Xuất cho kế toán”. Số điện thoại tự hiện kèm <a href="#dau-moi">đầu mối</a> khi cùng email hoặc họ tên.</div></div>
     ${DN.db.loi ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>${esc(DN.db.loi)}</div></div>` : ''}
     <div class="tools db-tools">
       <select class="in" id="dbdv" aria-label="Đơn vị"><option value="">Mọi đơn vị</option>${UNITS.map(u => `<option value="${u.id}" ${DBV.dv === u.id ? 'selected' : ''}>${esc(u.sheet)}</option>`).join('')}</select>
