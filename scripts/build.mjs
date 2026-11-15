@@ -47,7 +47,7 @@ async function readAssets(file) {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(file);
   const sheets = []; const items = new Map(); const conflicts = [];
-  const chan = [];   // cùng Mã TSCĐ nhưng tên / ngày ghi sổ / nguyên giá lệch giữa các sheet → theo quy tắc là 2 tài sản, chặn in tem
+  const chan = [];   // cùng Mã TSCĐ nhưng tên / ngày bắt đầu sử dụng / nguyên giá lệch giữa các sheet → theo quy tắc là 2 tài sản, chặn in tem
   const gon = s => String(s).replace(/\s+/g, ' ').trim();
   const order = wb.worksheets.map((ws, i) => ({ ws, i }))
     .sort((a, b) => (X.isPrimarySheet(b.ws.name) - X.isPrimarySheet(a.ws.name)) || a.i - b.i);
@@ -93,7 +93,7 @@ async function readAssets(file) {
 const file = findExcel();
 console.log(`Đọc dữ liệu: ${path.relative(ROOT, file)}`);
 const { rows, sheets, conflicts, useX, chan } = await readAssets(file);
-const TRUONG = { ten: 'Tên', ngay: 'Ngày ghi sổ', gia: 'Nguyên giá' };
+const TRUONG = { ten: 'Tên', ngay: 'Ngày bắt đầu sử dụng', gia: 'Nguyên giá' };
 const soChan = {};
 chan.forEach(c => { (soChan[c.key] = soChan[c.key] || []).push(`${TRUONG[c.f]} "${c.a}" (sheet ${c.sa}) khác "${c.b}" (sheet ${c.sb})`); });
 for (const k in soChan) soChan[k] = soChan[k].join('; ');

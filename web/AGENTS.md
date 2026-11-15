@@ -17,13 +17,19 @@
 - Giao diện theo phong cách trang daihoc.fpt.edu.vn: màu chủ đạo cam FPT (chữ/viền dùng `--accent`),
   ảnh campus Đà Nẵng ở `web/img/` (bản 1024px lấy từ daihoc.fpt.edu.vn; người dùng yêu cầu không hiện dòng ghi nguồn ảnh trên trang). Ảnh dưới màn hình đầu
   để `loading="lazy"`. Menu "Tổng quan" xổ ra 3 trang: `#tong-quan`, `#don-vi`, `#vi-tri`.
-- Trang gồm 3 phần dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
+- Trang gồm 4 phần dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
   **Kiểm kê** (mọi trang còn lại, gồm trang một tài sản `#ts-<khoá>` = `viewTS`), **Mã QR** (`#ma-qr`, `#so-ma-qr`, `viewQR`
-  trong `ma-qr.js`) và **Lịch sử** (`#lich-su` = `viewLog`, `#nhap-so` = `viewNhapSo`, `#ly-lich[-khoá]` = `viewLyLich`).
-  Đầu trang 2 tầng (khối CSS "Đầu trang 2 tầng" cuối `<style>`): `.top1` = logo `.lgo` + tên `.app` + 3 phần `.sec`
-  (`#swKK`, `#swQR`, `#swLS`; `#swHub` chỉ hiện ở thanh dưới điện thoại) + Quét mã + người dùng; `.top2` = menu con
-  (`#nav` Kiểm kê, `#navQR`, `#navLS`, mục `a[data-r]`). `setMod()` đặt `body[data-mod=hub|kk|qr|ls]`, đánh dấu phần đang ở
-  và nhớ trang đang xem dở của mỗi phần (`MODLAST`). Điện thoại (≤860px): `.sec` thành thanh dưới 5 ô, nút Quét mã nổi ở giữa.
+  trong `ma-qr.js`), **Lịch sử** (`#lich-su` = `viewLog`, `#nhap-so` = `viewNhapSo`, `#ly-lich[-khoá]` = `viewLyLich`) và
+  **Chung** (`#khau-hao` = `viewKhauHao`, `#dau-moi` = `viewDauMoi` trong `chung.js`).
+  Đầu trang 2 tầng (khối CSS "Đầu trang 2 tầng" cuối `<style>`): `.top1` = logo `.lgo` + tên `.app` + 4 phần `.sec`
+  (`#swKK`, `#swQR`, `#swLS`, `#swCH`; `#swHub` luôn ẩn — về trang chủ bằng logo) + Quét mã + người dùng; `.top2` = menu con
+  (`#nav` Kiểm kê, `#navQR`, `#navLS`, `#navCH`, mục `a[data-r]`). `setMod()` đặt `body[data-mod=hub|kk|qr|ls|ch]`, đánh dấu
+  phần đang ở và nhớ trang đang xem dở của mỗi phần (`MODLAST`). Màn ≤1440px bỏ chữ " tài sản" (`.sec-x`) cho gọn một hàng.
+  Điện thoại (≤860px): `.sec` thành thanh dưới 5 ô [Kiểm kê · Mã QR · (Quét mã nổi ở giữa) · Lịch sử · Chung].
+- Chung (`chung.js`, nạp trong `<head>` nên chỉ dùng `KEY`, `app`… khi trang Chung mở; sự kiện gắn một lần ở `chBind()`):
+  đầu mối `S.dm[mã sheet]` (col `dm`, thêm vào `COLS`), hiển thị ở nơi khác bằng `dmText(mã sheet)` / `dmCua()`; câu lịch sử
+  `logDmLines` (logDescribe khoá `d:`). Khấu hao `khHet(a, năm)`, `khLoc()`, số năm tạm tính `KHV.nam` (nhớ trong
+  localStorage `KEY+'.khNam'`). `export.js` / `ketQuaKeToan` KHÔNG được đọc đầu mối.
   Nút `data-act="qrin"`
   (`data-qk` tài sản / `data-qu` sheet / `data-qr` phòng) gọi `qrOpen()` mở phần Mã QR lọc sẵn; `data-act="qrso"` mở Sổ mã QR.
 - Sổ mã QR trên trang: `SOQR = window.KIEMKE_SO_QR` (sinh khi build). Tài sản đã xoá khỏi BBKK: `viewTSXoa`; quét tem của nó

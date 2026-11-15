@@ -210,7 +210,7 @@ console.log('5. Sổ mã QR ("dữ liệu cập nhật/so-ma-qr.json")');
   const dctx = { window: {} }; vm.runInNewContext(dist, dctx); const ds = dctx.window.KIEMKE_SO_QR;
   ok(Object.keys(ds.dang).length + Object.keys(ds.xoa).length === Object.keys(so.ma).length, 'trang web nhận đủ sổ mã QR (dist/data/so-ma-qr.js)');
   const chanQR = Object.entries(ds.chan || {});
-  ok(!chanQR.length, 'mỗi Mã TSCĐ chỉ có một bộ thông tin (tên, ngày ghi sổ, nguyên giá) ở mọi sheet — quy tắc lệch 1 chữ là 2 tài sản'
+  ok(!chanQR.length, 'mỗi Mã TSCĐ chỉ có một bộ thông tin (tên, ngày bắt đầu sử dụng, nguyên giá) ở mọi sheet — quy tắc lệch 1 chữ là 2 tài sản'
     + (chanQR.length ? `: ${chanQR.length} mã bị chặn in tem, sửa trong Excel: ${chanQR.slice(0, 3).map(([k, l]) => k + ' (' + l + ')').join('; ')}` : ''));
   // chạy thử quy tắc trên một bản sao (không ghi file): xoá, thêm lại, thêm mới, dùng lại mã, tài sản chưa có mã
   const a = coMa[0], b = coMa[1];
@@ -243,7 +243,7 @@ console.log('5. Sổ mã QR ("dữ liệu cập nhật/so-ma-qr.json")');
   const doiR = Object.assign([...c], { 1: '9999997', 8: '9999997' });
   const d1 = capNhatSo(rows.map(r => r === c ? doiR : r), so, '2027-07-08', { luc: '2027-07-08 09:30' });
   ok(d1.doiMa.length === 1 && d1.so.ma[c[8]].sang && d1.so.ma[c[8]].sang.ma === '9999997' && d1.so.ma[c[8]].xoa && (d1.so.ma['9999997'].maCu || []).includes(c[8]),
-    'thử: kế toán đổi Mã TSCĐ (tên, ngày ghi sổ, nguyên giá giống hệt) → tự nối mã cũ sang mã mới, cùng một tài sản');
+    'thử: kế toán đổi Mã TSCĐ (tên, ngày bắt đầu sử dụng, nguyên giá giống hệt) → tự nối mã cũ sang mã mới, cùng một tài sản');
   const d2 = capNhatSo(rows, d1.so, '2027-08-09');
   ok(d2.quayLai.includes(c[8]) && !d2.so.ma[c[8]].sang && !d2.so.ma['9999997'].maCu, 'thử: mã cũ quay lại file BBKK → bỏ nối đổi mã');
   const doiR2 = Object.assign([...c], { 1: '9999996', 8: '9999996' });

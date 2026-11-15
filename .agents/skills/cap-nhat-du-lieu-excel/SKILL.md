@@ -23,7 +23,7 @@ Nguồn duy nhất của danh sách tài sản: **một** file `.xlsx` trong `d�
    - Đọc dòng "Sổ mã QR" của build: "mới cấp" (tài sản mới), "vừa xoá khỏi BBKK" (tài sản bị bỏ khỏi file, mã vẫn giữ),
      cảnh báo "có thể mã bị dùng lại cho tài sản khác" → báo người dùng. Sổ `dữ liệu cập nhật/so-ma-qr.json` do build ghi,
      không sửa tay, không xoá dòng; phải commit cùng file Excel.
-   - Dòng "↪ Kế toán đổi Mã TSCĐ X → Y (tự nhận)": mã cũ rời file, mã mới có tên, ngày ghi sổ, nguyên giá giống hệt → build
+   - Dòng "↪ Kế toán đổi Mã TSCĐ X → Y (tự nhận)": mã cũ rời file, mã mới có tên, ngày bắt đầu sử dụng, nguyên giá giống hệt → build
      tự nối (cùng một tài sản) → báo người dùng. Dòng "! Nghi kế toán đổi Mã TSCĐ (chưa nối)" → hỏi người dùng có đúng là cùng
      tài sản không; đúng thì thêm vào `dữ liệu cập nhật/doi-ma-tscd.json` `{"doi":[{"cu":"X","moi":"Y","ghiChu":"…"}]}`
      (tạo file nếu chưa có), build lại, kiểm tra dòng "↪", commit cùng file Excel.

@@ -5,7 +5,7 @@ Quy ước riêng cho mã nguồn trang: [web/AGENTS.md](web/AGENTS.md). Quy tr�
 
 ## Dự án
 
-Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT Đà Nẵng, gồm 3 phần chính (trang chủ `#trang-chu`):
+Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT Đà Nẵng, gồm 4 phần chính (trang chủ `#trang-chu`):
 - **Kiểm kê tài sản 2026** (đang dùng): mọi trang `#tong-quan`, `#don-vi`, `#vi-tri`, `#dv-…`, `#phong-…`, `#xac-minh`,
   `#xuat`, trang một tài sản `#ts-…`; mã trong `web/index.html`.
 - **Quản lý mã QR tài sản** (`#ma-qr`, mã trong `web/ma-qr.js`): in tem mã QR (chọn tài sản, chỉnh mẫu tem, xem trước,
@@ -13,14 +13,18 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
   trong phần Kiểm kê.
 - **Lịch sử** (chung cho cả app): `#lich-su` Thao tác trên app (ai làm gì, lúc nào) · `#nhap-so` Nhập sổ (tài sản vào sổ
   khi nào, từ kế toán qua file BBKK hay cán bộ Hành chính ghi nhận phát sinh) · `#ly-lich` / `#ly-lich-<khoá>` Lý lịch tài sản
-  (dòng thời gian: kế toán ghi sổ → vào sổ trên app → mọi thao tác → xoá khỏi BBKK).
-- Đầu trang 2 tầng: logo FPT University (`web/img/logo-fpt-university.png`, về trang chủ) · 3 phần chính [Kiểm kê | Mã QR |
-  Lịch sử] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
-  thanh dưới cùng [Trang chủ · Kiểm kê · Quét mã · Mã QR · Lịch sử]. Trang tài sản, sheet, phòng có nút "In tem mã QR…"
+  (dòng thời gian: bắt đầu sử dụng → vào sổ trên app → mọi thao tác → xoá khỏi BBKK).
+- **Chung** (người dùng thêm 15/11/2026, mã trong `web/chung.js`): `#khau-hao` Khấu hao (tài sản đã hết và sắp hết khấu hao
+  trong 12 tháng tới, để gom đi thanh lý; Tải Excel danh sách) · `#dau-moi` Đầu mối quản lý tài sản theo sheet (tên, chức vụ,
+  email công việc). Đầu mối dùng chung cho các phần khác: hiện ở trang tài sản, trang sheet, Tài sản thất lạc, Lý lịch, Khấu
+  hao — **nhưng KHÔNG đưa vào file "Xuất cho kế toán"** (người dùng dặn: chỉ liên kết hiển thị trên app).
+- Đầu trang 2 tầng: logo FPT University (`web/img/logo-fpt-university.png`, về trang chủ) · 4 phần chính [Kiểm kê | Mã QR |
+  Lịch sử | Chung] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
+  thanh dưới cùng [Kiểm kê · Mã QR · Quét mã · Lịch sử · Chung], về trang chủ bằng logo. Trang tài sản, sheet, phòng có nút "In tem mã QR…"
   mở phần Mã QR lọc sẵn (`qrOpen()`); phần Mã QR và Lịch sử có link ngược về Kiểm kê.
 
 Trang tĩnh (HTML + JS thuần) trên Vercel, kết quả kiểm lưu chung trên Supabase, danh sách tài sản lấy từ file Excel
-biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
+biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
 
 - Web: https://quan-ly-tai-san-fptudn.vercel.app (tên cũ kiem-ke-tai-san-sigma.vercel.app vẫn mở được) · Repo (công khai): https://github.com/binhtydan9698-ctrl/kiem-ke-tai-san
 - Người dùng là cán bộ hành chính, **không phải lập trình viên**, làm việc bằng **tiếng Việt**: trả lời, giao diện,
@@ -39,7 +43,7 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
 | `npm run sao-luu` | Sao lưu kết quả Supabase về `sao-luu/` (chỉ đọc) |
-| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
+| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, Chung, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
 | `npm run theo-doi-supabase` | Đọc thử Supabase (chỉ đọc). GitHub Actions chạy mỗi sáng 8h (`.github/workflows/theo-doi-supabase.yml`): giữ Supabase không bị tạm dừng; không đọc được thì lần chạy báo lỗi → GitHub gửi mail tới email nhận thông báo của tài khoản chủ repo (người dùng muốn nhận ở địa chỉ email công việc, không ghi địa chỉ vào repo công khai). |
 
 ## Skills trong `.agents/skills/`
@@ -73,6 +77,10 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
    Trang chỉ đọc `log` khi mở trang Lịch sử (`DB.recent()`), không tải lúc mở trang. Lý lịch tài sản đọc `log` theo đúng
    một khoá (`DB.recent('log',{key})`: dòng có `key` hoặc dòng gộp có `keys` chứa khoá). Thao tác nhiều tài sản (gộp, in tem)
    phải ghi `keys` để lý lịch từng tài sản thấy được. Tài sản phát sinh lưu thêm `at`, `by` (trang Nhập sổ).
+7. Chung: `S.dm[mã sheet]` = đầu mối `{ten, cv, email, at, by}` (col `dm` trên Supabase, id = mã sheet trong `UNITS`; lịch sử
+   loại "Đầu mối (Chung)"). Khấu hao **tạm tính**: file BBKK chưa có số năm khấu hao → `ngày bắt đầu sử dụng + N năm`, N do
+   người xem tích chọn (3–10, mặc định 5, nhớ trên máy); không tính công trình, xây lắp, phần mềm (`a.hoso`). Khi người dùng
+   có số năm thật từ kế toán thì bổ sung (người dùng đang kiểm tra lại — nhắc khi được hỏi).
 
 ## Quy ước BẮT BUỘC
 
@@ -88,11 +96,11 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
   `web/qr-rules.js` (`globalThis.KIEMKE_QR`), dùng chung cho trang và `npm test` (bước 4). Không đổi dạng link, không bỏ
   đường dẫn `#ts-`, không đổi cách tạo `key`: tem đã dán sẽ không còn khớp. Tài sản chưa có Mã TSCĐ thì chưa cấp mã QR.
 - **Sổ mã QR `dữ liệu cập nhật/so-ma-qr.json`** (`scripts/so-ma-qr.mjs`, build tự cập nhật trên máy, Vercel chỉ đọc): mọi Mã TSCĐ
-  đã cấp mã QR; mã không bao giờ cấp lại cho tài sản khác (cùng mã mà ngày ghi sổ và nguyên giá đều khác → cảnh báo, thông tin
+  đã cấp mã QR; mã không bao giờ cấp lại cho tài sản khác (cùng mã mà ngày bắt đầu sử dụng và nguyên giá đều khác → cảnh báo, thông tin
   cũ vào `cu`); tài sản bị xoá khỏi file BBKK vẫn giữ (có ngày `xoa`), quét tem cũ mở trang "đã xoá khỏi BBKK". **Không xoá
   dòng nào trong sổ, không sửa tay**; commit cùng file Excel (`npm run day-len-web` commit cả thư mục). `npm test` bước 5
   soát sổ không mất mã nào so với bản trên GitHub.
-- **Quy tắc lệch 1 chữ (người dùng đặt):** mã QR đi theo thông tin tài sản. Hai dòng lệch dù 1 chữ (tên, ngày ghi sổ, nguyên
+- **Quy tắc lệch 1 chữ (người dùng đặt):** mã QR đi theo thông tin tài sản. Hai dòng lệch dù 1 chữ (tên, ngày bắt đầu sử dụng, nguyên
   giá) là 2 tài sản khác nhau, bắt buộc khác mã QR; tài sản số lượng lớn (cùng một dòng) dùng chung 1 mã QR. Cùng Mã TSCĐ mà
   lệch thông tin giữa các sheet → build báo ✗ và chặn in tem mã đó (`chan` trong `dist/data/so-ma-qr.js`), `npm test` ✗;
   khác chỉ ở khoảng trắng thì không tính. Thông tin một mã đổi so với lần trước → Sổ mã QR cảnh báo, cất thông tin cũ vào `cu`
@@ -100,11 +108,15 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho cả 2 phần).
 - **Quy tắc đổi Mã TSCĐ (người dùng chốt 15/11/2026: "chung quy thì nó vẫn là nó"):** kế toán đổi Mã TSCĐ cho cùng một tài sản
   thì vẫn là tài sản đó. Sổ mã QR nối mã cũ → mã mới (mã cũ có `sang {ma, luc, cach}`, mã mới có `maCu`; trang có
   `KIEMKE_SO_QR.sang {cũ: mới}`, `maMoi()` / `maCuCua()`): tem mang mã cũ vẫn mở tài sản mã mới (1 mã QR, 2 Mã TSCĐ), in tem mới
-  thì có thêm mã QR mới (2 mã QR, cùng tài sản), lý lịch gộp lịch sử của mã cũ. Build tự nối khi mã mới giống hệt (tên, ngày ghi
-  sổ, nguyên giá) đúng một mã đã rời BBKK; còn lại báo "nghi đổi mã" → hỏi người dùng, đúng thì khai báo trong
+  thì có thêm mã QR mới (2 mã QR, cùng tài sản), lý lịch gộp lịch sử của mã cũ. Build tự nối khi mã mới giống hệt (tên, ngày bắt
+  đầu sử dụng, nguyên giá) đúng một mã đã rời BBKK; còn lại báo "nghi đổi mã" → hỏi người dùng, đúng thì khai báo trong
   `dữ liệu cập nhật/doi-ma-tscd.json` `{"doi":[{"cu","moi","ghiChu"}]}`. Kết quả kiểm trên Supabase KHÔNG tự chuyển sang mã mới:
   trang tài sản mã mới hiện kết quả của mã cũ (`ORPHAN`, chỉ đọc) và nút "Dùng kết quả này" (ghi qua `save()`).
 - Tem in mặc định chỉ có tiêu đề, Mã TSCĐ, tên (không in phòng, đơn vị vì có thể thay đổi).
+- Cột ngày trong file BBKK là **"Ngày bắt đầu SD"**: trên trang gọi là "Ngày bắt đầu sử dụng" (người dùng chốt), không gọi
+  "ngày ghi sổ". Dữ liệu vẫn là `ngay` / `r[4]`.
+- Danh bạ đầu mối (Chung): chỉ tên, chức vụ, email công việc — không số điện thoại cá nhân (trang mở cho người có link). Lưu
+  trên Supabase qua app, **không bao giờ** ghi vào repo công khai. `export.js` không được đọc `S.dm`.
 - Không sửa tay `dist/` (sinh khi build, đã `.gitignore`). Không tự sửa file Excel trừ khi người dùng yêu cầu.
 - `web/config.js` chỉ chứa khoá **publishable/anon** (công khai). Không bao giờ đưa khoá `secret`/`service_role` vào repo.
 - Repo **công khai**: không commit `sao-luu/`, `.gemini/`, `.env`, dữ liệu cá nhân hay khoá bí mật.

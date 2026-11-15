@@ -4,11 +4,11 @@
 //   - Tài sản không còn trong file Excel → ghi ngày phát hiện bị xoá ("xoa"), vẫn giữ thông tin để quét tem cũ vẫn ra.
 //   - Tài sản quay lại file Excel → bỏ "xoa".
 //   - "tu": lúc tài sản vào sổ trên app (ngày, từ 15/11/2026 có cả giờ), "file": file BBKK (sổ kế toán) đưa tài sản vào.
-//   - Cùng Mã TSCĐ nhưng tên / ngày ghi sổ / nguyên giá khác lần trước (dù 1 chữ) → cảnh báo (theo quy tắc lệch thông tin là
+//   - Cùng Mã TSCĐ nhưng tên / ngày bắt đầu sử dụng / nguyên giá khác lần trước (dù 1 chữ) → cảnh báo (theo quy tắc lệch thông tin là
 //     tài sản khác: cần kiểm tra với kế toán), thông tin cũ cất vào "cu".
 //   - Kế toán ĐỔI Mã TSCĐ cho cùng một tài sản (người dùng chốt 15/11/2026: "chung quy thì nó vẫn là nó"): mã cũ nối sang mã
 //     mới — mã cũ có "sang" {ma, luc, cach}, mã mới có "maCu" [mã cũ]. Tem mang mã cũ vẫn mở đúng tài sản (1 mã QR, 2 Mã TSCĐ);
-//     in tem mới thì có thêm mã QR mới (2 mã QR, cùng tài sản). Tự nối khi mã mới cấp lần này giống hệt (tên, ngày ghi sổ,
+//     in tem mới thì có thêm mã QR mới (2 mã QR, cùng tài sản). Tự nối khi mã mới cấp lần này giống hệt (tên, ngày bắt đầu sử dụng,
 //     nguyên giá) đúng một mã đã rời BBKK và ngược lại; trường hợp khác (vừa đổi mã vừa sửa thông tin, nhiều mã giống nhau)
 //     chỉ báo "nghi đổi mã", nối bằng khai báo tay trong "dữ liệu cập nhật/doi-ma-tscd.json":
 //       { "doi": [ { "cu": "Mã cũ", "moi": "Mã mới", "ghiChu": "…" } ] }
@@ -72,7 +72,7 @@ export function capNhatSo(rows, cu, ngay = homNay(), opt = {}) {
     if (!e) { ma[k] = { ...snap, tu: opt.luc || ngay, ...(opt.file ? { file: opt.file } : {}) }; moi.push(k); continue; }
     if (e.xoa) { delete e.xoa; boNoi(k); quayLai.push(k); }
     if (opt.file && !e.file) e.file = opt.file;
-    const lech = [gon(e.ten) !== gon(snap.ten) && 'tên', e.ngay && snap.ngay && e.ngay !== snap.ngay && 'ngày ghi sổ', e.gia && snap.gia && e.gia !== snap.gia && 'nguyên giá'].filter(Boolean);
+    const lech = [gon(e.ten) !== gon(snap.ten) && 'tên', e.ngay && snap.ngay && e.ngay !== snap.ngay && 'ngày bắt đầu sử dụng', e.gia && snap.gia && e.gia !== snap.gia && 'nguyên giá'].filter(Boolean);
     if (lech.length) {
       canhBao.push(`Mã ${k}: ${lech.join(', ')} khác lần trước — trước là "${e.ten}" (${e.ngay}, ${e.gia}), nay là "${snap.ten}" (${snap.ngay}, ${snap.gia}). Theo quy tắc lệch thông tin là tài sản khác: kiểm tra với kế toán (tem đã in vẫn mở mã này)`);
       (e.cu = e.cu || []).push({ ten: e.ten, ngay: e.ngay, gia: e.gia, den: ngay });
@@ -96,16 +96,16 @@ export function capNhatSo(rows, cu, ngay = homNay(), opt = {}) {
     if (x === c) { canhBao.push(tb + 'thành vòng lặp (mã mới lại đổi về mã cũ), chưa nối'); continue; }
     if (!(ma[c].sang && ma[c].sang.ma === m)) noi(c, m, 'khai báo');
   }
-  // 2. tự nhận: mã mới cấp lần này giống hệt (tên, ngày ghi sổ, nguyên giá) đúng một mã đã rời BBKK chưa nối, và ngược lại
+  // 2. tự nhận: mã mới cấp lần này giống hệt (tên, ngày bắt đầu sử dụng, nguyên giá) đúng một mã đã rời BBKK chưa nối, và ngược lại
   const giong = (x, y) => !!gon(x.ten) && gon(x.ten) === gon(y.ten) && String(x.ngay || '') === String(y.ngay || '')
     && (+x.gia || 0) === (+y.gia || 0) && !!(x.ngay || +x.gia);
   const roi = Object.keys(ma).filter(k => ma[k].xoa && !ma[k].sang);
   const ung = moi.map(m => [m, roi.filter(c => giong(ma[c], ma[m]))]);
   for (const [m, cs] of ung) {
     if (cs.length === 1 && ung.filter(([, c2]) => c2.includes(cs[0])).length === 1) { noi(cs[0], m, 'tự nhận'); continue; }
-    if (cs.length) { nghiDoi.push(`Mã mới ${m} giống hệt (tên, ngày ghi sổ, nguyên giá) các mã đã rời BBKK: ${cs.join(', ')} — có nhiều khả năng nên chưa tự nối`); continue; }
+    if (cs.length) { nghiDoi.push(`Mã mới ${m} giống hệt (tên, ngày bắt đầu sử dụng, nguyên giá) các mã đã rời BBKK: ${cs.join(', ')} — có nhiều khả năng nên chưa tự nối`); continue; }
     const gan = roi.filter(c => ma[c].ngay && +ma[c].gia && ma[c].ngay === ma[m].ngay && +ma[c].gia === +ma[m].gia);
-    if (gan.length) nghiDoi.push(`Mã mới ${m} "${ma[m].ten}" cùng ngày ghi sổ, nguyên giá với mã đã rời BBKK ${gan.map(c => `${c} "${ma[c].ten}"`).join(', ')} nhưng tên khác`);
+    if (gan.length) nghiDoi.push(`Mã mới ${m} "${ma[m].ten}" cùng ngày bắt đầu sử dụng, nguyên giá với mã đã rời BBKK ${gan.map(c => `${c} "${ma[c].ten}"`).join(', ')} nhưng tên khác`);
   }
   const doi = JSON.stringify(ma) !== JSON.stringify(cu.ma || {});
   return { so: { capNhat: doi ? ngay : (cu.capNhat || ngay), ma }, doi, moi, xoa, quayLai, canhBao, khongMa, doiMa, nghiDoi };

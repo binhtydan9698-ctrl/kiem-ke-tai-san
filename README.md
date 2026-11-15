@@ -32,6 +32,8 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | Đứng trong phòng quét liên tục | Trang phòng → **Quét liên tục ở phòng này**: quét tem nào ghi Đủ tem đó; tài sản phòng khác, số lượng > 1 thì hỏi trước; mỗi món có Hoàn tác |
 | Ghi tài sản cất kho, cho mượn, chờ thanh lý, đã bàn giao… | Dòng tài sản → **Chi tiết, ghi chú** → ô **Trạng thái sử dụng** (tách riêng với Tình trạng hư hỏng) |
 | Biết khi Supabase bị tạm dừng | GitHub tự đọc thử mỗi sáng 8h; không đọc được thì gửi mail báo (tới email nhận thông báo của tài khoản GitHub) |
+| Gom tài sản hết khấu hao đi thanh lý | **Chung → Khấu hao**: chọn số năm khấu hao (đang tạm tính), xem tài sản đã hết và sắp hết trong 12 tháng tới, **Tải Excel danh sách** |
+| Biết liên hệ ai về tài sản của một phòng ban, bộ môn | **Chung → Đầu mối**: nhập tên, chức vụ, email công việc cho từng sheet; đầu mối hiện ở trang tài sản, trang sheet, Tài sản thất lạc (không đưa vào file cho kế toán) |
 | Thử giao diện tự động | `npm run thu-giao-dien` (không đụng dữ liệu chung) |
 | Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử → Thao tác trên app** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |
 | Tài sản vào sổ khi nào, từ đâu | **Lịch sử → Nhập sổ** (kế toán qua file BBKK hay cán bộ Hành chính ghi nhận; **Tải Excel**) |

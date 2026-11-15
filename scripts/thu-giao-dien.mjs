@@ -17,6 +17,7 @@ const KICH_BAN = [
   { ten: 'lich-su', mo: 'Lịch sử: Nhập sổ, Lý lịch, Trạng thái sử dụng' },
   { ten: 'quet-lien-tuc', mo: 'Quét liên tục trong phòng' },
   { ten: 'doi-ma', mo: 'Kế toán đổi Mã TSCĐ: tem mã cũ mở tài sản mã mới, lý lịch gộp' },
+  { ten: 'chung', mo: 'Chung: khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán' },
   { ten: 'dien-thoai', mo: 'Điện thoại (390px): thanh dưới, không tràn ngang', dt: true },
 ];
 

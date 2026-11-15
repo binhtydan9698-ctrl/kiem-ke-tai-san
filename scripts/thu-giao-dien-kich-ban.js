@@ -19,10 +19,11 @@
   KB['dau-trang'] = async () => {
     await go('trang-chu'); let h = hd();
     ok(h.mod === 'hub' && h.top2 === 'none', 'trang chủ: ẩn hàng menu con');
-    ok([...document.querySelectorAll('#app .tile b')].map(b => b.textContent).join('|') === 'Kiểm kê tài sản 2026|Quản lý mã QR tài sản|Lịch sử', 'trang chủ có đủ 3 phần');
+    ok([...document.querySelectorAll('#app .tile b')].map(b => b.textContent).join('|') === 'Kiểm kê tài sản 2026|Quản lý mã QR tài sản|Lịch sử|Chung', 'trang chủ có đủ 4 phần (thêm Chung)');
+    { const t = document.querySelector('.top1').getBoundingClientRect(); ok(t.height < 80, `đầu trang 1366px: 4 phần chính nằm gọn một hàng (cao ${Math.round(t.height)}px)`); }
     ok(document.querySelector('.lgo img') && document.querySelector('.lgo img').naturalWidth === 960, 'logo FPT University tải được (960×375)');
     for (const [hash, mod, sec, sub] of [['tong-quan', 'kk', 'swKK', 'tong-quan'], ['vi-tri', 'kk', 'swKK', 'vi-tri'], ['xac-minh', 'kk', 'swKK', 'xac-minh'], ['xuat', 'kk', 'swKK', 'xuat'],
-      ['ma-qr', 'qr', 'swQR', 'ma-qr'], ['so-ma-qr', 'qr', 'swQR', 'so-ma-qr'], ['lich-su', 'ls', 'swLS', 'lich-su'], ['nhap-so', 'ls', 'swLS', 'nhap-so'], ['ly-lich', 'ls', 'swLS', 'ly-lich']]) {
+      ['ma-qr', 'qr', 'swQR', 'ma-qr'], ['so-ma-qr', 'qr', 'swQR', 'so-ma-qr'], ['lich-su', 'ls', 'swLS', 'lich-su'], ['nhap-so', 'ls', 'swLS', 'nhap-so'], ['ly-lich', 'ls', 'swLS', 'ly-lich'], ['khau-hao', 'ch', 'swCH', 'khau-hao'], ['dau-moi', 'ch', 'swCH', 'dau-moi']]) {
       await go(hash); h = hd();
       ok(h.mod === mod && h.sec === sec && h.sub === sub && h.top2 !== 'none', `#${hash}: tô đúng phần và mục con`);
     }
@@ -105,7 +106,8 @@
     ok(ketQuaKeToan(BY_STT[stt]).gc.includes('Trạng thái sử dụng: Cất kho'), 'trạng thái sử dụng: có trong file cho kế toán');
     await go('ly-lich-6497474'); await W(400);
     const ev = [...document.querySelectorAll('.llist.ly > li')].map(li => li.textContent);
-    ok(/Kế toán ghi sổ/.test(ev[0] || '') && /Vào sổ trên app/.test(ev[1] || ''), 'lý lịch: bắt đầu từ kế toán ghi sổ, vào sổ trên app');
+    ok(/Bắt đầu sử dụng/.test(ev[0] || '') && /Vào sổ trên app/.test(ev[1] || ''), 'lý lịch: bắt đầu từ ngày bắt đầu sử dụng, vào sổ trên app');
+    ok(!/[Nn]gày ghi sổ/.test(app.textContent), 'lý lịch: dùng tên “Ngày bắt đầu sử dụng” (đúng cột trong file BBKK)');
     ok(ev.some(t => /Kết quả: Chưa kiểm → Đủ/.test(t)), 'lý lịch: có lần kiểm Đủ');
     ok(ev.some(t => /Trạng thái sử dụng: Đang sử dụng → Cất kho/.test(t)), 'lý lịch: có lần đổi trạng thái sử dụng');
   };
@@ -187,13 +189,73 @@
     } else ok(true, 'tài sản thử chưa có phòng (bỏ qua bước quét liên tục)');
   };
 
+  // Chung: khấu hao (tạm tính, chọn số năm) và đầu mối theo sheet (hiện ở các phần khác, không xuất cho kế toán)
+  KB['chung'] = async () => {
+    try { localStorage.removeItem(KEY + '.khNam'); } catch (e) { }
+    KHV.nam = 0; KHV.dv = ''; KHV.q = '';
+    const tinh = nam => {
+      const now = new Date(); now.setHours(0, 0, 0, 0); const toi = new Date(now); toi.setFullYear(toi.getFullYear() + 1); let het = 0, gan = 0;
+      ASSETS.forEach(a => { if (!a.ngay || a.hoso) return; const sd = (S.rows[a.stt] || {}).sd || ''; if (sd === 'da_tl' || sd === 'bg') return; const t = khHet(a, nam); if (t <= now) het++; else if (t <= toi) gan++; });
+      return { het, gan };
+    };
+    const so = () => [...document.querySelectorAll('.kh-sum b')].map(b => +b.textContent.replace(/\D/g, ''));
+    await go('khau-hao');
+    let s = so(); const t5 = tinh(5);
+    ok(KHV.nam === 5 && s[0] === t5.het && s[1] === t5.gan, `khấu hao mặc định tạm tính 5 năm: ${s[0]} đã hết, ${s[1]} sắp hết trong 12 tháng (tính lại khớp)`);
+    ok(/Tạm tính/.test(app.textContent) && document.querySelectorAll('.kh-c').length === 6, 'khấu hao: báo rõ đang tạm tính, có ô chọn số năm');
+    document.querySelector('.kh-c[data-n="3"]').click(); await W(350);
+    s = so(); const t3 = tinh(3);
+    ok(KHV.nam === 3 && s[0] === t3.het && s[1] === t3.gan && s[0] > t5.het && localStorage.getItem(KEY + '.khNam') === '3', 'chọn 3 năm: danh sách tính lại, máy nhớ lựa chọn');
+    const ngay = [...document.querySelectorAll('#khHet tbody tr td:nth-child(5)')].map(td => td.textContent.trim().slice(0, 10).split('/').reverse().join('-'));
+    ok(ngay.length > 1 && ngay.every((d, i) => !i || ngay[i - 1] <= d), 'đã hết khấu hao: xếp từ tài sản hết lâu nhất trước');
+    const ds = () => [...document.querySelectorAll('.kh-tbl tbody a[href^="#ts-"]')].map(x => BY_KEY[decodeURIComponent(x.getAttribute('href').slice(4))]);
+    ok(ds().every(a => a && !a.hoso), 'không đưa công trình, xây lắp, phần mềm vào danh sách');
+    const dv = document.getElementById('khdv'); dv.value = 'HC'; dv.dispatchEvent(new Event('change', { bubbles: true })); await W(350);
+    const hc = ds();
+    ok(hc.length > 0 && hc.every(a => a.unit === 'HC'), 'lọc theo sheet Phòng Hành chính: chỉ còn tài sản của sheet đó');
+    let cap = null; const goc = window.xuatBangExcel; window.xuatBangExcel = async (ten, cot, dong) => { cap = { ten, cot, dong }; };
+    app.querySelector('[data-ch="khxlsx"]').click(); await W(400); window.xuatBangExcel = goc;
+    const l = khLoc();
+    ok(cap && cap.dong.length === l.het.length + l.gan.length && cap.cot[0][0] === 'Khấu hao', `Tải Excel danh sách: ${cap ? cap.dong.length : 0} tài sản, đúng bộ lọc`);
+    KHV.dv = '';
+
+    await go('dau-moi');
+    ok(document.querySelectorAll('.dm-it').length === UNITS.length, `đầu mối: đủ ${UNITS.length} sheet (bộ môn, khoa, phòng ban, sheet lẻ)`);
+    document.querySelector('[data-dm="GD"] [data-ch="dmsua"]').click(); await W(300);
+    const f = (k, v) => { document.getElementById(`dm-${k}-GD`).value = v; };
+    f('ten', 'Nguyễn Văn Thử'); f('cv', 'Chủ nhiệm bộ môn'); f('email', 'sai-email');
+    document.querySelector('[data-dm="GD"] [data-ch="dmluu"]').click(); await W(300);
+    ok(!dmCua('GD') && /Email chưa đúng/.test(txt('toastMsg')), 'email sai dạng: không lưu, báo rõ');
+    f('email', 'thu.nv@fe.edu.vn'); document.querySelector('[data-dm="GD"] [data-ch="dmluu"]').click(); await W(400);
+    ok(dmCua('GD') && dmCua('GD').email === 'thu.nv@fe.edu.vn' && document.querySelector('[data-dm="GD"]').textContent.includes('thu.nv@fe.edu.vn'), 'lưu đầu mối sheet GD: tên, chức vụ, email');
+    ok(LOGMINE.some(e => e.kind === 'chung' && /Họ tên: trống → Nguyễn Văn Thử/.test((e.lines || []).join(' '))), 'lịch sử ghi lần thêm đầu mối');
+    const aGD = BY_UNIT.GD.find(a => a.ma && String(a.ma) === String(a.key));
+    await go('ts-' + aGD.key);
+    ok(app.querySelector('.tsx-dl').textContent.includes('Nguyễn Văn Thử'), 'trang tài sản: hiện đầu mối quản lý');
+    await go('dv-GD');
+    ok((app.querySelector('.dm-l') || {}).textContent.includes('thu.nv@fe.edu.vn'), 'trang sheet: hiện đầu mối');
+    await go('ly-lich-' + aGD.key); await W(300);
+    ok(app.textContent.includes('Nguyễn Văn Thử'), 'lý lịch tài sản: hiện đầu mối');
+    S.rows[aGD.stt] = { tt: 0, nf: true, at: Date.now() }; save(); await go('xac-minh');
+    ok([...document.querySelectorAll('.xm')].some(x => x.textContent.includes('Nguyễn Văn Thử')), 'Tài sản thất lạc: hiện đầu mối để liên hệ');
+    await go('khau-hao'); const dv2 = document.getElementById('khdv'); dv2.value = 'GD'; dv2.dispatchEvent(new Event('change', { bubbles: true })); await W(350);
+    const o = [...document.querySelectorAll('.kh-dm')];
+    ok(!o.length || o.every(td => td.textContent.includes('Nguyễn Văn Thử')), 'khấu hao: cột Đầu mối hiện đúng người');
+    KHV.dv = '';
+    const kq = JSON.stringify(ketQuaKeToan(aGD));
+    ok(!kq.includes('thu.nv@fe.edu.vn') && !kq.includes('Nguyễn Văn Thử'), 'kết quả cho kế toán không có đầu mối');
+    const src = await (await fetch('export.js')).text();
+    ok(!/S\.dm|dmCua|dmText|dmChu/.test(src), 'file “Xuất cho kế toán” không đọc dữ liệu đầu mối');
+  };
+
   KB['dien-thoai'] = async () => {
     await go('phong-108-gamma'); await W(300);
     const sc = document.getElementById('scanBtn').getBoundingClientRect();
     ok(Math.abs((sc.left + sc.right) / 2 - innerWidth / 2) < 3, 'điện thoại: nút Quét mã nằm giữa thanh dưới');
-    const kk = document.getElementById('swKK').getBoundingClientRect(), qr = document.getElementById('swQR').getBoundingClientRect();
-    ok(kk.right <= sc.left + 1 && qr.left >= sc.right - 1, 'điện thoại: nút Quét mã không đè chữ Kiểm kê / Mã QR');
-    for (const h of ['trang-chu', 'tong-quan', 'phong-108-gamma', 'ma-qr', 'nhap-so', 'ly-lich-6497474', 'ts-6497474']) {
+    const qr = document.getElementById('swQR').getBoundingClientRect(), ls = document.getElementById('swLS').getBoundingClientRect(), ch = document.getElementById('swCH').getBoundingClientRect();
+    ok(qr.right <= sc.left + 1 && ls.left >= sc.right - 1, 'điện thoại: nút Quét mã không đè chữ Mã QR / Lịch sử');
+    ok(ch.width > 40 && ch.right <= innerWidth + 1 && ch.left >= ls.right - 1, 'điện thoại: thanh dưới có ô Chung, không tràn');
+    for (const h of ['trang-chu', 'tong-quan', 'phong-108-gamma', 'ma-qr', 'nhap-so', 'ly-lich-6497474', 'ts-6497474', 'khau-hao', 'dau-moi']) {
       await go(h); await W(300);
       ok(document.documentElement.scrollWidth <= innerWidth + 1, `điện thoại: #${h} không bị tràn ngang`);
     }

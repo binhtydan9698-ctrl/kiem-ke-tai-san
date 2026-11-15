@@ -356,8 +356,8 @@ function viewQR() {
       <li>Mỗi mã QR là đường link <b>mở thẳng trang của đúng một tài sản trong phần Kiểm kê</b>, quét bằng nút Quét mã hay camera điện thoại đều được.</li>
       <li>Mã QR gắn với <b>Mã TSCĐ</b>. Mã đã cấp <b>không bao giờ cấp lại</b> cho tài sản khác; thêm tài sản mới vào file BBKK thì có mã mới, không trùng mã cũ.</li>
       <li>Tài sản <b>bị xoá khỏi file BBKK vẫn được giữ trong Sổ mã QR</b>: quét tem cũ vẫn xem được thông tin và biết tài sản đã bị xoá ngày nào.</li>
-      <li>Hai dòng tài sản <b>lệch thông tin dù 1 chữ</b> (tên, ngày ghi sổ, nguyên giá) là <b>2 tài sản khác nhau, bắt buộc khác mã QR</b>. Tài sản số lượng lớn (cùng một dòng trong sổ) dùng chung 1 mã QR. Mã TSCĐ nào có các dòng lệch thông tin sẽ bị chặn in tem cho tới khi kế toán sửa cho thống nhất.</li>
-      <li>Kế toán <b>đổi Mã TSCĐ</b> cho cùng một tài sản thì <b>vẫn là tài sản đó</b>: mã cũ được nối sang mã mới. Tem mang mã cũ vẫn quét được và mở đúng tài sản (1 mã QR, 2 Mã TSCĐ); in tem mới thì tài sản có thêm mã QR mới, cả 2 tem đều dùng được (2 mã QR, cùng tài sản). Lý lịch tài sản gộp cả lịch sử của mã cũ. App tự nối khi mã cũ rời file BBKK và mã mới có tên, ngày ghi sổ, nguyên giá giống hệt; vừa đổi mã vừa sửa thông tin thì cán bộ Hành chính khai báo để nối.</li>
+      <li>Hai dòng tài sản <b>lệch thông tin dù 1 chữ</b> (tên, ngày bắt đầu sử dụng, nguyên giá) là <b>2 tài sản khác nhau, bắt buộc khác mã QR</b>. Tài sản số lượng lớn (cùng một dòng trong sổ) dùng chung 1 mã QR. Mã TSCĐ nào có các dòng lệch thông tin sẽ bị chặn in tem cho tới khi kế toán sửa cho thống nhất.</li>
+      <li>Kế toán <b>đổi Mã TSCĐ</b> cho cùng một tài sản thì <b>vẫn là tài sản đó</b>: mã cũ được nối sang mã mới. Tem mang mã cũ vẫn quét được và mở đúng tài sản (1 mã QR, 2 Mã TSCĐ); in tem mới thì tài sản có thêm mã QR mới, cả 2 tem đều dùng được (2 mã QR, cùng tài sản). Lý lịch tài sản gộp cả lịch sử của mã cũ. App tự nối khi mã cũ rời file BBKK và mã mới có tên, ngày bắt đầu sử dụng, nguyên giá giống hệt; vừa đổi mã vừa sửa thông tin thì cán bộ Hành chính khai báo để nối.</li>
       <li>Sổ tự cập nhật mỗi lần đưa file Excel lên web và được lưu riêng cùng file Excel (file <span class="mono">so-ma-qr.json</span> trong thư mục “dữ liệu cập nhật”).</li>
     </ol>
     <div id="qrSoBody"></div>
@@ -385,7 +385,7 @@ function temSoDraw() {
 }
 function temSoXlsx() {
   const so = window.KIEMKE_SO_QR || { dang: {}, xoa: {} };
-  const cot = [['Mã TSCĐ', 12], ['Tên tài sản', 55], ['Đơn vị', 30], ['Vị trí', 18], ['Ngày ghi sổ', 12], ['Nguyên giá', 14], ['Cấp mã QR', 12], ['Trạng thái', 26], ['Nội dung mã QR', 55]];
+  const cot = [['Mã TSCĐ', 12], ['Tên tài sản', 55], ['Đơn vị', 30], ['Vị trí', 18], ['Bắt đầu sử dụng', 14], ['Nguyên giá', 14], ['Cấp mã QR', 12], ['Trạng thái', 26], ['Nội dung mã QR', 55]];
   const dong = [];
   ASSETS.filter(temCoMa).forEach(a => dong.push([String(a.ma), a.ten, UNIT[a.unit] ? UNIT[a.unit].ten : a.unit, roomOf(a), dmy(a.ngay), a.gia || 0, dmy(String((Array.isArray(so.dang[a.key]) ? so.dang[a.key][0] : so.dang[a.key]) || '').slice(0, 10)), 'Đang dùng' + (maCuCua(a.key).length ? ' (đổi từ mã ' + maCuCua(a.key).join(', ') + ')' : ''), KIEMKE_QR.payload(a.key)]));
   Object.entries(so.xoa || {}).forEach(([k, e]) => dong.push([k, e.ten, e.donVi, e.vt, dmy(e.ngay), e.gia || 0, dmy(e.tu), e.sang ? 'Kế toán đổi sang Mã TSCĐ ' + e.sang.ma + ' (cùng tài sản, tem cũ vẫn dùng được)' : 'Đã xoá khỏi BBKK ngày ' + dmy(e.xoa), KIEMKE_QR.payload(k)]));

@@ -22,7 +22,7 @@ for (let i = 0; i < 30; i++) {
 ok(ver === can, ver === can ? `Vercel đã có phiên bản ${can}` : `Sau 5 phút Vercel vẫn ở phiên bản ${ver} (kiểm tra mục Deployments trên vercel.com)`);
 
 // Đợi Vercel phục vụ đúng mã trang vừa build (cần khi chỉ sửa giao diện, dữ liệu Excel không đổi)
-const MA_TRANG = ['index.html', 'ma-qr.js', 'qr-rules.js', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js'];
+const MA_TRANG = ['index.html', 'ma-qr.js', 'chung.js', 'qr-rules.js', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js'];
 const boCR = s => s.replace(/\r/g, '');
 const tren_may = Object.fromEntries(MA_TRANG.map(f => [f, boCR(fs.readFileSync(path.join(ROOT, 'dist', f), 'utf8'))]));
 let khac = MA_TRANG;
