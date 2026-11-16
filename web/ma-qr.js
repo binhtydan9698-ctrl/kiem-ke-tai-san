@@ -269,7 +269,7 @@ function viewQR() {
     'Chọn tài sản, chỉnh mẫu tem rồi tải file in. Quét tem bằng nút <b>Quét mã</b> sẽ mở thẳng đúng tài sản trong phần Kiểm kê.')}
   <div class="qrw" id="qrw">
     <div class="qr-col">
-      <section class="panel qr-s" aria-labelledby="qrh1"><h3 id="qrh1"><span class="qn">1</span>Chọn tài sản</h3>
+      <section class="panel qr-s" aria-labelledby="qrh1"><h2 id="qrh1"><span class="qn">1</span>Chọn tài sản</h2>
         <div class="qr-g2">
           <div class="fld"><label for="qrU">Đơn vị (sheet)</label><select class="in" id="qrU" data-qf="unit"><option value="">Tất cả đơn vị</option>${opt(UNITS.map(u => [u.id, u.sheet]), TEMV.unit)}</select></div>
           <div class="fld"><label for="qrR">Phòng</label><select class="in" id="qrR" data-qf="room"><option value="">Tất cả phòng</option>${opt(rooms.map(r => [r.slug, r.name]), TEMV.room)}<option value="${NOROOM}"${TEMV.room === NOROOM ? ' selected' : ''}>Chưa có vị trí</option></select></div>
@@ -285,7 +285,7 @@ function viewQR() {
           <div class="qr-list" id="qrList"></div>
         </details>
       </section>
-      <section class="panel qr-s" aria-labelledby="qrh2"><h3 id="qrh2"><span class="qn">2</span>Khổ in và cỡ tem</h3>
+      <section class="panel qr-s" aria-labelledby="qrh2"><h2 id="qrh2"><span class="qn">2</span>Khổ in và cỡ tem</h2>
         <div class="seg qr-seg" role="group" aria-label="Khổ in"><button type="button" data-tv="mode:a4">Tờ A4 nhiều tem</button><button type="button" data-tv="mode:tem">Máy in tem (mỗi tem một trang)</button></div>
         <div class="qr-g3">
           <div class="fld"><label for="qrSize">Cỡ tem</label><select class="in" id="qrSize" data-t="size">${opt(TEM_SIZES, TEM.size)}</select></div>
@@ -301,7 +301,7 @@ function viewQR() {
         </div>
         <div class="qr-g2">${chk('qrBd', 'border', 'Viền quanh tem (đường cắt)')}${num('qrPad', 'pad', 'Lề trong tem (mm)', 0, 10, 0.5)}</div>
       </section>
-      <section class="panel qr-s" aria-labelledby="qrh3"><h3 id="qrh3"><span class="qn">3</span>Chữ trên tem</h3>
+      <section class="panel qr-s" aria-labelledby="qrh3"><h2 id="qrh3"><span class="qn">3</span>Chữ trên tem</h2>
         <div class="qr-line">${chk('qrHdOn', 'head', 'Dòng tiêu đề (ngang đầu tem)')}<input class="in" id="qrHd" data-t="headText" aria-label="Chữ dòng tiêu đề" maxlength="60"></div>
         ${chk('qrMa', 'ma', 'Mã TSCĐ (chữ to)')}
         <div class="qr-line">${chk('qrNm', 'name', 'Tên tài sản')}
@@ -310,7 +310,7 @@ function viewQR() {
         ${chk('qrRm', 'room', 'Phòng')}${chk('qrUn', 'unit', 'Đơn vị (sheet), cùng dòng với phòng')}${chk('qrSq', 'seq', 'Số thứ tự tem (vd. 3/20) khi in nhiều tem cho một tài sản')}
         <div class="qr-g2"><div class="fld"><label for="qrFs">Cỡ chữ</label><select class="in" id="qrFs" data-t="font">${opt([[0, 'Tự động (lớn nhất vừa tem)'], ...[5, 6, 7, 8, 9, 10, 11, 12, 14].map(v => [v, v + ' pt'])], TEM.font)}</select></div></div>
       </section>
-      <section class="panel qr-s" aria-labelledby="qrh4"><h3 id="qrh4"><span class="qn">4</span>Mã QR</h3>
+      <section class="panel qr-s" aria-labelledby="qrh4"><h2 id="qrh4"><span class="qn">4</span>Mã QR</h2>
         <div class="qr-g2">
           <div class="fld"><label for="qrPos">Vị trí mã QR</label><select class="in" id="qrPos" data-t="qrPos">${opt([['auto', 'Tự động theo cỡ tem'], ['left', 'Bên trái, chữ bên phải'], ['top', 'Bên trên, chữ bên dưới']], TEM.qrPos)}</select></div>
           ${num('qrQs', 'qrSize', 'Cỡ mã QR (mm, để trống = tự động)', 0, 200, 0.5)}
@@ -323,7 +323,7 @@ function viewQR() {
       </section>
     </div>
     <div class="qr-col qr-side">
-      <section class="panel qr-pv" aria-labelledby="qrh5"><h3 id="qrh5" class="qr-vh">Xem trước <span>(đúng tỉ lệ)</span></h3>
+      <section class="panel qr-pv" aria-labelledby="qrh5"><h2 id="qrh5" class="qr-vh">Xem trước <span>(đúng tỉ lệ)</span></h2>
         <div class="qr-pvh">
           <div class="seg" role="group" aria-label="Kiểu xem trước"><button type="button" data-qv="tem">Một tem</button><button type="button" data-qv="trang">Cả trang</button></div>
           <div class="qr-nav"><button type="button" class="btn sm" data-qa="prev" aria-label="Trước">‹</button><span id="qrPos2" class="num"></span><button type="button" class="btn sm" data-qa="next" aria-label="Sau">›</button></div>
@@ -332,7 +332,7 @@ function viewQR() {
         <p class="qr-cap" id="qrCap"></p>
         <p class="qr-test" id="qrTest" role="status"></p>
       </section>
-      <section class="panel qr-ex" aria-labelledby="qrh6"><h3 id="qrh6"><span class="qn">5</span>Tải file in</h3>
+      <section class="panel qr-ex" aria-labelledby="qrh6"><h2 id="qrh6"><span class="qn">5</span>Tải file in</h2>
         <div class="qr-btns">
           <button type="button" class="btn pri" data-qa="pdf">${ic('FileDown')}Tải PDF để in</button>
           <button type="button" class="btn" data-qa="print">${ic('Printer')}In ngay</button>
@@ -351,7 +351,7 @@ function viewQR() {
     </div>
   </div>
   <section class="panel qr-so" id="qrSo" aria-labelledby="qrh7">
-    <h3 id="qrh7">${ic('BookOpen')}Sổ mã QR và quy tắc</h3>
+    <h2 id="qrh7">${ic('BookOpen')}Sổ mã QR và quy tắc</h2>
     <ol class="qr-rule">
       <li>Mỗi mã QR là đường link <b>mở thẳng trang của đúng một tài sản trong phần Kiểm kê</b>, quét bằng nút Quét mã hay camera điện thoại đều được.</li>
       <li>Mã QR gắn với <b>Mã TSCĐ</b>. Mã đã cấp <b>không bao giờ cấp lại</b> cho tài sản khác; thêm tài sản mới vào file BBKK thì có mã mới, không trùng mã cũ.</li>
@@ -378,8 +378,8 @@ function temSoDraw() {
       ${doi.length ? `<div><small>Mã cũ đã đổi sang mã mới</small><b class="num">${nf.format(doi.length)}</b></div>` : ''}
     </div>
     ${chan.length ? `<div class="qr-chan"><b>${chan.length} Mã TSCĐ bị chặn in tem</b> (cùng mã nhưng thông tin lệch giữa các sheet):<ul>${chan.map(([k, l]) => `<li><span class="mono">${esc(k)}</span>: ${esc(l)}</li>`).join('')}</ul></div>` : ''}
-    ${doi.length ? `<p class="qr-info">Kế toán đổi Mã TSCĐ (cùng một tài sản): tem mang mã cũ vẫn quét được, mở tài sản mã mới.</p><div class="tblwrap qr-sot"><table><thead><tr><th>Mã cũ</th><th>Mã mới</th><th>Tên tài sản</th><th>Đổi lúc</th><th>Cách nối</th></tr></thead><tbody>${doi.sort((a, b) => String(b[1].sang.luc || '').localeCompare(String(a[1].sang.luc || ''))).map(([k, e]) => `<tr><td class="mono">${esc(k)}</td><td class="mono"><a href="#ts-${encodeURIComponent(e.sang.ma)}">${esc(e.sang.ma)}</a></td><td>${esc(e.ten)}</td><td class="num">${esc(tuText(e.sang.luc))}</td><td>${e.sang.cach === 'tự nhận' ? 'App tự nhận (thông tin giống hệt)' : 'Cán bộ Hành chính khai báo'}</td></tr>`).join('')}</tbody></table></div>` : ''}
-    ${xoa.length ? `<div class="tblwrap qr-sot"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Vị trí theo sổ</th><th>Cấp mã</th><th>Xoá khỏi BBKK</th></tr></thead><tbody>${xoa.sort((a, b) => (b[1].xoa || '').localeCompare(a[1].xoa || '')).map(([k, e]) => `<tr><td class="mono"><a href="#ts-${encodeURIComponent(k)}">${esc(k)}</a></td><td>${esc(e.ten)}</td><td>${esc(e.vt || '—')}</td><td class="num">${dmy(e.tu)}</td><td class="num">${dmy(e.xoa)}</td></tr>`).join('')}</tbody></table></div>`
+    ${doi.length ? `<p class="qr-info">Kế toán đổi Mã TSCĐ (cùng một tài sản): tem mang mã cũ vẫn quét được, mở tài sản mã mới.</p><div class="tblwrap qr-sot" tabindex="0" role="region" aria-label="Bảng trong Sổ mã QR"><table><thead><tr><th>Mã cũ</th><th>Mã mới</th><th>Tên tài sản</th><th>Đổi lúc</th><th>Cách nối</th></tr></thead><tbody>${doi.sort((a, b) => String(b[1].sang.luc || '').localeCompare(String(a[1].sang.luc || ''))).map(([k, e]) => `<tr><td class="mono">${esc(k)}</td><td class="mono"><a href="#ts-${encodeURIComponent(e.sang.ma)}">${esc(e.sang.ma)}</a></td><td>${esc(e.ten)}</td><td class="num">${esc(tuText(e.sang.luc))}</td><td>${e.sang.cach === 'tự nhận' ? 'App tự nhận (thông tin giống hệt)' : 'Cán bộ Hành chính khai báo'}</td></tr>`).join('')}</tbody></table></div>` : ''}
+    ${xoa.length ? `<div class="tblwrap qr-sot" tabindex="0" role="region" aria-label="Bảng trong Sổ mã QR"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Vị trí theo sổ</th><th>Cấp mã</th><th>Xoá khỏi BBKK</th></tr></thead><tbody>${xoa.sort((a, b) => (b[1].xoa || '').localeCompare(a[1].xoa || '')).map(([k, e]) => `<tr><td class="mono"><a href="#ts-${encodeURIComponent(k)}">${esc(k)}</a></td><td>${esc(e.ten)}</td><td>${esc(e.vt || '—')}</td><td class="num">${dmy(e.tu)}</td><td class="num">${dmy(e.xoa)}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="qr-info">Chưa có tài sản nào bị xoá khỏi file BBKK. Khi có, mã QR của chúng vẫn được giữ và liệt kê ở đây.</p>'}
     <div class="qr-btns"><button type="button" class="btn" data-qa="soxlsx">${ic('FileSpreadsheet')}Tải Sổ mã QR (Excel)</button><span class="qr-info">Sổ cập nhật ngày ${dmy(so.capNhat)}</span></div>`;
 }

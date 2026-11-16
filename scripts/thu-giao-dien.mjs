@@ -26,6 +26,8 @@ const KICH_BAN = [
   { ten: 'dang-nhap', mo: 'Đăng nhập: mật khẩu, chặn nhập sai, chính sách mật khẩu, xác thực 2 bước, thành viên, quyền, Danh bạ, tự đăng xuất' },
   { ten: 'anh', mo: 'Nút ⋯ trên dòng tài sản: mã QR, tải ảnh lên (thu nhỏ), xem ảnh kiểu Messenger, quyền' },
   { ten: 'ma-hoa', mo: 'Dữ liệu tài sản mã hoá: chưa đăng nhập không đọc được, đăng nhập xong giải mã và chạy', maHoa: true },
+  { ten: 'tro-nang', mo: 'Trợ năng (axe-core, WCAG 2.2 AA) trên 14 trang chính — cỡ máy tính' },
+  { ten: 'tro-nang-dt', mo: 'Trợ năng (axe-core, WCAG 2.2 AA) trên 14 trang chính — cỡ điện thoại', dt: true },
   { ten: 'dien-thoai', mo: 'Điện thoại (390px): thanh dưới, không tràn ngang', dt: true },
 ];
 

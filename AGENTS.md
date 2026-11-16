@@ -68,7 +68,7 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
 | `npm run sao-luu` | Sao lưu kết quả Supabase (và Danh bạ) về `sao-luu/` (chỉ đọc). Đã bật đăng nhập: người dùng tự đặt tạm `$env:KIEMKE_TEN`, `$env:KIEMKE_MK` khi chạy |
-| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
+| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, trợ năng WCAG 2.2 AA, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
 | `npm run theo-doi-supabase` | Đọc thử Supabase (chỉ đọc). GitHub Actions chạy mỗi sáng 8h (`.github/workflows/theo-doi-supabase.yml`): giữ Supabase không bị tạm dừng; không đọc được thì lần chạy báo lỗi → GitHub gửi mail tới email nhận thông báo của tài khoản chủ repo (người dùng muốn nhận ở địa chỉ email công việc, không ghi địa chỉ vào repo công khai). |
 
 ## Skills trong `.agents/skills/`

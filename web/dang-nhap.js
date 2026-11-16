@@ -416,7 +416,7 @@
       <h2>${ic('Users')}Thành viên</h2>
       <p class="note">Chỉ người có tài khoản mới mở được trang; ai làm gì đều ghi lịch sử theo tên. <b>Tra cứu</b>: chỉ xem mọi thông tin (kể cả danh bạ), không ghi được gì. <b>Kiểm kê</b>: thêm ghi kết quả kiểm kê, tài sản phát sinh, thất lạc. <b>Quản trị</b>: toàn quyền (danh bạ, đầu mối, thành viên), bắt buộc xác thực 2 bước. Khoá tài khoản có hiệu lực ngay, kể cả máy đang đăng nhập.</p>
       ${DN.tvLoi ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>${E(DN.tvLoi)}</div></div>` : ''}
-      ${!l ? '<div class="empty">Đang tải danh sách thành viên…</div>' : `<div class="tblwrap ql-tbl"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Quyền</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th></th></tr></thead><tbody>${l.map(x => {
+      ${!l ? '<div class="empty">Đang tải danh sách thành viên…</div>' : `<div class="tblwrap ql-tbl" tabindex="0" role="region" aria-label="Danh sách thành viên"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Quyền</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th></th></tr></thead><tbody>${l.map(x => {
         const toi = x.user_id === DN.toi.uid, u = E(x.user_id);
         return `<tr data-uid="${u}"><td class="mono">${E(x.ten_dang_nhap)}${toi ? ' <small>(bạn)</small>' : ''}</td><td>${E(x.ho_ten || '')}</td><td>${E(x.email || '')}</td>
           <td>${toi ? E(lbl(QUYEN_TK, x.quyen)) : `<select class="in" data-ql="quyen" aria-label="Quyền của ${E(x.ten_dang_nhap)}">${QUYEN_TK.map(([k, n]) => `<option value="${k}" ${x.quyen === k ? 'selected' : ''}>${n}</option>`).join('')}</select>`}</td>

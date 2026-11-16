@@ -626,6 +626,22 @@
     lb.close(); d.close();
   };
 
+  // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,
+  // vùng bấm ≥ 24px, bảng cuộn dùng được bằng bàn phím, tiêu đề đúng thứ tự… (chạy ở cỡ máy tính và cỡ điện thoại)
+  KB['tro-nang'] = async () => {
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+    const TRANG = ['trang-chu', 'tong-quan', 'vi-tri', 'phong-108-gamma', 'dv-GD', 'ts-6497474', 'tong-hop', 'ket-qua', 'xac-minh', 'xuat', 'ma-qr', 'lich-su', 'khau-hao', 'dau-moi'];
+    const sai = [];
+    for (const t of TRANG) {
+      await go(t); await W(400);
+      // preload:false — axe không tự tải lại tệp CSS (phông Google) để soi; trang chặn việc đó bằng CSP và không được nới CSP vì bộ thử
+      const kq = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, resultTypes: ['violations'], preload: false });
+      kq.violations.forEach(v => sai.push(`#${t}: ${v.id} (${v.nodes.length} chỗ, vd ${v.nodes[0].target.join(' ')})`));
+    }
+    ok(!sai.length, sai.length ? `trợ năng: ${sai.length} loại vi phạm — ${sai.slice(0, 4).join(' · ')}` : `trợ năng (axe-core, WCAG 2.2 AA): ${TRANG.length} trang chính không có vi phạm nào`);
+  };
+  KB['tro-nang-dt'] = KB['tro-nang'];
+
   KB['dien-thoai'] = async () => {
     await go('phong-108-gamma'); await W(300);
     const sc = document.getElementById('scanBtn').getBoundingClientRect();

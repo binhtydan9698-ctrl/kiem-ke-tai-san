@@ -91,7 +91,8 @@ main{padding-block:20px 60px}
 .btn.ok{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
 .btn.bad{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
 .btn.sm{padding:5px 10px;font-size:13px}
-.lnk{border:0;background:none;color:var(--accent);padding:0;font-size:12.5px;text-decoration:underline;text-underline-offset:2px}
+.lnk{border:0;background:none;color:var(--accent);padding:0;font-size:12.5px;text-decoration:underline;text-underline-offset:2px;display:inline-flex;align-items:center;min-height:24px}   /* vùng bấm ≥ 24px (WCAG 2.2) */
+.tblwrap:focus-visible{outline:2px solid var(--accent);outline-offset:2px}   /* bảng cuộn ngang: dùng được bằng bàn phím */
 
 /* overview */
 .head{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
@@ -655,7 +656,7 @@ a.btn{text-decoration:none}
 .qr-col{display:grid;gap:14px;min-width:0}
 .qr-side{position:sticky;top:calc(var(--toph,60px) + 12px)}
 .qr-s,.qr-pv,.qr-ex{display:grid;gap:10px}
-.qrw h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin:0}
+.qrw h2,.qrw h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin:0}
 .qrw .qn{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--brand);color:#fff;font-size:12px;font-weight:700;flex:0 0 auto}
 .qr-g2,.qr-g3,.qr-g4{display:grid;gap:10px;align-items:end}
 .qr-g2{grid-template-columns:repeat(2,minmax(0,1fr))} .qr-g3{grid-template-columns:1.4fr 1fr 1fr} .qr-g4{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -703,8 +704,8 @@ a.btn{text-decoration:none}
 .lnk.qrkk:hover{text-decoration:underline}
 .qr-cap{white-space:normal}
 .qr-so{display:grid;gap:12px;margin-top:16px}
-.qr-so h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin:0}
-.qr-so h3 svg{color:var(--accent);width:18px;height:18px}
+.qr-so h2,.qr-so h3{font-size:15.5px;display:flex;align-items:center;gap:8px;margin:0}
+.qr-so h2 svg,.qr-so h3 svg{color:var(--accent);width:18px;height:18px}
 .qr-rule{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;max-width:900px}
 .qr-sof{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:12px}
 .qr-sof>div{background:var(--surface-2);border-radius:var(--r);padding:12px 14px;display:grid;gap:2px}
@@ -794,8 +795,8 @@ a.btn{text-decoration:none}
 /* ảnh toàn cảnh: phóng dần vào đúng tòa đang chọn (điểm --x --y giữ nguyên chỗ khi phóng) */
 .bfig img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:var(--x,50%) var(--y,50%);transform-origin:var(--x,50%) var(--y,50%);transform:scale(var(--zi,1.04));transition:transform 1.4s cubic-bezier(.2,.7,.2,1)}
 .bfig.on img{transform:scale(var(--z,1))}
-.bpin{position:absolute;transform:translate(-50%,-100%);margin-top:-4px;background:var(--brand);color:#fff;font-weight:700;font-size:13px;padding:5px 11px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;opacity:0;transition:opacity .3s ease .5s,margin-top .3s ease .5s;pointer-events:none}
-.bpin::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--brand)}
+.bpin{position:absolute;transform:translate(-50%,-100%);margin-top:-4px;background:var(--cta,var(--accent));color:var(--cta-fg,#fff);font-weight:700;font-size:13px;padding:5px 11px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.35);white-space:nowrap;opacity:0;transition:opacity .3s ease .5s,margin-top .3s ease .5s;pointer-events:none}
+.bpin::after{content:"";position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--cta,var(--accent))}
 .bfig.on .bpin{opacity:1;margin-top:-12px}
 .bmain{padding:26px 24px;display:flex;flex-direction:column;gap:18px;min-width:0}
 .bdesc{margin:0;color:var(--muted);line-height:1.5}
@@ -1775,7 +1776,9 @@ function roomField(a,room){
    mới ở "Kiểm theo phòng ban" (S.rows[stt].dv; chọn lại phòng ban theo file Excel thì bỏ dv). Sheet lẻ chỉ hiện cho tài sản gốc ở đó. */
 let DVOPT='';
 function dvField(a){
-  if(!DVOPT) DVOPT=`<optgroup label="Phòng ban, bộ môn, khoa">${UNITS.filter(u=>!u.review).map(u=>`<option value="${u.id}">${esc(u.ten)}</option>`).join('')}</optgroup>`;
+  // tên hiện trong ô: mã sheet ngắn đứng trước (vd. "GD · Bộ môn Thiết kế…") để ô hẹp bị cắt chữ vẫn nhận ra phòng ban
+  const nhan=u=>/^[A-Z0-9]{2,6}$/.test(u.sheet)&&!u.ten.startsWith(u.sheet)?u.sheet+' · '+u.ten:u.ten;
+  if(!DVOPT) DVOPT=`<optgroup label="Phòng ban, bộ môn, khoa">${UNITS.filter(u=>!u.review).map(u=>`<option value="${u.id}">${esc(nhan(u))}</option>`).join('')}</optgroup>`;
   const u0=UNIT[a.unit0], cur=a.unit;
   let h=DVOPT+(u0.review?`<optgroup label="Chưa phân bổ (sheet lẻ)"><option value="${u0.id}">${esc(u0.ten)}</option></optgroup>`:'');
   h=h.replace(`<option value="${cur}">`,`<option value="${cur}" selected>`);
@@ -2106,11 +2109,11 @@ function rowHTML(a){
     <div class="c-id"><span class="stt num">STT ${a.stt}</span><span class="ma mono">${esc(a.ma||'không mã')}</span></div>
     <div class="c-name"><div class="nm">${esc(a.short)}</div>
       <div class="meta"><span>${dmy(a.ngay)}</span><span>${money(a.gia)}</span>${a.ct?`<span class="mono">${esc(a.ct)}</span>`:''}${by}${tags}<button class="lnk" data-act="more">${open?'Ẩn chi tiết':'Chi tiết, ghi chú'}</button><button type="button" class="xt-nut" data-act="xt" aria-label="Mở rộng: mã QR và ảnh của tài sản" title="Mã QR, ảnh">${ic('Ellipsis')||'⋯'}${soAnh(a)?`<span class="xt-n">${soAnh(a)}</span>`:''}</button></div>
-      ${open?`<div class="more"><div class="full">${esc(a.ten)}</div><input class="in" id="note-${a.stt}" data-f="note" placeholder="Ghi chú tại chỗ (VD: đang mượn ở phòng 404, số biên bản bàn giao)" value="${esc(s.note||'')}"><label class="sdf" for="sd-${a.stt}"><span>Trạng thái sử dụng</span><select class="in" id="sd-${a.stt}" data-f="sd">${SUDUNG.map(([k,v])=>`<option value="${k}" ${(s.sd||'')===k?'selected':''}>${v}</option>`).join('')}</select></label></div>`:(s.note?`<div class="meta"><span>Ghi chú: ${esc(s.note)}</span></div>`:'')}
+      ${open?`<div class="more"><div class="full">${esc(a.ten)}</div><input class="in" id="note-${a.stt}" data-f="note" aria-label="Ghi chú tại chỗ" placeholder="Ghi chú tại chỗ (VD: đang mượn ở phòng 404, số biên bản bàn giao)" value="${esc(s.note||'')}"><label class="sdf" for="sd-${a.stt}"><span>Trạng thái sử dụng</span><select class="in" id="sd-${a.stt}" data-f="sd">${SUDUNG.map(([k,v])=>`<option value="${k}" ${(s.sd||'')===k?'selected':''}>${v}</option>`).join('')}</select></label></div>`:(s.note?`<div class="meta"><span>Ghi chú: ${esc(s.note)}</span></div>`:'')}
     </div>
     ${roomField(a,room)}
     ${real}
-    <div class="c-cond"><span class="lbl">Tình trạng</span><select class="in" id="cd-${a.stt}" data-f="cond"><option value="">—</option>${COND.map(([k,v])=>`<option value="${k}" ${cond===k?'selected':''}>${v}</option>`).join('')}</select></div>
+    <div class="c-cond"><span class="lbl">Tình trạng</span><select class="in" id="cd-${a.stt}" data-f="cond" aria-label="Tình trạng của tài sản ${esc(a.ma||'STT '+a.stt)}"><option value="">—</option>${COND.map(([k,v])=>`<option value="${k}" ${cond===k?'selected':''}>${v}</option>`).join('')}</select></div>
     <div class="c-act"><span class="badge ${r}">${RES_LABEL[r]}</span><div class="btns">${btns}</div></div>
   </div>`;
 }
@@ -2411,16 +2414,16 @@ function ketQuaKeToan(a){
 function viewXuat(){
   const rows=exportRows(); const c=count(rows);
   app.innerHTML=`${demoBanner()}
-  ${banner('thu-vien','Hoàn tất kiểm kê','Xuất cho kế toán',`File tải về giữ nguyên file Excel gốc trong thư mục "dữ liệu cập nhật" (<b>${esc(DATA.file||'')}</b>), chỉ điền cột Thực tế (nếu có) và thêm 3 cột cuối: <b>Kết quả kiểm kê</b>, <b>Vị trí thực tế</b>, <b>Ghi chú kiểm kê</b>.`)}
+  ${banner('thu-vien','Hoàn tất kiểm kê','Xuất cho kế toán',`File tải về giữ nguyên hoàn toàn file Excel gốc trong thư mục "dữ liệu cập nhật" (<b>${esc(DATA.file||'')}</b>), kể cả cột Thực tế (để trống như gốc), chỉ thêm 3 cột cuối: <b>Kết quả kiểm kê</b>, <b>Vị trí thực tế</b>, <b>Ghi chú kiểm kê</b> (và sheet Tài sản phát sinh nếu có).`)}
   <div class="tools">
     <button class="btn pri" data-act="xlsx">${ic('Download')}Tải file Excel cho kế toán</button>
     <span class="num" style="color:var(--muted);font-size:13px">Toàn bộ ${ASSETS.length} tài sản · đã kiểm ${count(ASSETS).da} · lệch ${count(ASSETS).lech} · chưa thấy ${count(ASSETS).nf}${Object.values(S.ps).reduce((n,l)=>n+(l||[]).length,0)?` · phát sinh ${Object.values(S.ps).reduce((n,l)=>n+(l||[]).length,0)} (sheet riêng)`:''}</span>
   </div>
   <div class="sect" style="margin-top:18px"><h2>Xem trước</h2><span>
-    <select class="in" id="xu" style="max-width:300px;display:inline-block;padding:4px 8px"><option value="all">Tất cả đơn vị</option>${UNITS.map(u=>`<option value="${u.id}" ${xuatUnit===u.id?'selected':''}>${esc(u.sheet)}</option>`).join('')}</select>
+    <select class="in" id="xu" style="max-width:300px;display:inline-block;padding:4px 8px" aria-label="Xem trước theo đơn vị"><option value="all">Tất cả đơn vị</option>${UNITS.map(u=>`<option value="${u.id}" ${xuatUnit===u.id?'selected':''}>${esc(u.sheet)}</option>`).join('')}</select>
     <span class="num">${rows.length} dòng · đã kiểm ${c.da}</span> · <button class="lnk" data-act="copy">Sao chép bảng này</button></span></div>
-  <div class="tblwrap" style="max-height:70vh"><table>
-    <thead><tr><th>STT</th><th>Mã TSCĐ</th><th>Tên TSCĐ</th><th>Sổ sách</th><th>Thực tế</th><th>Vị trí theo sổ</th><th class="new">Kết quả kiểm kê</th><th class="new">Vị trí thực tế</th><th class="new">Ghi chú kiểm kê</th></tr></thead>
+  <div class="tblwrap" style="max-height:70vh" tabindex="0" role="region" aria-label="Xem trước file cho kế toán"><table>
+    <thead><tr><th>STT</th><th>Mã TSCĐ</th><th>Tên TSCĐ</th><th>Sổ sách</th><th title="Số đếm được trên app. File cho kế toán để trống cột Thực tế như gốc; số này nằm trong Kết quả kiểm kê">Đếm được</th><th>Vị trí theo sổ</th><th class="new">Kết quả kiểm kê</th><th class="new">Vị trí thực tế</th><th class="new">Ghi chú kiểm kê</th></tr></thead>
     <tbody>${rows.slice(0,400).map(a=>{const k=ketQuaKeToan(a);
       return `<tr><td class="n">${a.stt}</td><td class="mono">${esc(a.ma)}</td><td>${esc(a.short)}</td><td class="n">${a.sl}</td><td class="n ${k.r==='thieu'||k.r==='thua'?'diff':''}${k.r==='nf'?'miss':''}">${k.thucTe}</td><td>${esc(a.vt0)}</td><td class="${k.r==='nf'?'miss':(k.r==='thieu'||k.r==='thua')?'diff':''}">${esc(k.kq)}</td><td>${esc(k.vt)}</td><td>${esc(k.gc)}</td></tr>`;}).join('')}</tbody>
   </table></div>
@@ -2582,7 +2585,7 @@ function nsDraw(){
   const box=document.getElementById('nsBody'); if(!box) return;
   const l=nsList(), show=l.slice(0,NS.lim);
   box.innerHTML=`<p class="ns-count">${nf.format(l.length)} tài sản khớp bộ lọc${l.length>show.length?` · đang hiện ${nf.format(show.length)}`:''}</p>
-  ${l.length?`<div class="tblwrap ns-tbl"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Bắt đầu sử dụng</th><th>Vào sổ trên app</th><th>Nguồn · người nhập</th><th>Hiện trạng</th><th></th></tr></thead><tbody>${show.map(x=>`<tr>
+  ${l.length?`<div class="tblwrap ns-tbl" tabindex="0" role="region" aria-label="Danh sách nhập sổ"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Bắt đầu sử dụng</th><th>Vào sổ trên app</th><th>Nguồn · người nhập</th><th>Hiện trạng</th><th></th></tr></thead><tbody>${show.map(x=>`<tr>
     <td class="mono">${esc(x.ma||'—')}</td><td>${esc(x.ten)}${x.sl>1?` <small>SL ${nf.format(x.sl)}</small>`:''}</td><td class="num">${x.ghiSo?dmy(x.ghiSo):'—'}</td>
     <td class="num">${tuText(x.tu)}${x.file?`<small>${esc(x.file)}</small>`:''}</td><td>${nsNguon(x)}</td><td>${nsTrang(x)}</td>
     <td>${x.key?`<a href="#ly-lich-${encodeURIComponent(x.key)}">Lý lịch →</a>`:''}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">Không có tài sản nào khớp bộ lọc.</div>'}
@@ -2935,7 +2938,7 @@ app.addEventListener('click',e=>{
     return;
   }
   if(act==='copy'){
-    const rows=exportRows(); const head=['STT','Mã TSCĐ','Tên TSCĐ','Sổ sách','Thực tế','Ngày bắt đầu SD','Nguyên giá','Ghi chú','Vị trí theo sổ','Kết quả kiểm kê','Vị trí thực tế','Ghi chú kiểm kê'];
+    const rows=exportRows(); const head=['STT','Mã TSCĐ','Tên TSCĐ','Sổ sách','Đếm được','Ngày bắt đầu SD','Nguyên giá','Ghi chú','Vị trí theo sổ','Kết quả kiểm kê','Vị trí thực tế','Ghi chú kiểm kê'];
     const txt=[head.join('\t')].concat(rows.map(a=>{const k=ketQuaKeToan(a); return [a.stt,a.ma,a.ten,a.sl,k.thucTe,dmy(a.ngay),a.gia,a.gc,a.vt0,k.kq,k.vt,k.gc].map(v=>String(v??'').replace(/[\t\n]/g,' ')).join('\t');})).join('\n');
     if(navigator.clipboard?.writeText){ navigator.clipboard.writeText(txt).then(()=>toast(`Đã sao chép ${rows.length} dòng. Mở Excel và dán.`),()=>toast('Trình duyệt chặn sao chép. Hãy chọn bảng rồi Ctrl+C.')); }
     else toast('Trình duyệt chặn sao chép. Hãy chọn bảng rồi Ctrl+C.');

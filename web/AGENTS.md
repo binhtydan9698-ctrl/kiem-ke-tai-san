@@ -86,6 +86,10 @@
   đứng đầu (`sttTruoc`) + mã / tên chứa "142"; "STT 142" / "#142" → chỉ đúng STT. `#gq` gõ STT + Enter mở thẳng `#ts-`.
 - Xuất cho kế toán (`export.js`): KHÔNG ghi lại cả file bằng ExcelJS — chỉ đọc để biết dòng, rồi chèn ô 3 cột mới vào XML (JSZip),
   thêm định dạng vào CUỐI `styles.xml`. Quy tắc "file gốc giữ nguyên" trong AGENTS.md; bộ so sánh `scripts/so-sanh-excel.js`.
+- **Trợ năng (WCAG 2.2 AA)**: thử giao diện kịch bản `tro-nang` / `tro-nang-dt` (axe-core trên 14 trang chính, cỡ máy tính và
+  điện thoại) phải 0 vi phạm. Ô nhập / ô chọn phải có nhãn (nhãn chữ ẩn trên máy tính thì thêm `aria-label`); chữ / nền tương phản
+  ≥ 4.5:1 (chữ trắng trên nền cam dùng `--cta`, không dùng `--brand`); vùng bấm ≥ 24px (`.lnk` đã có `min-height:24px`); bảng cuộn
+  ngang `tblwrap` có `tabindex="0" role="region" aria-label="…"` (mỗi bảng một nhãn riêng); tiêu đề không nhảy cấp (h1 → h2 → h3).
 - Chèn chữ do người dùng nhập vào HTML luôn qua `esc()`.
 - Trạng thái kiểm kê nằm trong `S`; sau khi đổi `S` phải gọi `save()` rồi làm mới giao diện (`refreshRow`/`render`).
   Không gọi `save()` trong hàm render.

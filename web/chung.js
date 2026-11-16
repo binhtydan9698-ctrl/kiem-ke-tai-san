@@ -179,7 +179,7 @@
   function khBang(l, loai, now) {
     if (!l.length) return `<div class="empty">${loai === 'het' ? 'Không có tài sản nào đã hết khấu hao khớp bộ lọc.' : 'Không có tài sản nào sắp hết khấu hao trong 12 tháng tới khớp bộ lọc.'}</div>`;
     const show = l.slice(0, KHV.lim[loai]);
-    return `<div class="tblwrap kh-tbl"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Sheet · vị trí</th><th>Bắt đầu sử dụng</th><th>${loai === 'het' ? 'Hết khấu hao từ' : 'Hết khấu hao'}</th><th class="r">Nguyên giá</th><th>Hiện trạng</th><th>Đầu mối</th></tr></thead><tbody>${show.map(({ a, t }) => {
+    return `<div class="tblwrap kh-tbl" tabindex="0" role="region" aria-label="${loai === 'het' ? 'Tài sản đã hết khấu hao' : 'Tài sản sắp hết khấu hao'}"><table><thead><tr><th>Mã TSCĐ</th><th>Tên tài sản</th><th>Sheet · vị trí</th><th>Bắt đầu sử dụng</th><th>${loai === 'het' ? 'Hết khấu hao từ' : 'Hết khấu hao'}</th><th class="r">Nguyên giá</th><th>Hiện trạng</th><th>Đầu mối</th></tr></thead><tbody>${show.map(({ a, t }) => {
       const s = S.rows[a.stt] || {}, r = res(a);
       return `<tr><td class="mono"><a href="#ts-${encodeURIComponent(a.key)}">${esc(a.ma || 'STT ' + a.stt)}</a></td><td>${esc(a.short)}${a.sl > 1 ? ` <small>SL ${nf.format(a.sl)}</small>` : ''}</td>
         <td>${esc(UNIT[a.unit].sheet)}<small>${esc(roomOf(a) || 'Chưa có vị trí')}</small></td><td class="num">${dmy(a.ngay)}</td>
