@@ -240,6 +240,58 @@
     ok(res(a) === 'chua', 'bấm “Kiểm lại” ngay trong trang kết quả: tài sản về Chưa kiểm');
   };
 
+  // Phòng bổ sung (danh mục phòng Gamma / Alpha), quy tắc "xong", đổi phòng ban như đổi phòng, Tải Excel Tổng hợp
+  KB['phong-ban'] = async () => {
+    const DM = KIEMKE_DATA.phong, coSan = new Set(ASSETS.map(a => slugify(a.vt0)).filter(Boolean));
+    const moi = DM.filter(p => !coSan.has(slugify(p.ten)));
+    await go('vi-tri');
+    const the = n => [...app.querySelectorAll('.room')].find(r => r.getAttribute('href') === '#phong-' + slugify(n));
+    ok(moi.length > 100 && moi.every(p => the(p.ten)), `thêm ${moi.length} phòng chưa có (vd. ${moi.slice(0, 3).map(p => p.ten).join(', ')})`);
+    { const t = the(moi[0].ten); ok(t && t.classList.contains('done') && /Xong · 0 tài sản/.test(t.textContent), `phòng mới ${moi[0].ten}: 0 tài sản, hiện “Xong” (0/0)`); }
+    { const sl = [...app.querySelectorAll('.room')].map(r => r.getAttribute('href')); ok(sl.length === new Set(sl).size, 'không có phòng nào bị lặp'); }
+    { const r101 = the('101 Gamma'); ok(r101 && new RegExp(roomAssets(slugify('101 Gamma')).length + ' dòng').test(r101.textContent) && /101/.test(r101.textContent), 'phòng đã có (101 Gamma) giữ nguyên tên và tài sản'); }
+    ok(!!app.querySelector('.rooms .tang-n') && [...app.querySelectorAll('.rooms .tang-n')].some(x => /Tầng 2/.test(x.textContent)), 'lưới phòng có nhãn tầng (tầng dưới lên tầng trên)');
+    await go('phong-' + slugify('408 Gamma'));
+    ok(/Cybersecurity Lab/.test((app.querySelector('.ph-gc') || {}).textContent || ''), 'trang phòng hiện ghi chú phòng (408 Gamma: Cybersecurity Lab)');
+    await go('phong-' + slugify('101 Gamma'));
+    ok(/101 Gamma/.test(app.querySelector('h1').textContent) && /bộ môn AI/.test((app.querySelector('.ph-gc') || {}).textContent || ''), 'phòng đã có cũng hiện ghi chú, tên giữ nguyên');
+    await go('phong-' + slugify('305 Alpha'));
+    ok(/0\/0 dòng/.test(app.textContent) && /Xong/.test((app.querySelector('#prog') || {}).textContent || ''), 'trang phòng mới: tiến độ 0/0, Xong');
+    // quy tắc xong: đủ hết mới xong; còn thiếu / chưa tìm thấy thì chưa xong
+    const ph = Object.values(buildRooms()).find(r => r.slug !== NOROOM && r.list.length >= 2 && r.list.every(a => !a.hoso && a.sl >= 1)), L = ph.list;
+    L.forEach(a => { S.rows[a.stt] = { tt: a.sl, nf: false, phong: roomOf(a), cond: 'tot', at: Date.now() }; }); save(); refreshRooms();
+    await go('vi-tri'); ok(the(ph.name).classList.contains('done'), `${ph.name}: kiểm đủ hết → Xong`);
+    S.rows[L[0].stt] = { ...S.rows[L[0].stt], tt: L[0].sl - 1 || 0, nf: L[0].sl - 1 ? false : true }; save(); refreshRooms();
+    await go('tong-quan'); await go('vi-tri');
+    ok(!the(ph.name).classList.contains('done') && !/Xong/.test(the(ph.name).querySelector('.st').textContent), `${ph.name}: còn 1 món ${res(L[0]) === 'nf' ? 'chưa tìm thấy' : 'thiếu'} → KHÔNG hiện xong (“${the(ph.name).querySelector('.st').textContent}”)`);
+    // đổi phòng ban: tài sản ở Phòng Hành chính → Bộ môn GD
+    await go('dv-HC');
+    ok(/đang gộp tài sản chưa phân bổ/.test(app.textContent), 'trang Phòng Hành chính: báo đang gộp tài sản chưa phân bổ về các phòng ban');
+    const a = BY_UNIT.HC.find(x => x.ma && res(x) === 'chua'), soHC = BY_UNIT.HC.length, soGD = BY_UNIT.GD.length;
+    const sel = app.querySelector(`.row[data-stt="${a.stt}"] select[data-f="dv"]`);
+    ok(!!sel && sel.value === 'HC' && sel.querySelectorAll('option').length >= 18, 'mỗi dòng có ô Phòng ban (như ô Phòng thực tế)');
+    sel.value = 'GD'; sel.dispatchEvent(new Event('change', { bubbles: true })); await W(400);
+    ok(a.unit === 'GD' && a.unit0 === 'HC' && S.rows[a.stt].dv === 'GD' && BY_UNIT.HC.length === soHC - 1 && BY_UNIT.GD.length === soGD + 1 && res(a) === 'chua', 'đổi sang Bộ môn GD: rời Phòng Hành chính, sang GD, kết quả kiểm giữ nguyên');
+    ok(!app.querySelector(`.row[data-stt="${a.stt}"]`) && !!app.querySelector('.cdi') && app.querySelector('.cdi').textContent.includes(String(a.ma)), 'trang Phòng Hành chính: tài sản rời danh sách, hiện ở mục “Đã chuyển sang phòng ban khác”');
+    await go('dv-GD');
+    ok(!!app.querySelector(`.row[data-stt="${a.stt}"]`) && /Từ Phòng Hành chính/.test(app.querySelector(`.row[data-stt="${a.stt}"]`).textContent), 'trang Bộ môn GD: có tài sản vừa chuyển, gắn nhãn “Từ Phòng Hành chính”');
+    ok(/Phân bổ về: Bộ môn Thiết kế mỹ thuật số/.test(ketQuaKeToan(a).gc), 'file cho kế toán: Ghi chú kiểm kê có “Phân bổ về: …”');
+    ok(LOGMINE.some(e => e.key === a.key && (e.lines || []).some(l => /Phòng ban: Phòng Hành chính → Bộ môn Thiết kế/.test(l))), 'lịch sử ghi “Phòng ban: Phòng Hành chính → Bộ môn …”');
+    document.getElementById('toastUndo').click(); await W(400);
+    ok(a.unit === 'HC' && BY_UNIT.HC.length === soHC, 'bấm Hoàn tác: tài sản về lại Phòng Hành chính');
+    // Tổng hợp: ghi chú phòng ở tiêu đề phòng; Tải Excel đúng thứ tự trên trang
+    await go('tong-hop');
+    ok([...app.querySelectorAll('.th-ph small')].some(x => /Cybersecurity|bộ môn AI|Studio/.test(x.textContent)) || !app.querySelector('.th-ph'), 'Tổng hợp: tiêu đề phòng có ghi chú phòng');
+    let cap = null; const goc = window.xuatBangExcel; window.xuatBangExcel = async (ten, cot, dong, tf, tuy) => { cap = { ten, cot, dong, tuy }; };
+    app.querySelector('[data-act="thxlsx"]').click(); await W(400); window.xuatBangExcel = goc;
+    const thuTu = [...app.querySelectorAll('.th-r')].map(r => +r.dataset.stt);
+    ok(cap && cap.dong.length === ASSETS.length && cap.dong.every((d, i) => d[6] === thuTu[i]) && cap.tuy && cap.tuy.loc && cap.cot[0][0] === 'Nhóm',
+      `Tải Excel Tổng hợp: ${cap ? cap.dong.length : 0} dòng, đúng thứ tự nhóm / tòa / phòng / bộ môn như trên trang, có nút lọc`);
+    // tốc độ: trang "Chưa có vị trí" (nhiều dòng nhất) vẫn mở nhanh dù ô chọn phòng có thêm phòng mới
+    const t0 = performance.now(); await go('phong-' + NOROOM); const ms = performance.now() - t0 - 450;
+    ok(app.querySelectorAll('.row').length > 300 && ms < 4000, `trang Chưa có vị trí (${app.querySelectorAll('.row').length} dòng) mở trong ~${Math.max(0, Math.round(ms))} ms`);
+  };
+
   KB['chung'] = async () => {
     try { localStorage.removeItem(KEY + '.khNam'); } catch (e) { }
     KHV.nam = 0; KHV.dv = ''; KHV.q = '';

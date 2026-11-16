@@ -68,6 +68,12 @@
 - Quét liên tục trong phòng (nút `data-act="quetlt"` ở trang phòng → `contOpen`): `SC.cont` bật thì `scanShow` chuyển sang
   `contScan`: tài sản của phòng ghi Đủ ngay (`contDu`, qua `save()`, lịch sử gắn nhãn "Quét liên tục"); phòng khác / số lượng
   > 1 / hồ sơ → hỏi (`contAct`); mỗi món có Hoàn tác riêng; đóng hộp quét thì vẽ lại phòng.
+- Phòng ban của tài sản: `a.unit` là getter (`S.rows[stt].dv` hoặc `a.unit0` theo Excel) nên mọi chỗ dùng `a.unit` / `BY_UNIT`
+  tự đi theo phòng ban hiện tại; cần phòng ban theo file Excel thì dùng `a.unit0`. Ô chọn `dvField(a)` (`data-f="dv"`, nằm dưới ô
+  phòng trong `roomField`) → `moveUnit()` (snap, `save()`, `refreshRooms()` dựng lại `BY_UNIT`, Hoàn tác); câu lịch sử "Phòng ban: …"
+  trong `logRowLines`; trang sheet gốc `chuyenDiHTML(id)`. Danh mục phòng bổ sung `DMP` (`KIEMKE_DATA.phong`): `buildRooms()` và
+  `refreshRooms()` chỉ thêm phòng có slug chưa có; ghi chú `ghiChuPhong(tên)`. Lưới thẻ phòng xếp `thSapPhong`, nhãn tầng `tangTiles()`.
+  "Xong" luôn tính bằng `xong(count)` (đủ hết hoặc 0/0), không dùng `chua===0`.
 - Trạng thái sử dụng: ô `data-f="sd"` trong phần "Chi tiết, ghi chú" của dòng tài sản (trang tài sản mở sẵn); nhãn trên dòng,
   câu lịch sử trong `logRowLines`, cột Ghi chú kiểm kê trong `ketQuaKeToan`. Không gộp vào `COND`.
 - Nút dạng đường link dùng `a.btn` (màu chữ của trang). Thử giao diện: `npm run thu-giao-dien`.

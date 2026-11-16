@@ -34,6 +34,12 @@ ok(!rows.some(r => /^(tong cong|tổng cộng)/i.test(r[2]) || /^m[aã]\s*tsc/i.
 { const le = rows.filter(r => r[11]); const nhom = ['Xem lại phân bổ', 'Xem lại', 'Chưa có ghi chú'].map(s => `${s} ${le.filter(r => r[11] === s).length}`).join(' · ');
   ok(rows.every(r => typeof r[11] === 'string') && le.length > 0, `tài sản chưa rõ vị trí (sheet lẻ) có nhóm riêng: ${nhom}`); }
 ok(['web/index.html', 'web/export.js', 'web/excel-rules.js', 'web/config.js', 'web/supabase-db.js'].every(f => fs.existsSync(path.join(DIST, path.basename(f)))), 'dist/ có đủ file của trang');
+// Danh mục phòng bổ sung: đúng tầng của tòa (Gamma 5 tầng, Alpha 13 tầng), không trùng, build đã đưa vào dữ liệu trang
+{ const { docDanhMucPhong, kiemTraDanhMucPhong } = await import(pathToFileURL(path.join(ROOT, 'scripts', 'danh-muc-phong.mjs')).href);
+  const dm = docDanhMucPhong(), l = kiemTraDanhMucPhong(dm);
+  const coSan = new Set(rows.map(r => String(r[7] || '').trim().toLowerCase())), moi = dm.phong.filter(p => !coSan.has(p.ten.toLowerCase()));
+  ok(!l.length, l.length ? `danh mục phòng bổ sung có lỗi: ${l.slice(0, 5).join('; ')}` : `danh mục phòng bổ sung: ${dm.phong.length} phòng (${Object.entries(dm.soTang).map(([t, n]) => `${t} ${n} tầng`).join(', ')}), ${moi.length} phòng chưa có trong file Excel sẽ được thêm (0 tài sản)`);
+  ok(Array.isArray(D.phong) && D.phong.length === dm.phong.length, 'build đã đưa danh mục phòng vào dữ liệu trang'); }
 
 /* 2b. Đối chiếu sheet "Tổng hợp" với các sheet con: Tổng hợp phải là tổng của tất cả sheet trước nó */
 console.log('2b. Đối chiếu sheet Tổng hợp với các sheet con');

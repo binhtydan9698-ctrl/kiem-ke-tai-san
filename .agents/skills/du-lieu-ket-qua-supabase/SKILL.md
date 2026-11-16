@@ -17,7 +17,8 @@ description: >-
   `npm run sao-luu` dừng, báo rõ, không ghi file rỗng. Không bao giờ hỏi xin hay lưu mật khẩu của người dùng.
 - `col`:
   - `rows` — kết quả từng tài sản, `id` = **Mã TSCĐ** (tài sản không mã: `stt:<STT>`),
-    `data` = `{tt, nf, hs, phong, cond, note, at, by}`
+    `data` = `{tt, nf, hs, phong, dv, cond, sd, note, at, by}` (`dv` = mã phòng ban hiện tại khi cán bộ đổi phòng ban, vd. `GD`;
+    không có `dv` = phòng ban theo file Excel)
   - `xm` — mục "Tài sản thất lạc" (hỏi đại diện phòng ban), `id` = Mã TSCĐ, `data` = `{kq, cach, phanhoi, phong, at, by}`
   - `units` — buổi kiểm của đơn vị, `id` = mã đơn vị (GD, AI, …)
   - `ps` — tài sản phát sinh, `id` = mã đơn vị hoặc `p:<slug-phòng>`, `data` = `{items:[…]}`

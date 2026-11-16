@@ -36,6 +36,9 @@ Nguồn duy nhất của danh sách tài sản: **một** file `.xlsx` trong `d�
   `[stt, ma, ten, sl, ngay, gia, gc(đơn vị), vt(vị trí), key, sheet, dòngExcel]`.
 - Tài sản có mặt ở nhiều sheet: giá trị lấy từ sheet "Tổng hợp", ô trống thì lấy từ sheet khác (theo thứ tự sheet).
 - Dòng không mã, không số lượng, không nguyên giá, không ngày = phần tên bị xuống dòng, nối vào tài sản có STT liền trước.
+- Danh mục phòng bổ sung `dữ liệu cập nhật/danh-muc-phong.json` (`{soTang:{Tòa:số tầng}, phong:[{toa, so, ghiChu}]}`): thêm phòng chưa
+  có trên app (0 tài sản). Người dùng gửi thêm phòng thì thêm dòng vào đây (đúng tầng của tòa, không trùng); không xoá phòng đã có
+  trên app. Đổi file này cũng đổi phiên bản dữ liệu (trang báo "Tải lại trang").
 - Kế toán đổi Mã TSCĐ của tài sản: vẫn là tài sản đó (người dùng chốt). Mã cũ nối sang mã mới trong Sổ mã QR (tự nhận hoặc
   khai báo `doi-ma-tscd.json`): tem mã cũ mở tài sản mã mới, lý lịch gộp. Kết quả kiểm trên Supabase vẫn lưu theo mã cũ (không
   tự chuyển, không xoá); trang tài sản mã mới hiện kết quả của mã cũ và nút "Dùng kết quả này" để cán bộ bấm.

@@ -88,8 +88,12 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
    sổ, ai mua): trang xếp vào 3 nhóm riêng (id `XLPB`, `XL`, `CBG`), luôn để "Chưa có vị trí" (bỏ qua cột Vị trí Excel,
    chỉ hiện làm gợi ý) cho tới khi cán bộ kiểm trực tiếp rồi phân bổ vào các sheet đơn vị GD … FSC3.
 3. `web/index.html` dựng `ASSETS` từ `KIEMKE_DATA.rows`. Trạng thái kiểm kê trong `S = {rows, xm, units, ps}`:
-   - `S.rows[stt]`: kết quả từng tài sản `{tt, nf, hs, phong, cond, sd, note, at, by}` — `cond` = Tình trạng (hư hỏng ra sao,
+   - `S.rows[stt]`: kết quả từng tài sản `{tt, nf, hs, phong, dv, cond, sd, note, at, by}` — `cond` = Tình trạng (hư hỏng ra sao,
      `COND`), `sd` = Trạng thái sử dụng (`SUDUNG`: '' Đang sử dụng, kho, sua, muon, cho_tl, da_tl, bg), hai mục TÁCH RIÊNG.
+     `dv` = **phòng ban hiện tại** khi cán bộ đổi ở ô "Phòng ban" (người dùng yêu cầu 16/11/2026: đổi như đổi số phòng; Phòng Hành
+     chính đang gộp tài sản chưa phân bổ về các phòng ban, giống 3 sheet lẻ bên vị trí): `a.unit0` = phòng ban theo Excel, `a.unit`
+     (getter) = `dv` hoặc `unit0`; `BY_UNIT` dựng lại trong `refreshRooms()`. Tài sản đi theo nhánh Kiểm theo phòng ban của phòng ban
+     mới; trang sheet gốc có mục "Đã chuyển sang phòng ban khác"; file kế toán ghi "Phân bổ về: …" ở Ghi chú kiểm kê (người dùng chọn).
    - `S.xm[stt]`: mục "Tài sản thất lạc" (`#xac-minh`, hỏi đại diện phòng ban) `{kq, cach, phanhoi, phong}`
    - `S.units[id]`: buổi kiểm của đơn vị · `S.ps[key]`: tài sản phát sinh
    - `S.anh[stt]`: danh sách ảnh của tài sản `{ds: [{p: đường dẫn ảnh, n: ảnh nhỏ, at, by}]}` (col `anh`, khoá Mã TSCĐ như `rows`);
@@ -145,6 +149,13 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
   `dữ liệu cập nhật/doi-ma-tscd.json` `{"doi":[{"cu","moi","ghiChu"}]}`. Kết quả kiểm trên Supabase KHÔNG tự chuyển sang mã mới:
   trang tài sản mã mới hiện kết quả của mã cũ (`ORPHAN`, chỉ đọc) và nút "Dùng kết quả này" (ghi qua `save()`).
 - Tem in mặc định chỉ có tiêu đề, Mã TSCĐ, tên (không in phòng, đơn vị vì có thể thay đổi).
+- **Danh mục phòng bổ sung `dữ liệu cập nhật/danh-muc-phong.json`** (người dùng gửi ảnh danh sách phòng Gamma 5 tầng, Alpha 13 tầng,
+  16/11/2026; `scripts/danh-muc-phong.mjs`, build đưa vào `KIEMKE_DATA.phong`, `npm test` soát tầng / trùng): chỉ để **THÊM phòng chưa
+  có** trên app (0 tài sản cho tới khi có tài sản được chuyển vào). Phòng đã có trên app **tuyệt đối không xoá, không đổi tên**;
+  danh mục không phải danh sách đầy đủ. Ghi chú phòng (vd. "Cybersecurity Lab") hiện ở trang phòng, thẻ phòng, Tổng hợp — cả phòng
+  đã có (người dùng chọn). Tên phòng mới dạng `<số> <Tòa>` (vd. "202 Gamma").
+- **Quy tắc "xong" (người dùng chốt 16/11/2026):** phòng / nhóm chỉ hiện "Xong" khi đủ hết hoặc 0/0 (`xong(c)`); còn thiếu, thừa,
+  chưa tìm thấy thì KHÔNG hiện xong (ghi rõ "N lệch", "N chưa thấy").
 - Cột ngày trong file BBKK là **"Ngày bắt đầu SD"**: trên trang gọi là "Ngày bắt đầu sử dụng" (người dùng chốt), không gọi
   "ngày ghi sổ". Dữ liệu vẫn là `ngay` / `r[4]`.
 - Đầu mối (Chung › Đầu mối, `S.dm`): chỉ tên, chức vụ, email công việc; số điện thoại để ở Danh bạ (bảng `danh_ba`, chỉ thành

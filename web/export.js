@@ -95,7 +95,8 @@
   };
 
   // Bảng đơn giản (vd. Lịch sử thao tác) → file .xlsx. cot: [[tiêu đề, độ rộng]], dong: [[giá trị, …]]
-  window.xuatBangExcel = async function (tenSheet, cot, dong, tenFile) {
+  // tuy.loc: bật nút lọc ở dòng tiêu đề (vd. Tổng hợp toàn bộ tài sản: lọc theo nhóm, tòa, phòng, phòng ban)
+  window.xuatBangExcel = async function (tenSheet, cot, dong, tenFile, tuy) {
     await loadExcelJS();
     const wb = new window.ExcelJS.Workbook();
     const ws = wb.addWorksheet(tenSheet);
@@ -104,6 +105,7 @@
     ws.eachRow(r => { r.alignment = { wrapText: true, vertical: 'top' }; });
     ws.getRow(1).font = { bold: true };
     ws.views = [{ state: 'frozen', ySplit: 1 }];
+    if (tuy && tuy.loc) ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cot.length } };
     taiVe(await wb.xlsx.writeBuffer(), tenFile + '.xlsx');
     return dong.length;
   };

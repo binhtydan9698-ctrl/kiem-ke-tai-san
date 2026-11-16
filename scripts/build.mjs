@@ -12,6 +12,7 @@ import ExcelJS from 'exceljs';
 import { findExcel } from './excel-file.mjs';
 import { SO_FILE, docSo, vietSo, capNhatSo, homNay, bayGio, docDoiTay } from './so-ma-qr.mjs';
 import { docKhoa, maHoa, cspTrang, bamMaChinh } from './ma-hoa.mjs';
+import { PHONG_FILE, docDanhMucPhong } from './danh-muc-phong.mjs';
 import { supabaseConfig } from './cau-hinh.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -108,7 +109,9 @@ if (conflicts.length) {
 if (!useX) console.warn('  ! Cột STT trống hoặc trùng, đã đánh số lại 1..N');
 
 const buf = fs.readFileSync(file);
-const version = crypto.createHash('sha1').update(buf).digest('hex').slice(0, 12);
+// danh mục phòng bổ sung (chỉ thêm phòng chưa có trên app) đi cùng dữ liệu tài sản; đổi danh mục cũng đổi phiên bản dữ liệu
+const DMP = docDanhMucPhong();
+const version = crypto.createHash('sha1').update(buf).update(fs.existsSync(PHONG_FILE) ? fs.readFileSync(PHONG_FILE) : '').digest('hex').slice(0, 12);
 const meta = { version, file: path.basename(file), sheets, count: rows.length, builtAt: new Date().toISOString() };
 
 fs.rmSync(DIST, { recursive: true, force: true });
@@ -116,7 +119,7 @@ fs.mkdirSync(path.join(DIST, 'data'), { recursive: true });
 fs.cpSync(path.join(ROOT, 'web'), DIST, { recursive: true, filter: s => !/\.md$/i.test(s) });   // không phát hành AGENTS.md
 fs.writeFileSync(path.join(DIST, 'data', 'assets.js'),
   `// Sinh tự động từ "${path.relative(ROOT, file).replace(/\\/g, '/')}" — đừng sửa tay, sửa file Excel.\n` +
-  `window.KIEMKE_DATA=${JSON.stringify({ ...meta, rows })};\n`);
+  `window.KIEMKE_DATA=${JSON.stringify({ ...meta, rows, phong: DMP.phong })};\n`);
 fs.copyFileSync(file, path.join(DIST, 'data', 'goc.xlsx'));
 
 /* ---------- Sổ mã QR: mã đã cấp không bao giờ mất, tài sản bị xoá vẫn giữ ---------- */
@@ -137,7 +140,7 @@ fs.writeFileSync(path.join(DIST, 'data', 'so-ma-qr.js'),
 // 1. Có khoá (Vercel): danh sách tài sản, Sổ mã QR, file Excel gốc CHỈ ghi dạng mã hoá; trang giải mã sau khi đăng nhập
 if (KHOA) {
   const ghiMaHoa = (ten, noiDung) => fs.writeFileSync(path.join(DIST, 'data', ten), maHoa(KHOA, noiDung));
-  ghiMaHoa('assets.enc', JSON.stringify({ ...meta, rows }));
+  ghiMaHoa('assets.enc', JSON.stringify({ ...meta, rows, phong: DMP.phong }));
   ghiMaHoa('so-ma-qr.enc', JSON.stringify(soQR));
   ghiMaHoa('goc.xlsx.enc', buf);
   for (const f of ['assets.js', 'so-ma-qr.js', 'goc.xlsx']) fs.rmSync(path.join(DIST, 'data', f), { force: true });

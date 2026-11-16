@@ -412,6 +412,23 @@ body::before{background:var(--top-bg)}
 .th-ten{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .th-r .badge{justify-self:start}
 .th-ai{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.th-ph small{flex-basis:100%;color:var(--muted);font-size:12px;font-style:italic}
+/* phòng: nhãn tầng trong lưới thẻ phòng, ghi chú phòng (danh mục phòng bổ sung) */
+.rooms .tang-n{grid-column:1/-1;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 2px 0;border-bottom:1px dashed var(--line)}
+.room .rgc{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.ph-gc{display:flex;gap:6px;align-items:center;color:var(--info);font-weight:500;margin:2px 0 4px}
+.ph-gc svg{width:16px;height:16px;flex:0 0 auto}
+/* ô Phòng ban dưới ô Phòng thực tế trên dòng tài sản */
+.dv-l{display:flex;flex-direction:column;align-items:stretch;gap:2px;margin-top:6px;font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+.dv-l select{width:100%;min-width:0;height:32px;padding-top:2px;padding-bottom:2px;font-size:12.5px}
+.dv-l select.need{border-color:var(--warn);background-color:var(--warn-soft)}
+@media (min-width:1181px){ .dv-l span{display:none} }   /* màn rộng: cột hẹp, ô chọn lấy hết bề ngang (tên cột đã ghi "Phòng ban") */
+/* trang sheet: tài sản đã chuyển sang phòng ban khác */
+.cdi>summary{cursor:pointer;display:flex;gap:10px;align-items:baseline}
+.cdi>summary .num{color:var(--muted);font-size:13px}
+.cdi-l{margin-top:8px}
+.cdi-l .th-r{grid-template-columns:100px minmax(0,1fr) 20px minmax(0,220px) 140px;padding-left:4px}
+.cdi-dv{font-weight:600;color:var(--info)}
 @media (max-width:760px){
   .th-dau{display:none}
   .th-r{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding-left:14px}
@@ -1304,17 +1321,30 @@ const ASSETS = RAW.map(r=>{
   const cond0 = STATUS_TEXT[vt]||'';
   // Tài sản ở sheet lẻ: luôn "Chưa có vị trí" cho tới khi kiểm trực tiếp; vị trí Excel (nếu có) chỉ để gợi ý (vtx)
   const vtx = le&&!cond0 ? (vt||'') : '';
-  return {stt,ma,ten,short:shortName(ten),ct:chungTu(ten),sl,ngay,gia,gc,vt0:(cond0||le)?'':vt,vtx,cond0,unit:u.id,key:key||String(ma||'stt-'+stt),sheet,xr,review:!!le,
+  // unit0 = phòng ban theo file Excel; unit = phòng ban HIỆN TẠI: cán bộ đổi ở ô "Phòng ban" trên dòng tài sản (S.rows[stt].dv,
+  // người dùng chốt 16/11/2026 — vd. Phòng Hành chính đang gộp tài sản chưa phân bổ về các phòng ban kia) thì đi theo phòng ban mới
+  return {stt,ma,ten,short:shortName(ten),ct:chungTu(ten),sl,ngay,gia,gc,vt0:(cond0||le)?'':vt,vtx,cond0,unit0:u.id,
+          get unit(){ const s=S.rows[this.stt]; return (s&&s.dv&&UNIT[s.dv])?s.dv:this.unit0; },
+          key:key||String(ma||'stt-'+stt),sheet,xr,review:!!le,
           hoso: NONPHYS.test(ten) && gia>=500e6, shared: gc==='HC; CTSV; Đào tạo'};
 });
 const BY_STT = Object.fromEntries(ASSETS.map(a=>[a.stt,a]));
 const BY_KEY = Object.fromEntries(ASSETS.map(a=>[a.key,a]));
-const BY_UNIT = {}; UNITS.forEach(u=>BY_UNIT[u.id]=[]); ASSETS.forEach(a=>BY_UNIT[a.unit].push(a));
+const BY_UNIT = {}; UNITS.forEach(u=>BY_UNIT[u.id]=[]);
+function rebuildUnits(){ UNITS.forEach(u=>BY_UNIT[u.id].length=0); ASSETS.forEach(a=>BY_UNIT[a.unit].push(a)); }   // gọi lại khi phòng ban đổi (refreshRooms)
+// Danh mục phòng bổ sung (dữ liệu cập nhật/danh-muc-phong.json, build đưa vào KIEMKE_DATA.phong): chỉ THÊM phòng chưa có
+// trên app (0 tài sản), phòng đã có giữ nguyên; ghi chú phòng hiện ở trang phòng, thẻ phòng, Tổng hợp (cả phòng đã có).
+const DMP=(window.KIEMKE_DATA&&KIEMKE_DATA.phong)||[];
+const DMP_GHI=Object.fromEntries(DMP.filter(p=>p.ghiChu).map(p=>[slugify(p.ten),p.ghiChu]));
+function ghiChuPhong(n){ return n?(DMP_GHI[slugify(n)]||''):''; }
+// "xong" (người dùng chốt 16/11/2026): đủ hết, hoặc 0/0 — còn thiếu, thừa hay chưa tìm thấy thì CHƯA xong
+function xong(c){ return c.chua===0&&c.lech===0&&c.nf===0; }
 
 /* ---------- state ---------- */
 const KEY='kiemke2026.v1';
 function blank(){return {rows:{},units:{},xm:{},ps:{},dm:{},anh:{},demo:false};}   // dm = Chung › đầu mối theo sheet (chung.js); anh = ảnh từng tài sản (anh.js)
 let S = blank();
+rebuildUnits();
 /* Chế độ lưu: 'connecting' → 'shared' (dữ liệu chung trên artifact, mọi tổ thấy nhau) hoặc 'local' (chỉ trình duyệt này) */
 let MODE='connecting', DB=null, USER=null, ME=null, READONLY=false, READY=false, SLOW=false, SYNCERR=false, MIGRATE=null;
 let NAMES={};
@@ -1360,6 +1390,7 @@ function logRowLines(a,o,n){
   const L=[], ro=logRes(o,a), rn=logRes(n,a); if(ro!==rn) L.push(`Kết quả: ${ro} → ${rn}`);
   const po=((o&&o.phong!=null)?o.phong:a.vt0)||'', pn=((n&&n.phong!=null)?n.phong:a.vt0)||'';
   if(po!==pn) L.push(`Vị trí: ${po||'chưa có'} → ${pn||'chưa có'}`);
+  const uo=(o&&o.dv)||a.unit0, un=(n&&n.dv)||a.unit0; if(uo!==un) L.push(`Phòng ban: ${(UNIT[uo]||{}).ten||uo} → ${(UNIT[un]||{}).ten||un}`);
   const co=(o&&o.cond)||'', cn=(n&&n.cond)||''; if(co!==cn) L.push(cn?`Tình trạng: ${co?lbl(COND,co)+' → ':''}${lbl(COND,cn)}`:`Bỏ tình trạng: ${lbl(COND,co)}`);
   const so=(o&&o.sd)||'', sn=(n&&n.sd)||''; if(so!==sn) L.push(`Trạng thái sử dụng: ${lbl(SUDUNG,so)} → ${lbl(SUDUNG,sn)}`);
   const no=cut(o&&o.note), nn=cut(n&&n.note); if(no!==nn) L.push(nn?`Ghi chú: “${nn}”`:'Xoá ghi chú');
@@ -1670,6 +1701,7 @@ let ROOMNAME={};
 function buildRooms(){
   const m={};
   ASSETS.forEach(a=>{ const n=roomOf(a); const k=n?slugify(n):NOROOM; (m[k]=m[k]||{slug:k,name:n||'Chưa có vị trí',bld:n?building(n):'',list:[]}).list.push(a); });
+  DMP.forEach(p=>{ const k=slugify(p.ten); if(!m[k]) m[k]={slug:k,name:p.ten,bld:building(p.ten),list:[]}; });   // phòng bổ sung: 0 tài sản
   Object.values(m).forEach(r=>ROOMNAME[r.slug]=r.name);
   return m;
 }
@@ -1714,7 +1746,9 @@ function flashRes(stt){
   const el=app.querySelector(`.row[data-stt="${stt}"]`); if(el){ el.classList.add('pulse'); }
 }
 function refreshRooms(){
+  rebuildUnits();
   const set=new Set(); ASSETS.forEach(a=>a.vt0&&set.add(a.vt0)); Object.values(S.rows).forEach(r=>r.phong&&set.add(r.phong));
+  const coSan=new Set([...set].map(slugify)); DMP.forEach(p=>{ if(!coSan.has(slugify(p.ten))) set.add(p.ten); });   // phòng bổ sung chưa có
   ROOMS=[...set].sort(sortRooms); UROOMS={};
   document.getElementById('dl-phong').innerHTML=ROOMS.map(v=>`<option value="${esc(v)}">`).join('');
   // nhóm phòng theo tòa, dựng sẵn 1 lần cho mọi ô chọn
@@ -1725,7 +1759,7 @@ function unitRooms(uid){ if(!UROOMS[uid]){ const s=new Set(); BY_UNIT[uid].forEa
 
 /* ô chọn phòng: phòng của đơn vị lên đầu, sau đó toàn trường theo tòa, cuối cùng là nhập phòng mới */
 function roomField(a,room){
-  if(ui.newRoom&&ui.newRoom[a.stt]) return `<div class="c-room"><span class="lbl">Nhập phòng mới</span><div class="newroom"><input class="in" id="nr-${a.stt}" list="dl-phong" placeholder="VD: 205 Gamma"><button class="btn sm pri" data-act="saveroom">Lưu</button><button class="btn sm" data-act="cancelroom" aria-label="Huỷ">×</button></div></div>`;
+  if(ui.newRoom&&ui.newRoom[a.stt]) return `<div class="c-room"><span class="lbl">Nhập phòng mới</span><div class="newroom"><input class="in" id="nr-${a.stt}" list="dl-phong" placeholder="VD: 205 Gamma"><button class="btn sm pri" data-act="saveroom">Lưu</button><button class="btn sm" data-act="cancelroom" aria-label="Huỷ">×</button></div>${dvField(a)}</div>`;
   const ur=unitRooms(a.unit);
   const mine=ur.length?`<optgroup label="Phòng đang có đồ của ${esc(a.unit)}">${ur.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</optgroup>`:'';
   let html=`<select class="in roomsel ${room?'':'need'}" id="ph-${a.stt}" data-f="phong" aria-label="Phòng của tài sản ${esc(a.ma)}">
@@ -1733,18 +1767,43 @@ function roomField(a,room){
   // đánh dấu lựa chọn hiện tại (chỉ lần xuất hiện đầu)
   if(room){ const v=`<option value="${esc(room)}">`; const i=html.indexOf(v); if(i>=0) html=html.slice(0,i)+`<option value="${esc(room)}" selected>`+html.slice(i+v.length); }
   else html=html.replace('<option value="">','<option value="" selected>');
-  return `<div class="c-room"><span class="lbl ${room?'':'warnlbl'}">${room?'Phòng thực tế':'Cập nhật vị trí'}</span>${html}</div>`;
+  return `<div class="c-room"><span class="lbl ${room?'':'warnlbl'}">${room?'Phòng thực tế':'Cập nhật vị trí'}</span>${html}${dvField(a)}</div>`;
+}
+
+/* ô chọn Phòng ban (người dùng yêu cầu 16/11/2026: đổi được như đổi số phòng). Đổi → tài sản chuyển sang trang của phòng ban
+   mới ở "Kiểm theo phòng ban" (S.rows[stt].dv; chọn lại phòng ban theo file Excel thì bỏ dv). Sheet lẻ chỉ hiện cho tài sản gốc ở đó. */
+let DVOPT='';
+function dvField(a){
+  if(!DVOPT) DVOPT=`<optgroup label="Phòng ban, bộ môn, khoa">${UNITS.filter(u=>!u.review).map(u=>`<option value="${u.id}">${esc(u.ten)}</option>`).join('')}</optgroup>`;
+  const u0=UNIT[a.unit0], cur=a.unit;
+  let h=DVOPT+(u0.review?`<optgroup label="Chưa phân bổ (sheet lẻ)"><option value="${u0.id}">${esc(u0.ten)}</option></optgroup>`:'');
+  h=h.replace(`<option value="${cur}">`,`<option value="${cur}" selected>`);
+  return `<label class="dv-l"><span>Phòng ban</span><select class="in dvsel ${UNIT[cur].review?'need':''}" data-f="dv" title="${esc(UNIT[cur].ten)}${cur!==a.unit0?' · theo file Excel: '+esc(u0.ten):''}" aria-label="Phòng ban của tài sản ${esc(a.ma||'STT '+a.stt)}">${h}</select></label>`;
+}
+// trang một sheet: tài sản theo file Excel thuộc sheet này nhưng đã chuyển sang phòng ban khác (để đối chiếu, mở lại được)
+function chuyenDiHTML(id){
+  const l=ASSETS.filter(a=>a.unit0===id&&a.unit!==id); if(!l.length) return '';
+  return `<details class="panel cdi"><summary><b>Đã chuyển sang phòng ban khác</b> <span class="num">${l.length} tài sản</span></summary>
+    <div class="cdi-l">${l.map(a=>`<a class="th-r" href="#ts-${encodeURIComponent(a.key)}" data-stt="${a.stt}"><span class="mono th-ma">${esc(a.ma||'STT '+a.stt)}</span><span class="th-ten">${esc(a.short)}</span><span class="th-sl">→</span><span class="cdi-dv">${esc(UNIT[a.unit].ten)}</span><span class="th-ai">${esc(roomOf(a)||'Chưa có vị trí')}</span></a>`).join('')}</div></details>`;
+}
+function moveUnit(stt,val){
+  const a=BY_STT[stt], from=a.unit; if(!UNIT[val]||val===from){ refreshRow(stt); return; }
+  snap([stt]); const r=touch(stt); if(val===a.unit0) delete r.dv; else r.dv=val;
+  save(); refreshRooms();
+  const y=window.scrollY; render(); window.scrollTo(0,y);
+  flash('info','→',`Đã chuyển sang ${UNIT[val].ten}`,`${a.ma||'STT '+a.stt} · ${a.short} · trước đó: ${UNIT[from].ten}`);
+  toast('Bấm Hoàn tác nếu chọn nhầm phòng ban',true);
 }
 
 /* thanh "tài sản của đơn vị đang ở các vị trí", cập nhật trực tiếp khi kiểm */
 function unitRoomStats(uid){ const m={}; BY_UNIT[uid].forEach(a=>{const n=roomOf(a);(m[n]=m[n]||[]).push(a);}); return Object.keys(m).sort(sortRooms).map(n=>({name:n,slug:n?slugify(n):NOROOM,c:count(m[n])})); }
 function stripHTML(uid,cur){
   const st=unitRoomStats(uid); const real=st.filter(s=>s.name);
-  const done=real.filter(s=>s.c.chua===0).length;
+  const done=real.filter(s=>xong(s.c)).length;
   let next=null; if(cur){ const i=st.findIndex(s=>s.slug===cur); for(let k=1;k<=st.length;k++){ const s=st[(i+k)%st.length]; if(s.slug!==cur&&s.c.chua>0&&s.name){ next=s; break; } } }
-  const chip=s=>{ const cls=!s.name?'none':s.c.chua===0?(s.c.nf?'st-nf':'st-done'):(s.c.da?'st-run':'');
+  const chip=s=>{ const cls=!s.name?'none':xong(s.c)?'st-done':s.c.nf?'st-nf':(s.c.da?'st-run':'');
     return `<a class="rchip ${cls} ${s.slug===cur?'cur':''}" href="#phong-${s.slug}" data-act="goto" data-u="${uid}" title="${s.c.da}/${s.c.tong} đã kiểm${s.c.nf?', '+s.c.nf+' chưa thấy':''}">
-      ${s.c.chua===0&&s.name?'<span class="ck" aria-hidden="true">✓</span>':''}${s.name?esc(s.name):'Chưa có vị trí'} <em class="num">${s.c.da}/${s.c.tong}</em>${s.c.nf?`<span class="nfdot" title="${s.c.nf} chưa thấy">${s.c.nf}</span>`:''}</a>`; };
+      ${xong(s.c)&&s.name?'<span class="ck" aria-hidden="true">✓</span>':''}${s.name?esc(s.name):'Chưa có vị trí'} <em class="num">${s.c.da}/${s.c.tong}</em>${s.c.nf?`<span class="nfdot" title="${s.c.nf} chưa thấy">${s.c.nf}</span>`:''}</a>`; };
   return `<div class="rstrip"><div class="striphead"><span class="lbl">Tài sản của ${esc(UNIT[uid].sheet)} đang ở ${real.length} vị trí · đã xong ${done}/${real.length}</span>
     ${next?`<a class="btn sm pri" href="#phong-${next.slug}" data-act="goto" data-u="${uid}">Phòng tiếp theo: ${esc(next.name)} →</a>`:''}
     ${cur?`<a class="glink" href="#dv-${uid}" style="margin-left:${next?'0':'auto'}">Về sheet ${esc(UNIT[uid].sheet)}</a>`:''}</div>
@@ -1764,7 +1823,7 @@ function demoBanner(){
     if(READONLY) h+=DN.toi?`<div class="demo ro"><b>Tài khoản Tra cứu: chỉ xem.</b> Bạn xem được mọi thông tin nhưng không ghi kết quả kiểm kê. Cần ghi kết quả thì nhờ quản trị cấp quyền Kiểm kê.</div>`
       :`<div class="demo ro"><b>Chế độ chỉ xem.</b> Bạn xem được tiến độ kiểm kê chung nhưng không ghi kết quả. Cần quyền Contributor trở lên để kiểm.</div>`;
     if(SLOW) h+=`<div class="demo"><b>Chưa kết nối được dữ liệu chung.</b> Số liệu đang hiện có thể chưa mới, trang sẽ tự cập nhật khi có mạng.</div>`;
-    if(NEWDATA) h+=`<div class="demo"><span><b>File Excel dữ liệu vừa được cập nhật.</b> Tải lại trang để thấy danh sách tài sản mới; kết quả đã kiểm vẫn giữ nguyên.</span><button class="btn sm pri" data-act="reload">Tải lại trang</button></div>`;
+    if(NEWDATA) h+=`<div class="demo"><span><b>Dữ liệu tài sản vừa được cập nhật</b> (file Excel hoặc danh mục phòng). Tải lại trang để thấy dữ liệu mới; kết quả đã kiểm vẫn giữ nguyên.</span><button class="btn sm pri" data-act="reload">Tải lại trang</button></div>`;
     if(MIGRATE) h+=`<div class="demo"><span>Máy này còn <b>${Object.keys(MIGRATE.rows||{}).length} kết quả kiểm</b> lưu riêng từ trước khi dùng dữ liệu chung.</span><button class="btn sm pri" data-act="migrate">Đưa lên dữ liệu chung</button><button class="btn sm" data-act="nomigrate" style="margin-left:0">Bỏ qua</button></div>`;
     return h;
   }
@@ -1777,15 +1836,23 @@ const BLD_TONE={'Alpha':'a','Beta':'b','Gamma':'g','Delta / Epsilon':'d','KTX':'
 function roomParts(name){ const m=String(name||'').match(/^([A-Za-z]{0,3}\d{1,4}[A-Za-z]?)\s+(.+)$/); return m?{num:m[1],rest:m[2]}:{num:'',rest:String(name||'')}; }
 function roomTile(r,uid,i){
   const sub=uid?r.list.filter(a=>a.unit===uid):r.list;
-  const c=count(sub); const none=r.slug===NOROOM; const done=c.chua===0&&!none; const us=Object.keys(unitsIn(r.list));
+  const c=count(sub); const none=r.slug===NOROOM; const done=xong(c)&&!none; const us=Object.keys(unitsIn(r.list));
   const pct=c.tong?Math.round(c.da/c.tong*100):0;
-  const tone=none?'n':(BLD_TONE[r.bld||building(r.name)]||'x'); const p=roomParts(r.name);
-  return `<a class="room t-${tone} ${none?'none':''} ${done?'done':''}" href="#phong-${r.slug}" style="--i:${Math.min(i||0,24)};--p:${pct}" ${uid?`data-act="goto" data-u="${uid}"`:''}>
+  const tone=none?'n':(BLD_TONE[r.bld||building(r.name)]||'x'); const p=roomParts(r.name); const gc=none?'':ghiChuPhong(r.name);
+  // chưa xong: còn chưa kiểm thì ghi số chưa kiểm; kiểm hết mà còn lệch / chưa tìm thấy thì ghi rõ (không tính là xong)
+  const st=done?(c.tong?'Xong':'Xong · 0 tài sản'):c.chua?c.chua+' chưa kiểm':[c.lech?c.lech+' lệch':'',c.nf?c.nf+' chưa thấy':''].filter(Boolean).join(' · ');
+  return `<a class="room t-${tone} ${none?'none':''} ${done?'done':''}" href="#phong-${r.slug}" style="--i:${Math.min(i||0,24)};--p:${pct}" ${uid?`data-act="goto" data-u="${uid}"`:''}${gc?` title="${esc(gc)}"`:''}>
     <span class="rt"><span class="rn">${p.num?`<b class="rnum">${esc(p.num)}</b><span class="rrest">${esc(p.rest)}</span>`:`<b class="rname">${esc(p.rest)}</b>`}</span>
       <span class="ring" role="img" aria-label="${done?'Đã kiểm xong':'Đã kiểm '+pct+'%'}"><i class="num">${done?ic('Check'):pct+'%'}</i></span></span>
-    <div class="m num"><span>${uid?`${c.tong} dòng của ${esc(uid)}${r.list.length>c.tong?` / ${r.list.length}`:''}`:c.tong+' dòng'}</span><span class="st">${done?'Xong':c.chua+' chưa kiểm'}</span></div>
+    <div class="m num"><span>${uid?`${c.tong} dòng của ${esc(uid)}${r.list.length>c.tong?` / ${r.list.length}`:''}`:c.tong+' dòng'}</span><span class="st">${st}</span></div>
+    ${gc?`<div class="rgc">${esc(gc)}</div>`:''}
     ${barHTML(c)}
     <div class="u">${c.nf?`<span class="rnf">${c.nf} chưa thấy</span>`:''}${us.slice(0,4).map(id=>`<span class="${id===uid?'on':''}">${esc(id)}</span>`).join('')}${us.length>4?`<span>+${us.length-4}</span>`:''}</div></a>`;
+}
+// thẻ phòng của một tòa, xếp tầng dưới lên tầng trên; tòa có phòng ở từ 2 tầng trở lên thì chèn nhãn "Tầng N" cho dễ lướt
+function tangTiles(rooms,uid){
+  const nT=new Set(rooms.map(r=>thTang(r.name))).size; let t0=null;
+  return rooms.map((r,i)=>{ const t=thTang(r.name); const nhan=nT>1&&t!==t0?`<div class="tang-n">${t<99?'Tầng '+t:'Khu chung, chưa rõ tầng'}</div>`:''; t0=t; return nhan+roomTile(r,uid,i); }).join('');
 }
 /* nghiêng 3D + quầng sáng đi theo con trỏ (chỉ máy có chuột, tắt khi bật giảm chuyển động) */
 (function(){
@@ -1805,9 +1872,9 @@ function ovRoomsHTML(){
   const uid=OV.sel;
   const none=roomAssets(NOROOM).filter(a=>!uid||a.unit===uid);
   const q=slugify(OV.rq);
-  let list=rooms.filter(r=>(!uid||r.list.some(a=>a.unit===uid))&&(OV.bld==='all'||r.bld===OV.bld)&&(!OV.rq.trim()||r.slug.includes(q))&&(!OV.hideDone||count(uid?r.list.filter(a=>a.unit===uid):r.list).chua>0));
+  let list=rooms.filter(r=>(!uid||r.list.some(a=>a.unit===uid))&&(OV.bld==='all'||r.bld===OV.bld)&&(!OV.rq.trim()||r.slug.includes(q))&&(!OV.hideDone||!xong(count(uid?r.list.filter(a=>a.unit===uid):r.list))));
   const by={}; list.forEach(r=>(by[r.bld]=by[r.bld]||[]).push(r));
-  const blocks=BLD_ORDER.filter(b=>by[b]).map(b=>`<div class="bldname t-${BLD_TONE[b]||'x'}"><i class="dot"></i>${b==='Khu khác'?'Khu khác, ngoài trời, chưa rõ tòa':'Tòa '+b}<em class="num">${by[b].length} vị trí</em></div><div class="rooms">${by[b].sort((x,y)=>x.name.localeCompare(y.name,'vi',{numeric:true})).map((r,i)=>roomTile(r,uid,i)).join('')}</div>`).join('');
+  const blocks=BLD_ORDER.filter(b=>by[b]).map(b=>`<div class="bldname t-${BLD_TONE[b]||'x'}"><i class="dot"></i>${b==='Khu khác'?'Khu khác, ngoài trời, chưa rõ tòa':'Tòa '+b}<em class="num">${by[b].length} vị trí</em></div><div class="rooms">${tangTiles(by[b].sort((x,y)=>thSapPhong(x.name,y.name)),uid)}</div>`).join('');
   const noneTile=(OV.bld==='all'&&!OV.rq.trim()&&none.length)?`<div class="bldname t-n"><i class="dot"></i>Chưa ghi vị trí</div><div class="rooms">${roomTile({slug:NOROOM,name:'Chưa có vị trí',list:none},uid,0)}</div>`:'';
   return (blocks||(none.length?'':'<div class="empty">Không có phòng nào khớp.</div>'))+noneTile;
 }
@@ -1849,7 +1916,7 @@ function viewUnits(){
 /* ---------- trang "Kiểm theo số phòng": lưới phòng theo tòa ---------- */
 function viewRooms(){
   const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM);
-  const done=rooms.filter(r=>count(r.list).chua===0).length;
+  const done=rooms.filter(r=>xong(count(r.list))).length;
   const u=OV.sel&&UNIT[OV.sel];
   app.innerHTML=`${demoBanner()}
   ${banner('phong-hoc','Kiểm theo số phòng','Đi từng phòng, kiểm tại chỗ',`${rooms.length} phòng, khu vực · đã xong ${done}. Bấm vào một phòng để kiểm mọi tài sản đang ở đó, của bất kỳ đơn vị nào.`)}
@@ -1904,7 +1971,7 @@ function bldSecHTML(){
 function viewOverview(){
   const all=count(ASSETS); const wait=xmPending();
   const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM); const nRooms=rooms.length;
-  const doneR=rooms.filter(r=>count(r.list).chua===0).length;
+  const doneR=rooms.filter(r=>xong(count(r.list))).length;
   const n={chua:0,run:0,done:0}; UNITS.forEach(u=>n[unitState0(u)]++);
   const pct=all.tong?Math.round(all.da/all.tong*100):0;
   killCharts();
@@ -2015,7 +2082,7 @@ function rowHTML(a){
   const s=S.rows[a.stt]||{}; const r=res(a); const open=ui.open[a.stt];
   const room=roomOf(a); const cond=s.cond||a.cond0||'';
   const moved = V.type==='room' && V.id!==NOROOM && slugify(room)!==V.id;
-  const tags=[V.type==='room'?`<span class="tag ${a.review?'warn':''}">${esc(a.review?UNIT[a.unit].sheet:a.unit)}</span>`:'', (a.vtx&&!s.phong)?`<span class="tag warn">Excel ghi: ${esc(a.vtx)} · cần xác nhận</span>`:'', a.shared?'<span class="tag info">Dùng chung HC; CTSV; Đào tạo</span>':'', a.sl>1?`<span class="tag">Đếm số lượng</span>`:'', a.cond0?`<span class="tag warn">Excel ghi: ${esc(Object.keys(STATUS_TEXT).find(k=>STATUS_TEXT[k]===a.cond0))}</span>`:'', (s.phong!=null&&a.vt0&&s.phong!==a.vt0)?`<span class="tag warn">Sổ ghi: ${esc(a.vt0)}</span>`:'', moved?`<span class="tag warn">Đã ghi sang ${esc(room||'chưa có vị trí')}</span>`:'', s.sd?`<span class="tag ${['cho_tl','da_tl','bg'].includes(s.sd)?'warn':'info'}">${esc(lbl(SUDUNG,s.sd))}</span>`:''].join('');
+  const tags=[V.type==='room'?`<span class="tag ${UNIT[a.unit].review?'warn':''}">${esc(UNIT[a.unit].review?UNIT[a.unit].sheet:a.unit)}</span>`:'', a.unit!==a.unit0?`<span class="tag info" title="Theo file Excel: ${esc(UNIT[a.unit0].ten)}">Từ ${esc(UNIT[a.unit0].sheet)}</span>`:'', (a.vtx&&!s.phong)?`<span class="tag warn">Excel ghi: ${esc(a.vtx)} · cần xác nhận</span>`:'', a.shared?'<span class="tag info">Dùng chung HC; CTSV; Đào tạo</span>':'', a.sl>1?`<span class="tag">Đếm số lượng</span>`:'', a.cond0?`<span class="tag warn">Excel ghi: ${esc(Object.keys(STATUS_TEXT).find(k=>STATUS_TEXT[k]===a.cond0))}</span>`:'', (s.phong!=null&&a.vt0&&s.phong!==a.vt0)?`<span class="tag warn">Sổ ghi: ${esc(a.vt0)}</span>`:'', moved?`<span class="tag warn">Đã ghi sang ${esc(room||'chưa có vị trí')}</span>`:'', s.sd?`<span class="tag ${['cho_tl','da_tl','bg'].includes(s.sd)?'warn':'info'}">${esc(lbl(SUDUNG,s.sd))}</span>`:''].join('');
   const real = a.hoso
     ? `<div class="hoso-note">Tài sản không kiểm đếm được (công trình, dịch vụ). Chỉ cần xác nhận hồ sơ.</div>`
     : `<div class="c-book"><span class="lbl">Sổ sách</span><b>${nf.format(a.sl)}</b></div>
@@ -2061,7 +2128,7 @@ function listBody(list,groupBy){
   if(!rows.length) return `<div class="empty">Không có tài sản nào khớp bộ lọc.</div>`;
   return LHEAD+listGroups(rows,groupBy);
 }
-const LHEAD=`<div class="lhead" aria-hidden="true"><span>STT · Mã TSCĐ</span><span>Tài sản</span><span>Phòng thực tế</span><span>Sổ sách</span><span>Thực tế</span><span>Tình trạng</span><span>Kết quả</span></div>`;
+const LHEAD=`<div class="lhead" aria-hidden="true"><span>STT · Mã TSCĐ</span><span>Tài sản</span><span>Phòng thực tế · Phòng ban</span><span>Sổ sách</span><span>Thực tế</span><span>Tình trạng</span><span>Kết quả</span></div>`;
 function listGroups(rows,groupBy){
   if(!ui.group) return `<div class="list">${rows.sort((a,b)=>a.stt-b.stt).map(rowHTML).join('')}</div>`;
   const g={}; rows.forEach(a=>{const k=groupBy==='unit'?a.unit:roomOf(a);(g[k]=g[k]||[]).push(a);});
@@ -2107,7 +2174,9 @@ function viewUnit(id){
     <div><h1>${esc(u.ten)}</h1><p class="num">${c.tong} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p><p class="dm-l">${ic('Contact')}Đầu mối: ${dmText(id,{sua:true})}</p><a class="lnk qrin" href="#ma-qr" data-act="qrin" data-qu="${id}">${ic('QrCode')}In tem mã QR cho sheet này</a></div>
     <div class="prog" id="prog">${progHTML(c)}</div>
   </div>
-  ${u.review?`<div class="demo" style="background:var(--warn-soft);color:var(--warn)">${ic('MapPin')}<span style="flex:1;min-width:0"><b>Sheet lẻ · tài sản chưa có vị trí.</b> Chưa rõ vì sao kế toán đưa vào sổ, ai mua. Kiểm trực tiếp: thấy ở đâu thì chọn <b>Phòng thực tế</b>; không thấy thì bấm "Không thấy" và hỏi kế toán. Đối chiếu xong mới phân bổ vào sheet đơn vị (GD … FSC3).</span></div>`:''}
+  ${u.review?`<div class="demo" style="background:var(--warn-soft);color:var(--warn)">${ic('MapPin')}<span style="flex:1;min-width:0"><b>Sheet lẻ · tài sản chưa có vị trí.</b> Chưa rõ vì sao kế toán đưa vào sổ, ai mua. Kiểm trực tiếp: thấy ở đâu thì chọn <b>Phòng thực tế</b>; không thấy thì bấm "Không thấy" và hỏi kế toán. Đối chiếu xong thì chọn ô <b>Phòng ban</b> trên dòng tài sản để phân bổ vào sheet đơn vị (GD … FSC3).</span></div>`:''}
+  ${id==='HC'?`<div class="demo" style="background:var(--info-soft);color:var(--info)">${ic('Users')}<span style="flex:1;min-width:0"><b>Phòng Hành chính đang gộp tài sản chưa phân bổ về các phòng ban.</b> Kiểm trực tiếp, xác định phòng ban đang dùng rồi chọn ở ô <b>Phòng ban</b> trên từng dòng: tài sản chuyển sang trang của phòng ban đó (ở nhánh Kiểm theo phòng ban), file cho kế toán ghi "Phân bổ về: …".</span></div>`:''}
+  ${chuyenDiHTML(id)}
   <section class="panel" aria-label="Thành phần buổi kiểm kê">
     <div class="team">
       <div class="fld"><label for="u-ngay">Ngày kiểm</label><input class="in" type="date" id="u-ngay" data-u="ngay" value="${esc(us.ngay)}"></div>
@@ -2137,7 +2206,7 @@ function viewRoom(slug){
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#vi-tri">Kiểm theo số phòng</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
   <div class="uhead">
-    <div><h1>${esc(name)}</h1><p class="num">${c.tong} dòng của ${Object.keys(byU).length} đơn vị · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p>${slug!==NOROOM&&list.length?`<button type="button" class="btn pri cs-open" data-act="quetlt">${ic('ScanLine')}Quét liên tục ở phòng này</button>`:''}${list.length?`<a class="lnk qrin" href="#ma-qr" data-act="qrin" data-qr="${slug}">${ic('QrCode')}In tem mã QR cho ${slug===NOROOM?'nhóm này':'phòng này'}</a>`:''}</div>
+    <div><h1>${esc(name)}</h1>${ghiChuPhong(name)?`<p class="ph-gc">${ic('Info')}${esc(ghiChuPhong(name))}</p>`:''}<p class="num">${c.tong} dòng của ${Object.keys(byU).length} đơn vị · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p>${slug!==NOROOM&&list.length?`<button type="button" class="btn pri cs-open" data-act="quetlt">${ic('ScanLine')}Quét liên tục ở phòng này</button>`:''}${list.length?`<a class="lnk qrin" href="#ma-qr" data-act="qrin" data-qr="${slug}">${ic('QrCode')}In tem mã QR cho ${slug===NOROOM?'nhóm này':'phòng này'}</a>`:''}</div>
     <div class="prog" id="prog">${progHTML(c)}</div>
   </div>
   ${slug===NOROOM?`<p class="hint">Các tài sản này chưa ghi phòng. Khi thấy ở đâu, gõ phòng vào ô "Phòng thực tế" để chuyển nó về đúng phòng.</p>`:''}
@@ -2199,27 +2268,54 @@ function thDong(a){
 // tên để gom: bỏ số lượng ở đầu ("3 ghế đôn…", "4,61m2 _ Tấm LED…") để cùng loại đồ (ghế, bàn…) đứng liền nhau
 function thTenGom(a){ return a.short.replace(/^\s*[\d.,]+\s*(m2|m)?\s*[_\-:]?\s*/i,'').trim()||a.short; }
 function thSapTen(x,y){ return thTenGom(x).localeCompare(thTenGom(y),'vi',{numeric:true,sensitivity:'base'})||x.stt-y.stt; }
-function thTheoDv(list){
-  const m={}; list.forEach(a=>(m[a.unit]=m[a.unit]||[]).push(a));
-  return Object.keys(m).sort((x,y)=>UNITS.findIndex(u=>u.id===x)-UNITS.findIndex(u=>u.id===y)).map(id=>
-    `<div class="th-dv"><span>${esc(UNIT[id].ten)}</span><em class="num">${m[id].length}</em></div>`
-    +m[id].sort(thSapTen).map(thDong).join('')).join('');
-}
-function thTheoPhong(list){
-  const m={}; list.forEach(a=>{ const n=roomOf(a); (m[n]=m[n]||[]).push(a); });
-  let toa=null;
-  return Object.keys(m).sort(thSapPhong).map(n=>{
-    const b=n?building(n):'', t=thTang(n);
-    const dau=b!==toa?(toa=b,`<div class="th-bld">${b?(b==='KTX'||b==='Khu khác'?b:'Tòa '+esc(b)):'Chưa ghi phòng'}</div>`):'';
-    return dau+`<div class="th-ph"><a href="#phong-${n?slugify(n):NOROOM}">${esc(n||'Chưa có vị trí')}</a><span class="num">${n&&t<99?'tầng '+t+' · ':''}${m[n].length} dòng</span></div>`+thTheoDv(m[n]);
-  }).join('');
-}
-function thDanhSach(){
+// thứ tự trong một nhóm (dùng chung cho trang và file Excel): tòa → phòng (tầng, số) → bộ môn → cùng loại đồ liền nhau
+function thThuTu(list,k){ const ui=id=>UNITS.findIndex(u=>u.id===id);
+  return list.slice().sort((x,y)=>(k==='novt'?0:thSapPhong(roomOf(x),roomOf(y)))||ui(x.unit)-ui(y.unit)||thSapTen(x,y)); }
+// các nhóm theo ô tìm hiện tại → [{k, ten, mo, l: tài sản đã xếp}]
+function thXep(){
   const q=fold(TH.q.trim()), g={}; TH_NHOM.forEach(([k])=>g[k]=[]);
   ASSETS.forEach(a=>{ if(!q||fold(a.ma+' '+a.ten+' '+roomOf(a)+' '+UNIT[a.unit].ten+' '+UNIT[a.unit].sheet).includes(q)) g[thNhom(a)].push(a); });
-  return TH_NHOM.map(([k,ten,mo])=>{ const l=g[k]; if(!l.length) return ''; const nPh=new Set(l.map(roomOf).filter(Boolean)).size;
-    return `<details class="th-sec th-${k}" id="th-${k}" open><summary><b>${ten}</b><span class="num">${nf.format(l.length)} dòng${nPh?' · '+nPh+' phòng':''}</span><small>${mo}</small></summary>${k==='novt'?thTheoDv(l):thTheoPhong(l)}</details>`;
+  return TH_NHOM.map(([k,ten,mo])=>({k,ten,mo,l:thThuTu(g[k],k)})).filter(x=>x.l.length);
+}
+// một nhóm: chèn tiêu đề tòa / phòng (kèm tầng, ghi chú phòng) / bộ môn mỗi khi đổi
+function thNhomHTML(l,k){
+  const coPhong=k!=='novt', dem={};
+  l.forEach(a=>{ const n=coPhong?roomOf(a):''; dem[n]=(dem[n]||0)+1; dem[n+'|'+a.unit]=(dem[n+'|'+a.unit]||0)+1; });
+  let toa, ph, dv, h='';
+  l.forEach(a=>{
+    const n=coPhong?roomOf(a):'';
+    if(coPhong&&n!==ph){
+      const b=n?building(n):'';
+      if(b!==toa){ toa=b; h+=`<div class="th-bld">${b?(b==='KTX'||b==='Khu khác'?b:'Tòa '+esc(b)):'Chưa ghi phòng'}</div>`; }
+      const t=thTang(n), gc=ghiChuPhong(n);
+      h+=`<div class="th-ph"><a href="#phong-${n?slugify(n):NOROOM}">${esc(n||'Chưa có vị trí')}</a><span class="num">${n&&t<99?'tầng '+t+' · ':''}${dem[n]} dòng</span>${gc?`<small>${esc(gc)}</small>`:''}</div>`;
+      dv=undefined;
+    }
+    ph=n;
+    if(a.unit!==dv){ dv=a.unit; h+=`<div class="th-dv"><span>${esc(UNIT[dv].ten)}</span><em class="num">${dem[n+'|'+dv]}</em></div>`; }
+    h+=thDong(a);
+  });
+  return h;
+}
+function thDanhSach(){
+  return thXep().map(({k,ten,mo,l})=>{ const nPh=new Set(l.map(roomOf).filter(Boolean)).size;
+    return `<details class="th-sec th-${k}" id="th-${k}" open><summary><b>${ten}</b><span class="num">${nf.format(l.length)} dòng${nPh?' · '+nPh+' phòng':''}</span><small>${mo}</small></summary>${thNhomHTML(l,k)}</details>`;
   }).join('')||'<div class="empty">Không có tài sản nào khớp.</div>';
+}
+// Tải Excel đúng thứ tự, đúng cách gom như trên trang (theo ô tìm đang gõ)
+async function thXlsx(b){
+  const nh=thXep(); if(!nh.length){ toast('Không có tài sản nào để tải'); return; }
+  const old=b.innerHTML; b.disabled=true; b.textContent='Đang tạo file…';
+  const cot=[['Nhóm',16],['Tòa',10],['Tầng',6],['Phòng',16],['Ghi chú phòng',22],['Phòng ban',28],['STT',6],['Mã TSCĐ',11],['Tên tài sản',50],['Số lượng sổ',8],['Thực tế',8],['Kết quả',14],['Tình trạng',14],['Trạng thái sử dụng',16],['Ghi chú kiểm kê',30],['Người kiểm',18],['Lúc kiểm',15],['Nguyên giá',15],['Bắt đầu sử dụng',13]];
+  const dong=[]; nh.forEach(({ten,l})=>l.forEach(a=>{ const s=S.rows[a.stt]||{}, r=res(a), n=roomOf(a), t=thTang(n), d=s.at?new Date(s.at):null, p=x=>String(x).padStart(2,'0');
+    dong.push([ten, n?building(n):'', n&&t<99?t:'', n||'Chưa có vị trí', ghiChuPhong(n), UNIT[a.unit].ten+(a.unit!==a.unit0?` (từ ${UNIT[a.unit0].sheet})`:''), a.stt, a.ma?String(a.ma):'', a.ten, a.sl,
+      a.hoso||r==='chua'?'':(r==='nf'?0:(s.tt!=null?+s.tt:'')), RES_LABEL[r], s.cond?lbl(COND,s.cond):'', s.sd?lbl(SUDUNG,s.sd):'', s.note||'', r!=='chua'?(whoLabel(s.by)||''):'',
+      r!=='chua'&&d?`${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`:'', +a.gia||0, dmy(a.ngay)]); }));
+  const d=new Date(), p=x=>String(x).padStart(2,'0');
+  try{ await window.xuatBangExcel('Tổng hợp tài sản',cot,dong,`Tong hop tai san ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`,{loc:true});
+    toast(`Đã tải ${nf.format(dong.length)} tài sản`); logEvent({kind:'xuat',title:'Tải Excel Tổng hợp toàn bộ tài sản',lines:[`${nf.format(dong.length)} dòng${TH.q.trim()?` (đang tìm “${TH.q.trim()}”)`:''}`]}); }
+  catch(e){ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); }
+  finally{ b.disabled=false; b.innerHTML=old; }
 }
 function viewTongHop(){
   const c=count(ASSETS), n={}; TH_NHOM.forEach(([k])=>n[k]=0); ASSETS.forEach(a=>n[thNhom(a)]++);
@@ -2227,7 +2323,8 @@ function viewTongHop(){
   <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Tổng hợp toàn bộ tài sản</div>
   <div class="uhead"><div><h1>Tổng hợp toàn bộ tài sản</h1><p class="num">${nf.format(c.tong)} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p><p>Gom theo kết quả, rồi theo tòa, phòng (tầng dưới lên tầng trên, số phòng nhỏ đến lớn), bộ môn; tài sản cùng tên đứng liền nhau. Bấm một dòng để mở tài sản.</p></div></div>
   <div class="tools th-tools"><label class="sbox search">${ic('Search')}<input class="in" id="thq" type="search" placeholder="Tìm theo mã, tên, phòng, bộ môn…" value="${esc(TH.q)}" aria-label="Tìm trong tổng hợp"></label>
-    <div class="seg" role="group" aria-label="Đi tới nhóm">${TH_NHOM.map(([k,ten])=>`<button type="button" data-act="thdi" data-k="${k}">${ten} <em class="num">${nf.format(n[k])}</em></button>`).join('')}</div></div>
+    <div class="seg" role="group" aria-label="Đi tới nhóm">${TH_NHOM.map(([k,ten])=>`<button type="button" data-act="thdi" data-k="${k}">${ten} <em class="num">${nf.format(n[k])}</em></button>`).join('')}</div>
+    <button type="button" class="btn" data-act="thxlsx" style="margin-left:auto">${ic('FileSpreadsheet')}Tải Excel</button></div>
   <div class="th-dau" aria-hidden="true"><span>Mã TSCĐ</span><span>Tài sản</span><span>Thực tế / sổ</span><span>Kết quả</span><span>Người kiểm</span></div>
   <div id="thDs">${thDanhSach()}</div>`;
 }
@@ -2242,7 +2339,7 @@ function srow(a,roomName){
 }
 function progHTML(c){
   const pct=c.tong?Math.round(c.da/c.tong*100):0;
-  return `<div class="big"><span>Tiến độ kiểm <em class="num">${nf.format(c.da)}/${nf.format(c.tong)} dòng</em></span><b class="num">${pct}%</b></div>${barHTML(c)}
+  return `<div class="big"><span>Tiến độ kiểm <em class="num">${nf.format(c.da)}/${nf.format(c.tong)} dòng</em></span><b class="num">${c.tong?pct+'%':'Xong'}</b></div>${barHTML(c)}
   <div class="nums"><span class="k ok">Đủ <b>${c.du+c.hoso}</b></span><span class="k warn">Lệch <b>${c.lech}</b></span><span class="k bad">Chưa thấy <b>${c.nf}</b></span><span class="k">Chưa có vị trí <b>${c.novt}</b></span></div>`;
 }
 function endHTML(c,us,ps){
@@ -2301,7 +2398,8 @@ function ketQuaKeToan(a){
   else if(r!=='chua'||s.phong!=null) vt=roomOf(a);
   if(a.review&&!vt&&r!=='nf') vt='Chưa có vị trí';
   const cond=s.cond&&s.cond!=='tot'?(COND.find(c=>c[0]===s.cond)||[])[1]:'';
-  const gc=[cond, s.sd?'Trạng thái sử dụng: '+lbl(SUDUNG,s.sd):'', s.note, x&&x.phanhoi?'Đại diện trả lời: '+x.phanhoi:''].filter(Boolean).join('; ');
+  // đổi phòng ban trên app (người dùng chọn 16/11/2026): ghi "Phân bổ về: …" để kế toán cập nhật sổ; dòng vẫn ở sheet gốc
+  const gc=[a.unit!==a.unit0?'Phân bổ về: '+UNIT[a.unit].ten:'', cond, s.sd?'Trạng thái sử dụng: '+lbl(SUDUNG,s.sd):'', s.note, x&&x.phanhoi?'Đại diện trả lời: '+x.phanhoi:''].filter(Boolean).join('; ');
   return {kq, vt, gc, thucTe: cellE(a), sl: a.sl, r};
 }
 function viewXuat(){
@@ -2768,6 +2866,7 @@ app.addEventListener('click',e=>{
   if(b.dataset.ust){ OV.ust=b.dataset.ust; render(); return; }
   if(b.dataset.filter){ ui.filter=b.dataset.filter; ui.bulkArm=false; render(); return; }
   const act=b.dataset.act; const row=b.closest('[data-stt]'); const stt=row?+row.dataset.stt:null; const a=stt?BY_STT[stt]:null;
+  if(act==='thxlsx'){ thXlsx(b); return; }
   if(act==='thdi'){ const d=document.getElementById('th-'+b.dataset.k); if(d){ d.open=true; d.scrollIntoView({block:'start'}); } else toast('Nhóm này không có tài sản nào'+(TH.q?' khớp ô tìm':'')); return; }
   if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
   if(act==='quetlt'){ contOpen(V.id); return; }
@@ -2842,6 +2941,7 @@ app.addEventListener('change',e=>{
     if(t.value==='__new'){ (ui.newRoom=ui.newRoom||{})[stt]=true; refreshRow(stt); const n=document.getElementById('nr-'+stt); if(n) n.focus(); return; }
     moveRoom(stt,t.value); return;
   }
+  if(t.dataset.f==='dv' && stt){ moveUnit(stt,t.value); return; }
   if(t.dataset.f && stt){
     const r=touch(stt); const a=BY_STT[stt];
     if(t.dataset.f==='tt'){ snap([stt]); r.tt=t.value===''?null:Math.max(0,+t.value); r.nf=false; if(r.phong==null) r.phong=a.vt0; }
