@@ -413,6 +413,7 @@ body::before{background:var(--top-bg)}
 .th-r .badge{justify-self:start}
 .th-ai{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .th-ph small{flex-basis:100%;color:var(--muted);font-size:12px;font-style:italic}
+.srow.stt-hit{border-color:var(--accent);background:var(--accent-soft)}   /* tìm theo STT: tài sản đúng STT đứng đầu, tô nổi */
 /* phòng: nhãn tầng trong lưới thẻ phòng, ghi chú phòng (danh mục phòng bổ sung) */
 .rooms .tang-n{grid-column:1/-1;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:6px 2px 0;border-bottom:1px dashed var(--line)}
 .room .rgc{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
@@ -1930,16 +1931,21 @@ function viewRooms(){
   <div id="roomgrid">${ovRoomsHTML()}</div>`;
 }
 
+/* Tìm theo STT (cột STT của sheet "Tổng hợp" trong file BBKK — người dùng yêu cầu 16/11/2026, dùng ở mọi ô tìm tài sản):
+   gõ "142" → tài sản STT 142 (đứng đầu) + tài sản có mã / tên chứa "142"; gõ "STT 142" hoặc "#142" → chỉ đúng STT 142. */
+function sttCua(q){ const m=String(q||'').trim().match(/^(stt\s*[:.]?\s*|#\s*)?(\d{1,5})$/i); return m?{n:+m[2],chi:!!m[1]}:null; }
+function timKhop(a,q,chu){ const s=sttCua(q); if(s&&a.stt===s.n) return true; if(s&&s.chi) return false; return chu.includes(q); }
+function sttTruoc(list,q){ const s=sttCua(q); return s?list.sort((x,y)=>(y.stt===s.n)-(x.stt===s.n)):list; }
 function ovSearchHTML(){
-  const q=OV.gq.trim().toLowerCase(); if(q.length<2) return '';
-  const hits=ASSETS.filter(a=>a.ten.toLowerCase().includes(q)||String(a.ma).includes(q)).slice(0,30);
+  const q=OV.gq.trim().toLowerCase(); if(q.length<2&&!sttCua(q)) return ''; const s=sttCua(q);
+  const hits=sttTruoc(ASSETS.filter(a=>timKhop(a,q,a.ten.toLowerCase()+' '+String(a.ma))),q).slice(0,30);
   if(!hits.length) return `<div class="sr"><div class="empty">Không tìm thấy tài sản nào có “${esc(OV.gq)}”.</div></div>`;
-  return `<div class="sr">${hits.map(a=>{const r=res(a);const n=roomOf(a);return `<div class="srow">
-    <div><div class="mono">${esc(a.ma)}</div><div class="sub">STT ${a.stt}</div></div>
+  return `<div class="sr">${hits.map(a=>{const r=res(a);const n=roomOf(a);return `<div class="srow${s&&a.stt===s.n?' stt-hit':''}">
+    <div><div class="mono">${esc(a.ma)}</div><div class="sub">${s&&a.stt===s.n?'<b>STT '+a.stt+'</b>':'STT '+a.stt}</div></div>
     <div><div>${esc(a.short)}</div><div class="sub">${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div></div>
     <div>${n?esc(n):'<span style="color:var(--warn)">Chưa có vị trí</span>'}</div>
     <span class="badge ${r}">${RES_LABEL[r]}</span>
-    <div class="acts"><a class="btn sm" href="#phong-${n?slugify(n):NOROOM}" data-act="goto" data-q="${esc(a.ma)}">Mở phòng</a><a class="btn sm" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma)}">Mở đơn vị</a></div></div>`;}).join('')}</div>`;
+    <div class="acts"><a class="btn sm pri" href="#ts-${encodeURIComponent(a.key)}">Mở tài sản</a><a class="btn sm" href="#phong-${n?slugify(n):NOROOM}" data-act="goto" data-q="${esc(a.ma)}">Mở phòng</a><a class="btn sm" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma)}">Mở đơn vị</a></div></div>`;}).join('')}</div>`;
 }
 
 /* ---------- trang "Bảng tổng quan" — bố cục theo trang daihoc.fpt.edu.vn:
@@ -1983,7 +1989,7 @@ function viewOverview(){
       <h1>Kiểm kê tài sản <b>2026</b></h1>
       <p>Phòng Hành chính · số liệu chốt sổ đến hết 31/10/2026</p>
       <div class="hero-prog"><b class="num">${pct}%</b><span class="num">đã kiểm<br>${nf.format(all.da)}/${nf.format(all.tong)} dòng</span>${barHTML(all)}</div>
-      <label class="sbox">${ic('Search')}<input class="in" id="gq" type="search" placeholder="Tìm nhanh tài sản ở cả trường: mã hoặc tên…" value="${esc(OV.gq)}" aria-label="Tìm tài sản ở cả trường"></label>
+      <label class="sbox">${ic('Search')}<input class="in" id="gq" type="search" placeholder="Tìm nhanh tài sản ở cả trường: STT, mã hoặc tên…" value="${esc(OV.gq)}" aria-label="Tìm tài sản ở cả trường"></label>
       <div class="hero-cta"><a class="btn brand" href="#vi-tri">${ic('MapPin')}Kiểm theo số phòng</a><a class="btn ghost" href="#don-vi">${ic('Users')}Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa</a></div>
     </div>
   </section>
@@ -2119,7 +2125,7 @@ function filtered(list){
     if(ui.filter==='lech'&&!(r==='thieu'||r==='thua')) return false;
     if(ui.filter==='nf'&&r!=='nf') return false;
     if(V.type==='room'&&ui.unit&&a.unit!==ui.unit) return false;
-    if(q && !(a.ten.toLowerCase().includes(q)||String(a.ma).includes(q)||roomOf(a).toLowerCase().includes(q))) return false;
+    if(q && !timKhop(a,q,(a.ten+' '+a.ma+' '+roomOf(a)).toLowerCase())) return false;
     return true;
   });
 }
@@ -2141,7 +2147,7 @@ function toolsHTML(c,groupLabel,bulk,F0){
   const F=F0||[['all','Tất cả',c.tong],['chua','Chưa kiểm',c.chua],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]];
   const nb=bulkCandidates().length;
   return `<div class="tools">
-    <label class="sbox search">${ic('Search')}<input class="in" id="q" type="search" placeholder="Tìm theo mã, tên, phòng…" value="${esc(ui.q)}" aria-label="Tìm tài sản"></label>
+    <label class="sbox search">${ic('Search')}<input class="in" id="q" type="search" placeholder="Tìm theo STT, mã, tên, phòng…" value="${esc(ui.q)}" aria-label="Tìm tài sản"></label>
     <div class="seg" role="group" aria-label="Lọc theo kết quả">${F.map(([k,l,n])=>`<button data-filter="${k}" aria-pressed="${ui.filter===k}">${l} <em class="num">${n}</em></button>`).join('')}</div>
     <label class="chk"><input type="checkbox" id="grp" ${ui.group?'checked':''}> ${groupLabel}</label>
     ${V.type==='room'&&ui.unit?`<span class="chip">Chỉ đồ của ${esc(UNIT[ui.unit].sheet)}<button data-act="unitall" aria-label="Xem đồ của mọi đơn vị">×</button></span>`:''}
@@ -2274,7 +2280,7 @@ function thThuTu(list,k){ const ui=id=>UNITS.findIndex(u=>u.id===id);
 // các nhóm theo ô tìm hiện tại → [{k, ten, mo, l: tài sản đã xếp}]
 function thXep(){
   const q=fold(TH.q.trim()), g={}; TH_NHOM.forEach(([k])=>g[k]=[]);
-  ASSETS.forEach(a=>{ if(!q||fold(a.ma+' '+a.ten+' '+roomOf(a)+' '+UNIT[a.unit].ten+' '+UNIT[a.unit].sheet).includes(q)) g[thNhom(a)].push(a); });
+  ASSETS.forEach(a=>{ if(!q||timKhop(a,q,fold(a.ma+' '+a.ten+' '+roomOf(a)+' '+UNIT[a.unit].ten+' '+UNIT[a.unit].sheet))) g[thNhom(a)].push(a); });
   return TH_NHOM.map(([k,ten,mo])=>({k,ten,mo,l:thThuTu(g[k],k)})).filter(x=>x.l.length);
 }
 // một nhóm: chèn tiêu đề tòa / phòng (kèm tầng, ghi chú phòng) / bộ môn mỗi khi đổi
@@ -2322,7 +2328,7 @@ function viewTongHop(){
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Tổng hợp toàn bộ tài sản</div>
   <div class="uhead"><div><h1>Tổng hợp toàn bộ tài sản</h1><p class="num">${nf.format(c.tong)} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p><p>Gom theo kết quả, rồi theo tòa, phòng (tầng dưới lên tầng trên, số phòng nhỏ đến lớn), bộ môn; tài sản cùng tên đứng liền nhau. Bấm một dòng để mở tài sản.</p></div></div>
-  <div class="tools th-tools"><label class="sbox search">${ic('Search')}<input class="in" id="thq" type="search" placeholder="Tìm theo mã, tên, phòng, bộ môn…" value="${esc(TH.q)}" aria-label="Tìm trong tổng hợp"></label>
+  <div class="tools th-tools"><label class="sbox search">${ic('Search')}<input class="in" id="thq" type="search" placeholder="Tìm theo STT, mã, tên, phòng, bộ môn…" value="${esc(TH.q)}" aria-label="Tìm trong tổng hợp"></label>
     <div class="seg" role="group" aria-label="Đi tới nhóm">${TH_NHOM.map(([k,ten])=>`<button type="button" data-act="thdi" data-k="${k}">${ten} <em class="num">${nf.format(n[k])}</em></button>`).join('')}</div>
     <button type="button" class="btn" data-act="thxlsx" style="margin-left:auto">${ic('FileSpreadsheet')}Tải Excel</button></div>
   <div class="th-dau" aria-hidden="true"><span>Mã TSCĐ</span><span>Tài sản</span><span>Thực tế / sổ</span><span>Kết quả</span><span>Người kiểm</span></div>
@@ -2646,8 +2652,8 @@ function viewLyLich(key){
 }
 function llResDraw(){
   const box=document.getElementById('llRes'); if(!box) return; const q=fold(LL.q.trim());
-  if(q.length<2){ box.innerHTML=''; return; }
-  const hits=ASSETS.filter(a=>fold(a.ma+' '+a.ten).includes(q)).slice(0,10).map(a=>({key:a.key,ma:a.ma,ten:a.short,sub:roomOf(a)||'Chưa có vị trí'}))
+  if(q.length<2&&!sttCua(q)){ box.innerHTML=''; return; }
+  const hits=sttTruoc(ASSETS.filter(a=>timKhop(a,q,fold(a.ma+' '+a.ten))),q).slice(0,10).map(a=>({key:a.key,ma:a.ma,ten:a.short,sub:`STT ${a.stt} · ${roomOf(a)||'Chưa có vị trí'}`}))
     .concat(Object.entries(SOQR.xoa||{}).filter(([k,e])=>fold(k+' '+e.ten).includes(q)).slice(0,5).map(([k,e])=>({key:k,ma:k,ten:e.ten,sub:e.sang?'Mã cũ, kế toán đã đổi sang '+e.sang.ma:'Đã xoá khỏi BBKK'})));
   box.innerHTML=hits.length?hits.map(x=>`<a href="#ly-lich-${encodeURIComponent(x.key)}"><span class="mono">${esc(x.ma)}</span><span>${esc(x.ten)}</span><small>${esc(x.sub)}</small></a>`).join(''):'<div class="empty">Không có tài sản nào khớp.</div>';
 }
@@ -2987,6 +2993,7 @@ app.addEventListener('input',e=>{
 app.addEventListener('keydown',e=>{
   if(e.target.id==='u-cb' && e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; unitState(V.id).canbo.push(v); save(); render(); document.getElementById('u-cb').focus(); }
   // Enter trong ô tìm: nếu chỉ còn 1 món chưa kiểm thì đánh dấu đủ luôn
+  if(e.target.id==='gq' && e.key==='Enter'){ const s=sttCua(e.target.value), a=s&&ASSETS.find(x=>x.stt===s.n); if(a){ e.preventDefault(); location.hash='ts-'+encodeURIComponent(a.key); } return; }   // gõ STT + Enter → mở tài sản
   if(e.target.id==='q' && e.key==='Enter'){ e.preventDefault(); if(V.type==='kq') return; const l=filtered(currentList()||[]).filter(a=>res(a)==='chua'&&!a.hoso); if(l.length===1){ const a=l[0]; snap([a.stt]); const r=touch(a.stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=roomOf(a); if(!r.cond) r.cond='tot'; save(); refreshRow(a.stt); flashRes(a.stt); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); e.target.select(); } else if(l.length>1){ flash('warn','?',`Còn ${l.length} món khớp`,'Gõ thêm để chỉ còn 1 món rồi nhấn Enter'); } else { flash('bad','×','Không có món chưa kiểm nào khớp',e.target.value); } }
 });
 app.addEventListener('submit',e=>{

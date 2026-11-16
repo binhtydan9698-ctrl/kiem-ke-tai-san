@@ -20,6 +20,7 @@ const KICH_BAN = [
   { ten: 'doi-ma', mo: 'Kế toán đổi Mã TSCĐ: tem mã cũ mở tài sản mã mới, lý lịch gộp' },
   { ten: 'phong-ban', mo: 'Phòng bổ sung (Gamma, Alpha), quy tắc “xong”, đổi phòng ban như đổi phòng, Tải Excel Tổng hợp' },
   { ten: 'ket-qua', mo: 'Bảng tổng quan: nút “Xem →” ở 3 ô đầu, trang Kết quả đã kiểm / Lệch số lượng' },
+  { ten: 'xuat-goc', mo: 'Xuất cho kế toán sau nhiều thao tác thật: file gốc giữ nguyên, chỉ khác 3 cột cuối + sheet Tài sản phát sinh' },
   { ten: 'chung', mo: 'Chung: khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán' },
   { ten: 'dang-nhap-dau', mo: 'Đăng nhập: lần đầu tạo tài khoản quản trị (đăng nhập giả, không đụng Supabase)' },
   { ten: 'dang-nhap', mo: 'Đăng nhập: mật khẩu, chặn nhập sai, chính sách mật khẩu, xác thực 2 bước, thành viên, quyền, Danh bạ, tự đăng xuất' },
@@ -45,15 +46,16 @@ window.kiemkeSauKhiNap=function(){   // kịch bản "quet-ma": 1 tài sản gi�
   if(location.search==="?quet-ma")KIEMKE_SO_QR.xoa["1234567"]={ten:"Tài sản thử đã xoá khỏi BBKK",donVi:"GD",vt:"108 Gamma",ngay:"2020-01-01",gia:15000000,tu:"2026-11-14",xoa:"2027-01-02"};
   if(location.search==="?doi-ma"){const r=KIEMKE_DATA.rows.find(x=>String(x[8])==="6497474");KIEMKE_SO_QR.xoa["7654321"]={ten:r[2],donVi:r[6],vt:r[7],ngay:r[4],gia:r[5],tu:"2026-11-14",file:"BBKK cũ.xlsx",xoa:"2027-01-02",sang:{ma:"6497474",luc:"2027-01-02 09:30",cach:"tự nhận"}};KIEMKE_SO_QR.sang={"7654321":"6497474"};}
 };\n`;
-const TEP_THU = ['_thu-giao-dien.html', '_thu-1.js', '_thu-2.js', '_thu-kich-ban.js', '_thu-dang-nhap-gia.js'];
+const TEP_THU = ['_thu-giao-dien.html', '_thu-1.js', '_thu-2.js', '_thu-kich-ban.js', '_thu-dang-nhap-gia.js', '_so-sanh-excel.js'];
 for (const d of [DIST, MAHOA]) {
   let trang = chen(fs.readFileSync(path.join(d, 'index.html'), 'utf8'), '<head>', '<script src="_thu-1.js"></script>');
   trang = chen(trang, '<script src="supabase-db.js"></script>', '<script src="_thu-2.js"></script><script src="_thu-dang-nhap-gia.js"></script>');
-  trang = trang.replace('</body>', '<script src="_thu-kich-ban.js"></script></body>');
+  trang = trang.replace('</body>', '<script src="_so-sanh-excel.js"></script><script src="_thu-kich-ban.js"></script></body>');
   fs.writeFileSync(path.join(d, '_thu-giao-dien.html'), trang);
   fs.writeFileSync(path.join(d, '_thu-1.js'), TEP1); fs.writeFileSync(path.join(d, '_thu-2.js'), TEP2);
   fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-giao-dien-kich-ban.js'), path.join(d, '_thu-kich-ban.js'));
-  fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-dang-nhap-gia.js'), path.join(d, '_thu-dang-nhap-gia.js'));   // đăng nhập giả (?dang-nhap…, ?ma-hoa)
+  fs.copyFileSync(path.join(ROOT, 'scripts', 'thu-dang-nhap-gia.js'), path.join(d, '_thu-dang-nhap-gia.js'));
+  fs.copyFileSync(path.join(ROOT, 'scripts', 'so-sanh-excel.js'), path.join(d, '_so-sanh-excel.js'));   // so file Xuất cho kế toán với file gốc (kịch bản xuat-goc)   // đăng nhập giả (?dang-nhap…, ?ma-hoa)
 }
 const don = () => { for (const f of TEP_THU) try { fs.unlinkSync(path.join(DIST, f)); } catch { } try { fs.rmSync(MAHOA, { recursive: true, force: true }); } catch { } };
 

@@ -167,7 +167,7 @@
       const sd = (S.rows[a.stt] || {}).sd || '';
       if (KHV.an && (sd === 'da_tl' || sd === 'bg')) return;
       if (KHV.dv && a.unit !== KHV.dv) return;
-      if (q && !fold([a.ma, a.ten, roomOf(a) || '', UNIT[a.unit].sheet].join(' ')).includes(q)) return;
+      if (q && !timKhop(a, q, fold([a.ma, a.ten, roomOf(a) || '', UNIT[a.unit].sheet].join(' ')))) return;   // tìm cả theo STT
       const t = khHet(a, KHV.nam);
       if (t <= now) het.push({ a, t }); else if (t <= toi) gan.push({ a, t });
     });
@@ -202,7 +202,7 @@
     </div>
     <div class="tools kh-tools">
       <select class="in" id="khdv" aria-label="Sheet"><option value="">Mọi sheet</option>${UNITS.map(u => `<option value="${u.id}" ${KHV.dv === u.id ? 'selected' : ''}>${esc(u.sheet)}</option>`).join('')}</select>
-      <label class="sbox search">${ic('Search')}<input class="in" id="khq" type="search" placeholder="Tìm mã, tên, phòng…" value="${esc(KHV.q)}" aria-label="Tìm tài sản"></label>
+      <label class="sbox search">${ic('Search')}<input class="in" id="khq" type="search" placeholder="Tìm STT, mã, tên, phòng…" value="${esc(KHV.q)}" aria-label="Tìm tài sản"></label>
       <label class="kh-an"><input type="checkbox" id="khan" ${KHV.an ? 'checked' : ''}> Ẩn tài sản đã thanh lý, đã bàn giao</label>
       <button type="button" class="btn" data-ch="khxlsx">${ic('Download')}Tải Excel danh sách</button>
     </div>

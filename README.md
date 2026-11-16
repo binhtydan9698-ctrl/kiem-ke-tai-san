@@ -70,12 +70,14 @@ File hiện tại là biên bản gốc 2026: mỗi đơn vị một sheet (GD, 
 
 ### File cho kế toán
 
-File tải về là **chính file Excel gốc**, giữ nguyên các sheet, cột, công thức và định dạng. Ở **mọi sheet** danh sách
-(từng đơn vị, Xem lại, Tổng hợp), trang chỉ:
-- điền cột `Thực tế` (nếu file có cột đó; tài sản dùng chung chia nhiều đơn vị chỉ điền ở dòng có số sổ sách khớp),
-- thêm 3 cột cuối: **Kết quả kiểm kê** (Chưa kiểm / Đủ / Thiếu n / Thừa n / Chưa tìm thấy / Xác nhận mất…),
-  **Vị trí thực tế**, **Ghi chú kiểm kê** (tình trạng hỏng, ghi chú tại chỗ, câu trả lời của đại diện),
-- thêm sheet **Tài sản phát sinh** nếu có tài sản ngoài sổ.
+File tải về là **chính file Excel gốc, giữ nguyên hoàn toàn** (mọi sheet, ô, công thức, định dạng, độ rộng cột, kể cả cột
+`Thực tế` có sẵn — để trống như gốc). Mọi thay đổi chỉ gói trong:
+- 3 cột cuối ở **mọi sheet** danh sách (từng đơn vị, Xem lại, Tổng hợp): **Kết quả kiểm kê** (Chưa kiểm / Đủ / Thiếu n (thực tế
+  x/y) / Thừa n / Chưa tìm thấy / Xác nhận mất…), **Vị trí thực tế**, **Ghi chú kiểm kê** (tình trạng hỏng, trạng thái sử dụng,
+  "Phân bổ về: …" khi đổi phòng ban, ghi chú tại chỗ, câu trả lời của đại diện),
+- sheet riêng **Tài sản phát sinh** ở cuối file nếu có tài sản ngoài sổ.
+
+`npm test` so từng ô, từng byte file xuất với file gốc để giữ đúng quy tắc này (quy tắc trong `AGENTS.md`).
 
 ## Cấu trúc thư mục
 

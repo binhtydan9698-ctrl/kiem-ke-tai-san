@@ -100,7 +100,8 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
      tệp ảnh nằm ở kho `anh-tai-san` (`ts/<khoá>/…jpg`), không vào file cho kế toán, `npm run sao-luu` chỉ lưu danh sách, không lưu tệp ảnh.
 4. Đồng bộ: `save()` so `S` với `LAST` rồi ghi từng tài liệu qua `DB.doc(path).set()`; `listen(col)` nhận thay đổi.
    `web/supabase-db.js` cung cấp `DB` (giả lập API `db` của Claude artifact) trên bảng `kiemke_docs(col, id, data)`.
-5. "Xuất cho kế toán" (`web/export.js`) mở `data/goc.xlsx`, điền cột Thực tế và thêm 3 cột kết quả ở mọi sheet danh sách.
+5. "Xuất cho kế toán" (`web/export.js`) chèn 3 cột kết quả vào cuối mọi sheet danh sách của `data/goc.xlsx` (cột Thực tế để trống) + sheet
+   "Tài sản phát sinh"; còn lại giữ nguyên file gốc (xem Quy ước BẮT BUỘC).
 6. Lịch sử thao tác (trang `#lich-su`): `save()` → `logChanges()` so `S` với lần lưu trước, ghi mỗi thao tác 1 bản ghi
    `col='log'` (ai, máy nào, lúc nào, trước → sau) qua hàng đợi `WR`, kèm bản sao 1000 dòng trong localStorage.
    Trang chỉ đọc `log` khi mở trang Lịch sử (`DB.recent()`), không tải lúc mở trang. Lý lịch tài sản đọc `log` theo đúng
@@ -117,6 +118,13 @@ biên bản trong `dữ liệu cập nhật/` (dùng chung cho mọi phần).
 
 ## Quy ước BẮT BUỘC
 
+- **File "Xuất cho kế toán" GIỮ NGUYÊN file BBKK gốc (người dùng chốt 16/11/2026):** mọi sheet, ô, công thức, định dạng, ô gộp, độ
+  rộng cột, chiều cao dòng, vùng lọc, thiết lập in — kể cả cột "Thực tế" có sẵn (để TRỐNG như gốc; số đếm được nằm trong Kết quả
+  kiểm kê). Mọi thay đổi chỉ gói trong **3 cột cuối** ở mỗi sheet danh sách (Kết quả kiểm kê · Vị trí thực tế · Ghi chú kiểm kê) +
+  **sheet riêng "Tài sản phát sinh"** ở cuối (giống 3 sheet lẻ: chưa rõ phòng ban, để riêng cho dễ xử lý). `web/export.js` KHÔNG mở
+  rồi ghi lại cả file bằng thư viện (ExcelJS làm mất độ rộng cột kiểu "D:E", đổi thiết lập in): chỉ đọc file gốc để biết dòng, rồi
+  chèn ô 3 cột mới thẳng vào XML của sheet. Giữ bằng: `npm test` bước 3 (so từng ô + từng byte, `scripts/so-sanh-excel.js`), thử
+  giao diện kịch bản `xuat-goc` (bấm đúng nút trên trang sau nhiều thao tác thật). Sửa phần xuất thì mở thử bằng Excel thật.
 - **Bảo mật và riêng tư: theo `BAO-MAT.md`** (người dùng yêu cầu 15/11/2026, lập từ các thư viện đã cấp phép: ui-ux-pro-max, Supabase).
   Gặp chỗ chưa có quy tắc thì hỏi người dùng, không chọn cách lỏng hơn.
 

@@ -102,7 +102,7 @@ function temPool() {
   const q = TEMV.q.trim().toLowerCase();
   return ASSETS.filter(a => temCoMa(a) && (!TEMV.unit || a.unit === TEMV.unit)
     && (!TEMV.room || (TEMV.room === NOROOM ? !roomOf(a) : slugify(roomOf(a)) === TEMV.room))
-    && (!q || String(a.ma).toLowerCase().includes(q) || a.ten.toLowerCase().includes(q)));
+    && (!q || timKhop(a, q, String(a.ma).toLowerCase() + ' ' + a.ten.toLowerCase())));   // tìm cả theo STT (index.html)
 }
 function temSort(list) {
   const U = Object.fromEntries(UNITS.map((u, i) => [u.id, i]));
@@ -274,7 +274,7 @@ function viewQR() {
           <div class="fld"><label for="qrU">Đơn vị (sheet)</label><select class="in" id="qrU" data-qf="unit"><option value="">Tất cả đơn vị</option>${opt(UNITS.map(u => [u.id, u.sheet]), TEMV.unit)}</select></div>
           <div class="fld"><label for="qrR">Phòng</label><select class="in" id="qrR" data-qf="room"><option value="">Tất cả phòng</option>${opt(rooms.map(r => [r.slug, r.name]), TEMV.room)}<option value="${NOROOM}"${TEMV.room === NOROOM ? ' selected' : ''}>Chưa có vị trí</option></select></div>
         </div>
-        <div class="fld"><label for="qrQ">Tìm theo mã hoặc tên</label><input class="in" id="qrQ" type="search" data-qf="q" value="${esc(TEMV.q)}" placeholder="VD: 5467321 hoặc máy chiếu"></div>
+        <div class="fld"><label for="qrQ">Tìm theo STT, mã hoặc tên</label><input class="in" id="qrQ" type="search" data-qf="q" value="${esc(TEMV.q)}" placeholder="VD: 142, 5467321 hoặc máy chiếu"></div>
         <div class="qr-g2">
           <div class="fld"><label for="qrSort">Thứ tự tem</label><select class="in" id="qrSort" data-t="sort">${opt([['phong', 'Theo phòng'], ['donvi', 'Theo đơn vị (sheet)'], ['stt', 'Theo STT trong sổ']], TEM.sort)}</select></div>
           <div class="fld"><label for="qrCp">Số tem mỗi tài sản</label><select class="in" id="qrCp" data-t="copies">${opt([['one', '1 tem'], ['sl', 'Bằng số lượng trong sổ']], TEM.copies)}</select></div>

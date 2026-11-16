@@ -103,6 +103,8 @@ await import(pathToFileURL(path.join(ROOT, 'web', 'excel-rules.js')).href);
 console.log('3. Xuất Excel cho kế toán (chạy thử web/export.js)');
 globalThis.window = globalThis;
 globalThis.ExcelJS = ExcelJS;
+const JSZip = (await import('jszip')).default;
+globalThis.JSZip = JSZip;   // web/export.js chèn thẳng vào gói .xlsx gốc (JSZip), không ghi lại cả file
 await import(pathToFileURL(path.join(ROOT, 'web', 'excel-rules.js')).href);
 const gocBuf = fs.readFileSync(path.join(DIST, 'data', 'goc.xlsx'));
 globalThis.fetch = async () => ({ ok: true, arrayBuffer: async () => gocBuf.buffer.slice(gocBuf.byteOffset, gocBuf.byteOffset + gocBuf.byteLength) });
@@ -112,31 +114,32 @@ URL.createObjectURL = x => { blob = x; return 'blob:kiem-tra'; };
 URL.revokeObjectURL = () => {};
 await import(pathToFileURL(path.join(ROOT, 'web', 'export.js')).href);
 
-// Kết quả mẫu: 3 tài sản đầu có kết quả, còn lại "Chưa kiểm" (giống trang tạo ra)
+// Kết quả mẫu đủ mọi kiểu cho MỌI tài sản (giống trang tạo ra), kèm ghi chú "khó": bắt đầu bằng = + - @, xuống dòng, ký tự đặc biệt,
+// rất dài, "Phân bổ về" (đổi phòng ban). File xuất phải giữ nguyên file gốc, chỉ khác ở 3 cột cuối + sheet Tài sản phát sinh.
+const KHO = ['=SUM(A1:A9)', '+84 905 000 000', '-5', '@ghi chú', 'Dòng 1\nDòng 2', '<b>&"\'', 'x'.repeat(600), 'Phân bổ về: Bộ môn Thiết kế mỹ thuật số - DAD; Hỏng một phần'];
+const KIEU = [['Đã kiểm - Đủ', 'du'], ['Đã kiểm - Thiếu 1 (thực tế 0/1)', 'thieu'], ['Đã kiểm - Thừa 1 (thực tế 2/1)', 'thua'], ['Chưa tìm thấy', 'nf'],
+  ['Đã xác nhận hồ sơ', 'hoso'], ['Chưa kiểm', 'chua'], ['Chưa tìm thấy (đơn vị chỉ vị trí khác)', 'nf']];
 const ketQua = {};
-rows.forEach(r => { ketQua[r[8]] = { kq: 'Chưa kiểm', vt: '', gc: '', thucTe: '', sl: r[3], r: 'chua' }; });
-const [a, bb, c] = rows;
-ketQua[a[8]] = { kq: 'Đã kiểm - Đủ', vt: 'Phòng thử A', gc: '', thucTe: a[3], sl: a[3], r: 'du' };
-ketQua[bb[8]] = { kq: 'Đã kiểm - Thiếu 1', vt: 'Phòng thử B', gc: 'Hỏng một phần', thucTe: Math.max(0, bb[3] - 1), sl: bb[3], r: 'thieu' };
-ketQua[c[8]] = { kq: 'Chưa tìm thấy', vt: '', gc: 'Đại diện trả lời: đang mượn', thucTe: 0, sl: c[3], r: 'nf' };
+rows.forEach((r, i) => { const [kq, rr] = KIEU[i % KIEU.length];
+  ketQua[r[8]] = { kq, vt: rr === 'chua' ? '' : (i % 5 ? 'Phòng thử ' + i : 'Chưa có vị trí'), gc: rr === 'chua' ? '' : KHO[i % KHO.length], thucTe: rr === 'du' ? r[3] : rr === 'nf' ? 0 : '', sl: r[3], r: rr }; });
+const coKq = rows.filter((r, i) => KIEU[i % KIEU.length][1] !== 'chua').length;
 const soDong = await window.xuatExcelKeToan({ ketQua, phatSinh: [{ mo_ta: 'Đồ thử', sl: 1, phong: 'P1', cond: 'Tốt', noi: 'Thử' }], tenFile: 'kiem-tra' });
 ok(blob && tenFile.endsWith('.xlsx'), `tạo được file "${tenFile}"`);
-ok(soDong === 3, `báo đúng 3 tài sản có kết quả (nhận ${soDong})`);
+ok(soDong === coKq, `báo đúng ${coKq} tài sản có kết quả (nhận ${soDong})`);
 
 const X = globalThis.KIEMKE_EXCEL;
+const xuatBuf = Buffer.from(await blob.arrayBuffer());
 const goc = new ExcelJS.Workbook(); await goc.xlsx.load(gocBuf);
-const moi = new ExcelJS.Workbook(); await moi.xlsx.load(Buffer.from(await blob.arrayBuffer()));
-ok(moi.worksheets.length === goc.worksheets.length + 1, `giữ đủ ${goc.worksheets.length} sheet gốc + 1 sheet Tài sản phát sinh`);
-const congThuc = ws => { let n = 0; ws.eachRow(r => r.eachCell(c => { if (c.formula || (c.value && c.value.formula)) n++; })); return n; };
+const moi = new ExcelJS.Workbook(); await moi.xlsx.load(xuatBuf);
+ok(moi.worksheets.length === goc.worksheets.length + 1 && moi.worksheets[moi.worksheets.length - 1].name === 'Tài sản phát sinh', `giữ đủ ${goc.worksheets.length} sheet gốc + 1 sheet "Tài sản phát sinh" ở cuối`);
 
-let sheetDS = 0, thieuCot = [], thieuKq = [], saiMau = [], matCongThuc = [];
+let sheetDS = 0, thieuCot = [], thieuKq = [], saiMau = [], saiChu = 0, thucTe = 0;
 for (const wg of goc.worksheets) {
   const wm = moi.getWorksheet(wg.name);
   if (!wm) { thieuCot.push(wg.name); continue; }
-  if (congThuc(wg) !== congThuc(wm)) matCongThuc.push(wg.name);
   const hm = X.headerMap(wg);
   if (!hm) continue;
-  sheetDS++;
+  sheetDS++; if (hm.cols.tt) thucTe++;
   let last = 0; wg.eachRow({ includeEmpty: false }, r => r.eachCell({ includeEmpty: false }, (cc, col) => { if (col > last) last = col; }));
   const tieuDe = [1, 2, 3].map(i => X.str(wm.getRow(hm.row).getCell(last + i).value));
   if (tieuDe.join('|') !== 'Kết quả kiểm kê|Vị trí thực tế|Ghi chú kiểm kê') thieuCot.push(wg.name);
@@ -146,13 +149,40 @@ for (const wg of goc.worksheets) {
     const kq = X.str(wm.getRow(r).getCell(last + 1).value);
     if (!kq) { thieuKq.push(`${wg.name}!${r}`); continue; }
     if (kq !== ketQua[x.key].kq) saiMau.push(`${wg.name}!${r}`);
+    const gc = wm.getRow(r).getCell(last + 3).value;
+    if ((ketQua[x.key].gc || null) !== (gc == null ? null : gc)) saiChu++;
   }
 }
 ok(sheetDS > 0, `${sheetDS} sheet danh sách được nhận diện`);
 ok(!thieuCot.length, '3 cột mới có ở mọi sheet danh sách' + (thieuCot.length ? ': thiếu ở ' + thieuCot.join(', ') : ''));
 ok(!thieuKq.length, 'mọi dòng tài sản đều có Kết quả kiểm kê' + (thieuKq.length ? ` (thiếu ${thieuKq.length}: ${thieuKq.slice(0, 5).join(', ')})` : ''));
 ok(!saiMau.length, 'kết quả ghi đúng tài sản ở mọi sheet' + (saiMau.length ? ` (sai ${saiMau.length}: ${saiMau.slice(0, 5).join(', ')})` : ''));
-ok(!matCongThuc.length, 'giữ nguyên công thức (dòng TỔNG CỘNG…)' + (matCongThuc.length ? ': lệch ở ' + matCongThuc.join(', ') : ''));
+ok(!saiChu, 'ghi chú kiểm kê giữ đúng nguyên văn (kể cả "=SUM(…)", "+84…", xuống dòng, <>&, chữ rất dài) và là chữ, không thành công thức' + (saiChu ? ` (sai ${saiChu})` : ''));
+
+// So TỪNG Ô với file gốc (scripts/so-sanh-excel.js, dùng chung với thử giao diện): ngoài 3 cột cuối + sheet phát sinh không được khác gì
+await import(pathToFileURL(path.join(ROOT, 'scripts', 'so-sanh-excel.js')).href);
+const SS = globalThis.KIEMKE_SOSANH;
+const ss = SS.soSanh(goc, moi, X);
+ok(!ss.loi.length, ss.loi.length ? `file xuất KHÁC file gốc ngoài 3 cột cuối (${ss.loi.length} chỗ): ${ss.loi.slice(0, 6).join(' · ')}`
+  : `file gốc giữ nguyên: ${ss.dem.sheet} sheet, ${ss.dem.o.toLocaleString('vi-VN')} ô gốc giống hệt (giá trị, công thức, định dạng, ô gộp, độ rộng cột, chiều cao dòng, vùng lọc…), kể cả cột "Thực tế" có sẵn ở ${thucTe} sheet (để trống như gốc); chỉ khác ở 3 cột cuối (${ss.dem.oMoi.toLocaleString('vi-VN')} ô) + sheet Tài sản phát sinh`);
+// So TỪNG BYTE các phần của gói .xlsx: ngoài đúng các ô / khai báo của 3 cột mới (và sheet phát sinh), mọi phần giống file gốc;
+// XML các phần đã chèn phải đọc được (không hỏng file)
+const sx = await import('saxes'); const SaxesParser = sx.SaxesParser || sx.default.SaxesParser;
+const kiemXml = s => { let e = null; try { const p = new SaxesParser(); p.on('error', x => { if (!e) e = x.message; }); p.write(s).close(); } catch (x) { e = e || x.message; } return e; };
+const zGoc = await JSZip.loadAsync(gocBuf), zXuat = await JSZip.loadAsync(xuatBuf);
+const sb = await SS.soSanhGoi(zGoc, zXuat, goc, X, kiemXml);
+ok(!sb.loi.length, sb.loi.length ? `gói .xlsx KHÁC gốc ngoài 3 cột cuối (${sb.loi.length} chỗ): ${sb.loi.slice(0, 4).join(' · ')}`
+  : `so từng byte ${sb.dem.phan} phần của file gốc: ${sb.dem.giongByte} phần không liên quan (chuỗi chữ, giao diện, thuộc tính…) giống hệt; ${sb.dem.sheetSua} sheet danh sách bỏ 3 cột mới ra thì giống gốc từng ký tự; 4 phần khai báo (định dạng, danh sách sheet…) chỉ thêm vào cuối; XML đọc được`);
+// bộ so sánh phải bắt được lỗi thật: thử điền cột Thực tế, sửa tên tài sản, sửa 1 phần khác của gói → phải báo
+{ const sai = new ExcelJS.Workbook(); await sai.xlsx.load(xuatBuf);
+  const ws = sai.worksheets.find(w => X.headerMap(w) && X.headerMap(w).cols.tt), hm = X.headerMap(ws);
+  ws.getRow(hm.dataStart).getCell(hm.cols.tt).value = 7; ws.getRow(hm.dataStart).getCell(hm.cols.ten).value = 'Sửa thử';
+  const s2 = SS.soSanh(goc, sai, X);
+  const z2 = await JSZip.loadAsync(xuatBuf), pSheet = Object.keys(z2.files).find(p => /^xl\/worksheets\/sheet\d+\.xml$/.test(p) && !zGoc.file(p) === false);
+  z2.file(pSheet, (await z2.file(pSheet).async('string')).replace(/<v>(\d+)<\/v>/, (a, n) => `<v>${+n + 1}</v>`));
+  z2.file('docProps/core.xml', (await z2.file('docProps/core.xml').async('string')) + ' ');
+  const s3 = await SS.soSanhGoi(zGoc, z2, goc, X, kiemXml), s4 = kiemXml('<a><b></a>');
+  ok(s2.loi.length >= 2 && s3.loi.length >= 2 && s4, `bộ so sánh bắt được thay đổi thật (điền cột Thực tế, sửa tên → ${s2.loi.length} chỗ; sửa 1 số trong sheet, sửa 1 phần khác của gói → ${s3.loi.length} chỗ; XML hỏng → báo)`); }
 
 /* 4. Mã QR trên tem: mọi tài sản → tạo mã QR → đọc lại bằng bộ giải mã → phải ra đúng tài sản đó */
 console.log('4. Mã QR trên tem (web/qr-rules.js)');

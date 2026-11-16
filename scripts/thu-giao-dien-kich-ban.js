@@ -238,6 +238,19 @@
     ok(dong().length === 1 && dong()[0] === a, 'tìm theo Mã TSCĐ trong trang kết quả');
     app.querySelector(`.row[data-stt="${a.stt}"] [data-act="clr"]`).click(); await W(300);
     ok(res(a) === 'chua', 'bấm “Kiểm lại” ngay trong trang kết quả: tài sản về Chưa kiểm');
+    // Tìm theo STT (cột STT sheet Tổng hợp) ở mọi ô tìm tài sản — người dùng yêu cầu 16/11/2026
+    const go2 = async (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); await W(500); };
+    const a142 = ASSETS.find(x => x.stt === 142);
+    await go('tong-quan'); await go2('gq', '142');
+    { const h = app.querySelector('#gres .srow'); ok(h && h.classList.contains('stt-hit') && h.textContent.includes(String(a142.ma)), `Bảng tổng quan: gõ “142” → tài sản STT 142 (${a142.ma}) đứng đầu, tô nổi`); }
+    document.getElementById('gq').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await W(500);
+    ok(location.hash === '#ts-' + encodeURIComponent(a142.key), 'gõ STT rồi Enter: mở thẳng trang tài sản đó');
+    await go('dv-' + a142.unit); await go2('q', 'stt 142');
+    ok([...app.querySelectorAll('.row[data-stt]')].map(r => +r.dataset.stt).join() === '142', 'trang sheet: gõ “STT 142” → đúng 1 tài sản STT 142');
+    await go('tong-hop'); await go2('thq', '#142');
+    ok(app.querySelectorAll('.th-r').length === 1 && app.querySelector('.th-r').dataset.stt === '142', 'Tổng hợp: gõ “#142” → đúng tài sản STT 142');
+    TH.q = ''; await go('ly-lich'); await go2('llq', '142');
+    ok(/STT 142/.test((document.querySelector('#llRes a') || {}).textContent || ''), 'Lý lịch tài sản: gõ “142” → tài sản STT 142 đứng đầu');
   };
 
   // Phòng bổ sung (danh mục phòng Gamma / Alpha), quy tắc "xong", đổi phòng ban như đổi phòng, Tải Excel Tổng hợp
@@ -290,6 +303,59 @@
     // tốc độ: trang "Chưa có vị trí" (nhiều dòng nhất) vẫn mở nhanh dù ô chọn phòng có thêm phòng mới
     const t0 = performance.now(); await go('phong-' + NOROOM); const ms = performance.now() - t0 - 450;
     ok(app.querySelectorAll('.row').length > 300 && ms < 4000, `trang Chưa có vị trí (${app.querySelectorAll('.row').length} dòng) mở trong ~${Math.max(0, Math.round(ms))} ms`);
+  };
+
+  // Xuất cho kế toán sau nhiều thao tác THẬT trên trang (bấm nút, chọn ô như cán bộ): file BBKK gốc giữ nguyên hoàn toàn,
+  // chỉ khác ở 3 cột cuối (Kết quả kiểm kê · Vị trí thực tế · Ghi chú kiểm kê) + sheet "Tài sản phát sinh" — người dùng chốt 16/11/2026
+  KB['xuat-goc'] = async () => {
+    const GHI = '=SUM(A1:A9) +84 905 <b>&"\' — chữ đặc biệt';   // ô ghi chú trên trang là ô 1 dòng; trường hợp xuống dòng đã thử ở npm test
+    await go('dv-GD');
+    const L = BY_UNIT.GD.filter(a => !a.hoso && a.ma && res(a) === 'chua').slice(0, 6);
+    const dong = a => app.querySelector(`.row[data-stt="${a.stt}"]`);
+    const bam = async (a, act) => { dong(a).querySelector(`[data-act="${act}"]`).click(); await W(300); };
+    const chon = async (a, f, v) => { const el = dong(a).querySelector(`[data-f="${f}"]`); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); await W(400); };
+    await bam(L[0], 'du'); await bam(L[0], 'more'); await chon(L[0], 'note', GHI);              // Đủ + ghi chú "khó"
+    await chon(L[1], 'tt', String(Math.max(0, L[1].sl - 1)));                                    // sửa số → thiếu
+    await bam(L[2], 'nf');                                                                       // Không thấy
+    await bam(L[3], 'du'); await bam(L[3], 'more'); await chon(L[3], 'cond', 'hong_mp'); await chon(L[3], 'sd', 'muon');   // tình trạng + trạng thái sử dụng
+    await chon(L[4], 'phong', '202 Gamma');                                                      // đổi phòng (phòng bổ sung)
+    await chon(L[5], 'dv', 'HC');                                                                // đổi phòng ban
+    S.xm[L[2].stt] = { kq: 'chi', phong: '101 Gamma', phanhoi: 'Đang để ở 101 Gamma' }; save();   // xác minh thất lạc
+    await go('dv-GD');
+    document.getElementById('ps-mt').value = 'Máy in phát sinh thử'; document.getElementById('ps-sl').value = '2'; document.getElementById('ps-ph').value = '108 Gamma';
+    document.getElementById('psForm').requestSubmit(); await W(300);                              // tài sản phát sinh
+    ok(res(L[0]) === 'du' && res(L[1]) === 'thieu' && res(L[2]) === 'nf' && S.rows[L[0].stt].note === GHI && L[5].unit === 'HC' && roomOf(L[4]) === '202 Gamma' && (S.ps.GD || []).length,
+      'đã làm đủ thao tác thật: Đủ, sửa số, Không thấy, ghi chú, tình trạng, trạng thái sử dụng, đổi phòng, đổi phòng ban, xác minh, tài sản phát sinh' + ` [${[res(L[0]), res(L[1]), res(L[2]), L[5].unit, roomOf(L[4])].join(' | ')}]`);
+    // bấm đúng nút "Tải file Excel cho kế toán", bắt file tải về
+    await go('xuat');
+    let blob = null; const goc0 = URL.createObjectURL; URL.createObjectURL = b => { blob = b; return 'blob:thu-xuat'; };
+    app.querySelector('[data-act="xlsx"]').click();
+    await until(() => blob, 60000); URL.createObjectURL = goc0;
+    ok(!!blob, 'bấm “Tải file Excel cho kế toán”: tạo được file');
+    if (!blob) return;
+    const bx = await blob.arrayBuffer(), bg = await (await fetch('data/goc.xlsx', { cache: 'no-store' })).arrayBuffer();
+    const g = new ExcelJS.Workbook(); await g.xlsx.load(bg.slice(0));
+    const x = new ExcelJS.Workbook(); await x.xlsx.load(bx.slice(0));
+    const X = KIEMKE_EXCEL, SS = KIEMKE_SOSANH;
+    const s1 = SS.soSanh(g, x, X);
+    ok(!s1.loi.length, s1.loi.length ? `file xuất KHÁC gốc ngoài 3 cột cuối: ${s1.loi.slice(0, 4).join(' · ')}` : `so từng ô: ${s1.dem.sheet} sheet, ${s1.dem.o} ô gốc giống hệt (cột Thực tế để trống như gốc); chỉ thêm ${s1.dem.oMoi} ô ở 3 cột cuối`);
+    const kiemXml = s => { const d = new DOMParser().parseFromString(s, 'application/xml'), e = d.getElementsByTagName('parsererror')[0]; return e ? e.textContent.slice(0, 120) : null; };
+    const s2 = await SS.soSanhGoi(await JSZip.loadAsync(bg.slice(0)), await JSZip.loadAsync(bx.slice(0)), g, X, kiemXml);
+    ok(!s2.loi.length, s2.loi.length ? `gói .xlsx KHÁC gốc: ${s2.loi.slice(0, 3).join(' · ')}` : `so từng byte: phần không liên quan giống hệt, bỏ 3 cột mới thì mọi sheet giống gốc từng ký tự, XML đọc được`);
+    // đúng nội dung các thao tác vừa làm, ở đúng dòng của tài sản
+    const o3 = a => { for (const ws of g.worksheets) { const hm = X.headerMap(ws); if (!hm) continue; let last = 0; ws.eachRow({ includeEmpty: false }, r => r.eachCell({ includeEmpty: false }, (c, col) => { if (col > last) last = col; }));
+      for (let r = hm.dataStart; r <= ws.rowCount; r++) { const xr = X.readRow(ws, hm, r); if (xr && !xr.tiepTen && xr.key === a.key) { const w = x.getWorksheet(ws.name), row = w.getRow(r);
+        return { kq: row.getCell(last + 1).value, vt: row.getCell(last + 2).value, gc: row.getCell(last + 3).value, tt: hm.cols.tt ? row.getCell(hm.cols.tt).value : null, ttGoc: hm.cols.tt ? ws.getRow(r).getCell(hm.cols.tt).value : null }; } } } return {}; };
+    const k = L.map(o3);
+    ok(k[0].kq === 'Đã kiểm - Đủ' && k[0].gc === GHI, 'Đủ + ghi chú giữ nguyên văn (dấu =, +, <>&"), là chữ thường không thành công thức' + ` [${JSON.stringify(k[0])}]`);
+    ok(/^Đã kiểm - Thiếu 1/.test(k[1].kq) && k[1].tt === k[1].ttGoc, `sửa số → “${k[1].kq}”; cột Thực tế để nguyên như gốc`);
+    ok(k[2].kq === 'Chưa tìm thấy (đơn vị chỉ vị trí khác)' && k[2].vt === '101 Gamma' && /Đại diện trả lời: Đang để ở 101 Gamma/.test(k[2].gc || ''), 'Không thấy + xác minh: kết quả, vị trí được chỉ, câu trả lời của đại diện');
+    ok(/Hỏng một phần/.test(k[3].gc || '') && /Trạng thái sử dụng: Cho mượn/.test(k[3].gc || ''), 'tình trạng, trạng thái sử dụng vào Ghi chú kiểm kê');
+    ok(k[4].vt === '202 Gamma' && /Phân bổ về: Phòng Hành chính/.test(k[5].gc || ''), 'đổi phòng → Vị trí thực tế; đổi phòng ban → “Phân bổ về: …”');
+    const ps = x.worksheets[x.worksheets.length - 1];
+    const psDong = []; ps.eachRow((r, i) => { if (i > 1) psDong.push(r.getCell(2).value); });
+    ok(ps.name === 'Tài sản phát sinh' && psDong.includes('Máy in phát sinh thử') && psDong.length === (S.ps.GD || []).length && x.worksheets.length === g.worksheets.length + 1,
+      `tài sản phát sinh ở sheet riêng cuối file (${psDong.length} món: ${psDong.join('; ')})`);
   };
 
   KB['chung'] = async () => {

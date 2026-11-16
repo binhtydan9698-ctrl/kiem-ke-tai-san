@@ -79,6 +79,11 @@
 - Nút dạng đường link dùng `a.btn` (màu chữ của trang). Thử giao diện: `npm run thu-giao-dien`.
 - Quét mã (`scanShow`): tem của app → `KIEMKE_QR.parse` → tra đúng `BY_KEY`; mã khớp nguyên văn → mở `#ts-…`; camera không
   bao giờ đoán gần đúng; mã vạch (không phải QR) phải đọc giống nhau 2 lần mới nhận.
+- Tìm tài sản (mọi ô tìm: Bảng tổng quan `#gq`, trang sheet / phòng / kết quả `#q`, Tổng hợp `#thq`, Lý lịch, Khấu hao, In tem):
+  luôn qua `timKhop(a, q, chữ)` để tìm được theo **STT** (cột STT sheet Tổng hợp, người dùng yêu cầu 16/11/2026): "142" → STT 142
+  đứng đầu (`sttTruoc`) + mã / tên chứa "142"; "STT 142" / "#142" → chỉ đúng STT. `#gq` gõ STT + Enter mở thẳng `#ts-`.
+- Xuất cho kế toán (`export.js`): KHÔNG ghi lại cả file bằng ExcelJS — chỉ đọc để biết dòng, rồi chèn ô 3 cột mới vào XML (JSZip),
+  thêm định dạng vào CUỐI `styles.xml`. Quy tắc "file gốc giữ nguyên" trong AGENTS.md; bộ so sánh `scripts/so-sanh-excel.js`.
 - Chèn chữ do người dùng nhập vào HTML luôn qua `esc()`.
 - Trạng thái kiểm kê nằm trong `S`; sau khi đổi `S` phải gọi `save()` rồi làm mới giao diện (`refreshRow`/`render`).
   Không gọi `save()` trong hàm render.
