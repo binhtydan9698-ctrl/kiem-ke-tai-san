@@ -15,9 +15,16 @@ const ok = (dk, msg) => { if (dk) console.log('  ✓ ' + msg); else { loi++; con
 
 /* 1. Build */
 console.log('1. Build từ file Excel');
+// quy tắc vàng 5: build / npm test không bao giờ được làm đổi file Excel BBKK (dấu vân tay trước và sau)
+const { createHash } = await import('node:crypto');
+const DATA_DIR = path.join(ROOT, 'dữ liệu cập nhật');
+const vanTayExcel = () => JSON.stringify(fs.readdirSync(DATA_DIR).filter(f => /\.xlsx$/i.test(f) && !f.startsWith('~$')).sort()
+  .map(f => [f, createHash('sha1').update(fs.readFileSync(path.join(DATA_DIR, f))).digest('hex')]));
+const excelTruoc = vanTayExcel();
 const b = spawnSync(process.execPath, [path.join('scripts', 'build.mjs')], { cwd: ROOT, encoding: 'utf8' });
 process.stdout.write((b.stdout + b.stderr).trimEnd().replace(/^/gm, '     ') + '\n');
 if (b.status !== 0) { console.error(b.stderr); console.log('✗ Build lỗi, dừng.'); process.exit(1); }
+ok(vanTayExcel() === excelTruoc, 'build không làm đổi file Excel trong "dữ liệu cập nhật" (quy tắc vàng 5)');
 
 /* 2. Dữ liệu tài sản */
 console.log('2. Dữ liệu tài sản (dist/data/assets.js)');
@@ -340,6 +347,53 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
       && pol.every(p => / to authenticated /.test(p) && /bucket_id = 'anh-tai-san' and public\.(la_thanh_vien|duoc_ghi)\(/.test(p)),
       'dang-nhap.sql: kho ảnh tài sản riêng tư (không công khai), chỉ thành viên xem, chỉ quyền Kiểm kê / Quản trị tải lên, xoá');
   }
+}
+
+/* 7. Quy tắc trong mã + bộ quy tắc AGENTS.md (bảng "Quy tắc vàng" phải trỏ đúng tới các bước kiểm tra có thật) */
+console.log('7. Quy tắc trong mã và bộ quy tắc (AGENTS.md)');
+{
+  const doc = f => fs.readFileSync(path.join(ROOT, f), 'utf8');
+  const tepMa = [...fs.readdirSync(path.join(ROOT, 'web')).filter(f => /\.(js|html)$/.test(f)).map(f => 'web/' + f),
+    ...fs.readdirSync(path.join(ROOT, 'scripts')).filter(f => /\.(js|mjs)$/.test(f)).map(f => 'scripts/' + f)];
+  // quy tắc 5: nhận diện tiêu đề / dòng tài sản chỉ nằm trong web/excel-rules.js
+  const chepLai = tepMa.filter(f => f !== 'web/excel-rules.js' && /function\s+(headerMap|readRow)\b|\b(headerMap|readRow)\s*[:=]\s*(async\s+)?(function\b|\()/.test(doc(f)));
+  ok(!chepLai.length, 'nhận diện tiêu đề, dòng tài sản chỉ nằm trong web/excel-rules.js (quy tắc vàng 5)' + (chepLai.length ? ': chép lại ở ' + chepLai.join(', ') : ''));
+  // quy tắc 8: địa chỉ web của tem mã QR chỉ nằm trong web/qr-rules.js (đổi dạng link ở chỗ khác → tem đã dán không khớp)
+  const diaChi = tepMa.filter(f => f.startsWith('web/') && f !== 'web/qr-rules.js' && /quan-ly-tai-san-fptudn\.vercel\.app/.test(doc(f)));
+  ok(!diaChi.length, 'địa chỉ web của tem mã QR chỉ nằm trong web/qr-rules.js (quy tắc vàng 8)' + (diaChi.length ? ': còn ở ' + diaChi.join(', ') : ''));
+  // quy tắc 5: gọi đúng tên cột "Ngày bắt đầu sử dụng", không gọi "ngày ghi sổ"
+  const ghiSo = tepMa.filter(f => f.startsWith('web/') && /ng[àa]y ghi s[ổo]/i.test(doc(f)));
+  ok(!ghiSo.length, 'trang không gọi cột ngày là "ngày ghi sổ" (đúng tên: Ngày bắt đầu sử dụng)' + (ghiSo.length ? ': còn ở ' + ghiSo.join(', ') : ''));
+
+  // bảng Quy tắc vàng: bước npm test, kịch bản thử giao diện ghi trong cột "Ai giữ" phải có thật; quy tắc nào cũng có mục chi tiết
+  const ag = doc('AGENTS.md'), kt = doc('scripts/kiem-tra.mjs'), tgd = doc('scripts/thu-giao-dien.mjs'), kb = doc('scripts/thu-giao-dien-kich-ban.js');
+  const buoc = new Set([...kt.matchAll(/console\.log\('(\d+[a-z]?)\. /g)].map(m => m[1]));
+  const kichBan = new Set([...tgd.matchAll(/\{ ten: '([a-z-]+)'/g)].map(m => m[1])), coKB = new Set([...kb.matchAll(/KB\['([a-z-]+)'\]\s*=/g)].map(m => m[1]));
+  const soatVang = ag => {
+    const vang = (/## Quy tắc vàng\s*\n([\s\S]*?)\n## /.exec(ag) || [])[1] || '';
+    const dong = vang.split('\n').filter(l => /^\| \d+ \|/.test(l)).map(l => l.split(' | ').map(x => x.replace(/^\|\s*|\s*\|$/g, '').trim()));
+    const sai = [];
+    dong.forEach((c, i) => {
+      const so = +c[0], ai = c[c.length - 1];
+      if (so !== i + 1) sai.push(`dòng ${i + 1} đánh số ${so}`);
+      if (!/Máy|Trợ lý/.test(ai)) sai.push(`quy tắc ${so} thiếu "Ai giữ"`);
+      if (!new RegExp('\\n### ' + so + '\\. ').test(ag)) sai.push(`quy tắc ${so} thiếu mục chi tiết "### ${so}."`);
+      for (const m of ai.matchAll(/npm test bước ([0-9a-z, ]+?)(?=\s*(?:[;·|]|$))/g)) m[1].split(/[,\s]+/).filter(Boolean).forEach(x => { if (!buoc.has(x)) sai.push(`quy tắc ${so} ghi "npm test bước ${x}" nhưng không có bước đó`); });
+      if (/Máy/.test(ai) && !/npm test bước|thử giao diện|bộ thử giao diện/.test(ai)) sai.push(`quy tắc ${so} ghi "Máy" mà không nói kiểm ở đâu`);
+      for (const m of ai.matchAll(/`([a-z]+(?:-[a-z]+)*)`/g)) if (!kichBan.has(m[1]) || !coKB.has(m[1])) sai.push(`quy tắc ${so} ghi kịch bản "${m[1]}" nhưng bộ thử không có`);
+    });
+    return { dong, sai };
+  };
+  const { dong, sai } = soatVang(ag);
+  ok(dong.length >= 10 && !sai.length, `bảng Quy tắc vàng: ${dong.length} quy tắc, ${dong.filter(c => /Máy/.test(c[c.length - 1])).length} quy tắc có máy kiểm tra, mọi bước / kịch bản được trỏ tới đều có thật, quy tắc nào cũng có mục chi tiết` + (sai.length ? ': ' + sai.slice(0, 5).join('; ') : ''));
+  // tự thử: làm sai bảng (trỏ tới bước / kịch bản không có, mất mục chi tiết, đánh số nhảy) → phải báo đủ 4 lỗi
+  const hong = ag.replace('npm test bước 3;', 'npm test bước 9;').replace('`xuat-goc`', '`khong-co`').replace('\n### 12. ', '\n### Mười hai. ').replace(/\n\| 15 \|/, '\n| 16 |');
+  const s2 = soatVang(hong).sai;
+  ok(s2.length >= 4, `bước soát bộ quy tắc bắt được lỗi thật (thử trỏ tới bước không có, kịch bản không có, mất mục chi tiết, đánh số sai → báo ${s2.length} lỗi)`);
+  const lech = [...[...kichBan].filter(k => !coKB.has(k)).map(k => `kịch bản "${k}" chưa viết`), ...[...coKB].filter(k => !kichBan.has(k)).map(k => `kịch bản "${k}" viết rồi nhưng không chạy`)];
+  ok(!lech.length, `thử giao diện: ${kichBan.size} kịch bản, cái nào cũng được viết và được chạy` + (lech.length ? ': ' + lech.join('; ') : ''));
+  // quy tắc 5: cả lần kiểm tra (build, chạy thử xuất kế toán, Sổ mã QR…) không làm đổi file Excel
+  ok(vanTayExcel() === excelTruoc, 'file Excel trong "dữ liệu cập nhật" vẫn y nguyên sau toàn bộ lần kiểm tra (quy tắc vàng 5)');
 }
 
 console.log(loi ? `\n✗ ${loi} mục KHÔNG đạt` : '\n✓ Tất cả đều đạt');

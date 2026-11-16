@@ -103,7 +103,7 @@ scripts/
 supabase/schema.sql    Bảng kiemke_docs (chạy một lần trong Supabase)
 .agents/skills/        Quy trình cho trợ lý AI của Antigravity
 .vscode/               F5, Run Task, cài đặt editor
-AGENTS.md              Quy tắc chung cho trợ lý AI
+AGENTS.md              Bộ quy tắc cho trợ lý AI (bảng "Quy tắc vàng" ở đầu)
 vercel.json            Vercel chạy `npm run build`, phục vụ thư mục dist/
 ```
 
@@ -119,7 +119,7 @@ vercel.json            Vercel chạy `npm run build`, phục vụ thư mục dis
 
 | File | Tác dụng |
 |---|---|
-| `AGENTS.md`, `web/AGENTS.md` | Quy tắc trợ lý AI luôn đọc: dự án làm gì, lệnh nào, điều gì không được làm (khoá Supabase, repo công khai…) |
+| `AGENTS.md`, `web/AGENTS.md` | Bộ quy tắc trợ lý AI luôn đọc. Đầu `AGENTS.md` là bảng **Quy tắc vàng** (15 điều không bao giờ được làm sai, mỗi điều ghi rõ máy kiểm tra ở đâu hay trợ lý tự giữ); `npm test` bước 7 soát bảng này |
 | `.agents/skills/` | 4 quy trình trợ lý AI tự dùng khi phù hợp: **xem-thu-cuc-bo**, **cap-nhat-du-lieu-excel**, **trien-khai-len-web**, **du-lieu-ket-qua-supabase** |
 | `.vscode/launch.json` | Bấm **F5** → build và mở trang xem thử trên trình duyệt |
 | `.vscode/tasks.json` | **Terminal → Run Task…**: Kiểm tra, Build, Xem thử, Đẩy dữ liệu Excel, Kiểm tra trang Vercel, Sao lưu Supabase |

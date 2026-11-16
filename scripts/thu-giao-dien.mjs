@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
 const KICH_BAN = [
-  { ten: 'dau-trang', mo: 'Đầu trang, 3 phần chính, menu con' },
+  { ten: 'dau-trang', mo: 'Đầu trang, 4 phần chính, menu con' },
   { ten: 'quet-ma', mo: 'Quét mã: tem mở thẳng tài sản, không đoán' },
   { ten: 'in-tem', mo: 'In tem mã QR: xem trước, PDF, PNG, CSV, In ngay (đọc lại mọi mã)', cho: 240000 },
   { ten: 'lich-su', mo: 'Lịch sử: Nhập sổ, Lý lịch, Trạng thái sử dụng' },
@@ -88,10 +88,16 @@ ws.onmessage = e => {
   if (m.id && cho.has(m.id)) { cho.get(m.id)(m); cho.delete(m.id); }
   else if (m.method === 'Runtime.exceptionThrown') loiTrang.push(m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text);
   else if (m.method === 'Page.javascriptDialogOpening') gui('Page.handleJavaScriptDialog', { accept: true, promptText: 'Người thử' });   // hộp hỏi tên: tự trả lời
+  else if (m.method === 'Network.requestWillBeSent') {   // quy tắc vàng 3: bộ thử không bao giờ được gửi gì tới Supabase (dữ liệu chung)
+    const u = m.params.request.url; soYeuCau++;
+    if (/supabase\.co/i.test(u) || (SUPA && u.startsWith(SUPA))) guiSupa.push(`${m.params.request.method} ${u.slice(0, 90)}`);
+  }
 };
+let soYeuCau = 0;   // tổng số yêu cầu mạng thấy được (chứng tỏ bộ theo dõi có chạy)
+const guiSupa = [], SUPA =(/url:\s*["']([^"']+)["']/.exec(fs.readFileSync(path.join(ROOT, 'web', 'config.js'), 'utf8')) || [])[1] || '';
 const gui = (method, params = {}) => new Promise(r => { const i = ++id; cho.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
 await new Promise(r => (ws.onopen = r));
-await gui('Page.enable'); await gui('Runtime.enable');
+await gui('Page.enable'); await gui('Runtime.enable'); await gui('Network.enable');
 
 console.log(`Thử giao diện trên ${path.basename(ung)} chạy ngầm (chế độ chỉ lưu trên máy, không đọc / ghi Supabase)`);
 let so = 0;
@@ -114,6 +120,10 @@ for (const k of KICH_BAN) {
   const csp = JSON.parse((await gui('Runtime.evaluate', { expression: 'JSON.stringify(window.__CSP||[])', returnByValue: true })).result?.result?.value || '[]').filter(x => !/pdf\.worker|pdf\.js/.test(x));
   ok(!csp.length, 'không vi phạm chính sách chặn mã lạ (CSP)' + (csp.length ? ': ' + [...new Set(csp)].slice(0, 4).join(' | ') : ''));
 }
+
+console.log('Cuối cùng: dữ liệu chung trên Supabase');
+ok(!guiSupa.length && soYeuCau > 100 && SUPA, guiSupa.length ? `bộ thử đã gửi ${guiSupa.length} yêu cầu tới Supabase: ${[...new Set(guiSupa)].slice(0, 3).join(' | ')}`
+  : `theo dõi ${soYeuCau.toLocaleString('vi-VN')} yêu cầu mạng của cả bộ thử: không yêu cầu nào tới Supabase — dữ liệu chung không bị đụng (quy tắc vàng 3)`);
 
 ws.close(); tr.kill(); may.close(); don();
 try { fs.rmSync(hoSo, { recursive: true, force: true }); } catch { }

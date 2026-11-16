@@ -1,5 +1,7 @@
 # Quy ước cho thư mục web/ (mã nguồn trang)
 
+Đọc bảng **Quy tắc vàng** trong [AGENTS.md](../AGENTS.md) trước — tệp này chỉ nói cách viết mã của trang cho đúng các quy tắc đó.
+
 - HTML + JavaScript thuần, **không** framework, **không** bước bundle. `index.html` chứa CSS + logic chính;
   các file `.js` khác nạp bằng `<script src>` theo thứ tự trong `<head>`. Không đổi sang ES module / React
   trừ khi người dùng yêu cầu.

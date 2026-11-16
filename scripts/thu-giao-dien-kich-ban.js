@@ -192,6 +192,10 @@
   // Chung: khấu hao (tạm tính, chọn số năm) và đầu mối theo sheet (hiện ở các phần khác, không xuất cho kế toán)
   // Bảng tổng quan: 3 ô đầu có nút "Xem →" như 2 ô cuối; trang Kết quả đã kiểm của cả trường (#ket-qua, #ket-qua-lech)
   KB['ket-qua'] = async () => {
+    // quy tắc vàng 7: kết quả kiểm lưu theo Mã TSCĐ (khoá a.key), không theo STT — đổi thứ tự dòng Excel không làm gắn nhầm tài sản
+    { const b = BY_UNIT.GD.find(x => x.ma && String(x.ma) === String(x.key)), n = ASSETS.filter(x => x.ma && String(x.ma) !== String(x.key)).length;
+      ok(docId('rows', b.stt) === String(b.ma) && docId('xm', b.stt) === String(b.ma) && docId('anh', b.stt) === String(b.ma) && localKey('rows', String(b.ma)) === String(b.stt) && docId('units', 'GD') === 'GD',
+        `kết quả kiểm, xác minh, ảnh lưu theo Mã TSCĐ (STT ${b.stt} → khoá ${b.ma}), không theo STT; ${n} tài sản có khoá khác Mã TSCĐ`); }
     const a = BY_UNIT.GD.find(x => x.sl >= 2 && !x.hoso && x.ma && res(x) === 'chua');
     S.rows[a.stt] = { tt: a.sl - 1, nf: false, phong: roomOf(a), cond: 'tot', at: Date.now(), by: 'Người thử' }; save();
     await go('tong-quan');
