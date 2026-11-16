@@ -18,6 +18,7 @@ const KICH_BAN = [
   { ten: 'lich-su', mo: 'Lịch sử: Nhập sổ, Lý lịch, Trạng thái sử dụng' },
   { ten: 'quet-lien-tuc', mo: 'Quét liên tục trong phòng' },
   { ten: 'doi-ma', mo: 'Kế toán đổi Mã TSCĐ: tem mã cũ mở tài sản mã mới, lý lịch gộp' },
+  { ten: 'ket-qua', mo: 'Bảng tổng quan: nút “Xem →” ở 3 ô đầu, trang Kết quả đã kiểm / Lệch số lượng' },
   { ten: 'chung', mo: 'Chung: khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán' },
   { ten: 'dang-nhap-dau', mo: 'Đăng nhập: lần đầu tạo tài khoản quản trị (đăng nhập giả, không đụng Supabase)' },
   { ten: 'dang-nhap', mo: 'Đăng nhập: mật khẩu, chặn nhập sai, chính sách mật khẩu, xác thực 2 bước, thành viên, quyền, Danh bạ, tự đăng xuất' },

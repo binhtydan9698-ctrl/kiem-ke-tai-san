@@ -384,8 +384,9 @@ body::before{background:var(--top-bg)}
 .stat.ok .si{background:var(--ok-soft);color:var(--ok)} .stat.warn .si{background:var(--warn-soft);color:var(--warn)} .stat.bad .si{background:var(--bad-soft);color:var(--bad)} .stat.acc .si{background:var(--accent-soft);color:var(--accent)} .stat.inf .si{background:var(--info-soft);color:var(--info)}
 .stat small{font-weight:500}
 .stat b{font-size:24px;line-height:1.1}
-.stat .sub{grid-column:1/-1;font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
-.stat .sub a{color:var(--accent);font-weight:600;text-decoration:none}
+.stat .sub{grid-column:1/-1;font-size:12.5px;color:var(--fg);font-weight:500;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
+.stat .sub a{color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap;margin-left:auto}
+.stat .sub a:hover{text-decoration:underline}
 .stat .sub .bar{flex:1;max-width:110px}
 /* biểu đồ */
 .charts{margin-bottom:22px}
@@ -1889,9 +1890,9 @@ function viewOverview(){
   <div id="gres">${ovSearchHTML()}</div>
   <div class="stitle"><h2>Số liệu <strong>kiểm kê</strong></h2></div>
   <div class="stats">
-    <div class="stat acc"><span class="si">${ic('Boxes')}</span><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b><div class="sub"><span>${nf.format(all.sl)} cái</span><span>${money(all.gia)}</span></div></div>
-    <div class="stat ok"><span class="si">${ic('CircleCheck')}</span><small>Đã kiểm</small><b>${nf.format(all.da)}</b><div class="sub"><span class="num">${pct}%</span>${barHTML(all)}</div></div>
-    <div class="stat warn"><span class="si">${ic('TriangleAlert')}</span><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b><div class="sub"><span>Thiếu ${nf.format(all.thieu)}</span><span>Thừa ${nf.format(all.thua)}</span></div></div>
+    <div class="stat acc"><span class="si">${ic('Boxes')}</span><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b><div class="sub"><span>${nf.format(all.sl)} cái · ${money(all.gia)}</span><a href="#don-vi">Xem →</a></div></div>
+    <div class="stat ok"><span class="si">${ic('CircleCheck')}</span><small>Đã kiểm</small><b>${nf.format(all.da)}</b><div class="sub"><span class="num">${pct}%</span>${barHTML(all)}${all.da?`<a href="#ket-qua">Xem →</a>`:''}</div></div>
+    <div class="stat warn"><span class="si">${ic('TriangleAlert')}</span><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b><div class="sub"><span>Thiếu ${nf.format(all.thieu)} · Thừa ${nf.format(all.thua)}</span>${all.lech?`<a href="#ket-qua-lech">Xem →</a>`:''}</div></div>
     <div class="stat bad"><span class="si">${ic('CircleAlert')}</span><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b><div class="sub"><span>${wait} chờ xác minh</span>${wait?`<a href="#xac-minh">Xác minh →</a>`:''}</div></div>
     <div class="stat inf"><span class="si">${ic('MapPin')}</span><small>Chưa có vị trí</small><b>${nf.format(all.novt)}</b><div class="sub"><span>${nRooms} phòng, khu vực</span>${all.novt?`<a href="#phong-${NOROOM}">Xem →</a>`:''}</div></div>
   </div>
@@ -2036,8 +2037,8 @@ function listGroups(rows,groupBy){
     const link=groupBy==='unit'?`<a class="glink" href="#dv-${k}">Mở sheet ${esc(UNIT[k].sheet)} →</a>`:`<a class="glink" href="#phong-${k?slugify(k):NOROOM}" data-act="goto" data-u="${V.id}">Kiểm tại phòng này →</a>`;
     return `<div class="grp ${groupBy!=='unit'&&!k?'none':''}" data-g="${esc(k)}" data-by="${groupBy}"><b>${title}</b><span class="num">${g[k].length} dòng · ${cc.chua} chưa kiểm</span>${link}</div><div class="list">${g[k].sort((a,b)=>a.stt-b.stt).map(rowHTML).join('')}</div>`;}).join('');
 }
-function toolsHTML(c,groupLabel,bulk){
-  const F=[['all','Tất cả',c.tong],['chua','Chưa kiểm',c.chua],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]];
+function toolsHTML(c,groupLabel,bulk,F0){
+  const F=F0||[['all','Tất cả',c.tong],['chua','Chưa kiểm',c.chua],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]];
   const nb=bulkCandidates().length;
   return `<div class="tools">
     <label class="sbox search">${ic('Search')}<input class="in" id="q" type="search" placeholder="Tìm theo mã, tên, phòng…" value="${esc(ui.q)}" aria-label="Tìm tài sản"></label>
@@ -2123,6 +2124,22 @@ function viewRoom(slug){
     <div class="sr" id="ares" style="margin-top:10px"></div>
   </section>`:''}
   ${psHTML('p:'+slug)}`;
+}
+/* Kết quả đã kiểm của cả trường (#ket-qua, #ket-qua-lech): mở từ ô "Đã kiểm", "Lệch số lượng" ở Bảng tổng quan.
+   Danh sách = mọi tài sản đã có kết quả, nhóm theo đơn vị; dùng chung dòng tài sản, bộ lọc, ô tìm với trang sheet / phòng. */
+function viewKQ(){
+  const list=currentList(), c=count(list), all=count(ASSETS);
+  const T={all:'Tài sản đã kiểm',du:'Tài sản đã kiểm đủ',lech:'Tài sản lệch số lượng',nf:'Tài sản chưa tìm thấy'};
+  const M={all:`Cả trường: ${nf.format(c.tong)}/${nf.format(all.tong)} dòng đã có kết quả. Mỗi dòng ghi người kiểm và giờ kiểm; cần sửa thì bấm “Kiểm lại”.`,
+    du:'Thực tế bằng sổ sách (kể cả công trình, dịch vụ đã xác nhận hồ sơ).',
+    lech:`Thực tế khác sổ sách: Thiếu ${nf.format(c.thieu)} · Thừa ${nf.format(c.thua)}. Đến phòng kiểm lại, hoặc ghi rõ lý do ở “Chi tiết, ghi chú”.`,
+    nf:'Đã bấm “Không thấy”. Hỏi đại diện phòng ban ở mục <a href="#xac-minh">Tài sản thất lạc</a>.'};
+  const f=T[ui.filter]?ui.filter:'all';
+  app.innerHTML=`${demoBanner()}
+  <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Kết quả đã kiểm</div>
+  <div class="uhead kq-dau"><div><h1>${T[f]}</h1><p>${M[f]}</p></div></div>
+  ${toolsHTML(c,'Nhóm theo đơn vị',false,[['all','Tất cả đã kiểm',c.tong],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]])}
+  <div id="rows">${list.length?listBody(list,'unit'):'<div class="empty">Chưa có tài sản nào được kiểm.</div>'}</div>`;
 }
 function srow(a,roomName){
   const n=roomOf(a); const r=res(a);
@@ -2610,17 +2627,17 @@ function setMod(m){
 }
 
 /* ---------- router ---------- */
-function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='quanly') viewQuanLy(); else viewOverview(); }
+function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):V.type==='kq'?ASSETS.filter(a=>res(a)!=='chua'):null; }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else viewOverview(); }
 function route(){
   const h=(location.hash||'#trang-chu').slice(1);
-  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:{type:'ov'};
+  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(TSCU&&!(nv.type==='ts'&&(nv.id===TSCU.moi||nv.id===TSCU.cu))) TSCU=null;   // rời trang tài sản vừa mở bằng tem mã cũ
-  if(nv.type!==V.type||nv.id!==V.id){ ui={filter:'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
+  if(nv.type!==V.type||nv.id!==V.id){ ui={filter:nv.type==='kq'&&nv.id==='lech'?'lech':'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
   V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':['khauhao','daumoi','danhba','quanly'].includes(V.type)?'ch':'kk');
   document.querySelectorAll('.top2 a[data-r]').forEach(a=>a.removeAttribute('aria-current'));
-  const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':V.type==='ov'?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
+  const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':(V.type==='ov'||V.type==='kq')?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
   const nav=document.querySelector(`.top2 a[data-r="${cur}"]`); if(nav) nav.setAttribute('aria-current','page');
   render(); updateBadge();
   if(V.type==='qr'&&V.id==='so') setTimeout(()=>document.getElementById('qrSo')?.scrollIntoView({block:'start'}),60);
@@ -2778,7 +2795,7 @@ app.addEventListener('input',e=>{
 app.addEventListener('keydown',e=>{
   if(e.target.id==='u-cb' && e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; unitState(V.id).canbo.push(v); save(); render(); document.getElementById('u-cb').focus(); }
   // Enter trong ô tìm: nếu chỉ còn 1 món chưa kiểm thì đánh dấu đủ luôn
-  if(e.target.id==='q' && e.key==='Enter'){ e.preventDefault(); const l=filtered(currentList()||[]).filter(a=>res(a)==='chua'&&!a.hoso); if(l.length===1){ const a=l[0]; snap([a.stt]); const r=touch(a.stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=roomOf(a); if(!r.cond) r.cond='tot'; save(); refreshRow(a.stt); flashRes(a.stt); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); e.target.select(); } else if(l.length>1){ flash('warn','?',`Còn ${l.length} món khớp`,'Gõ thêm để chỉ còn 1 món rồi nhấn Enter'); } else { flash('bad','×','Không có món chưa kiểm nào khớp',e.target.value); } }
+  if(e.target.id==='q' && e.key==='Enter'){ e.preventDefault(); if(V.type==='kq') return; const l=filtered(currentList()||[]).filter(a=>res(a)==='chua'&&!a.hoso); if(l.length===1){ const a=l[0]; snap([a.stt]); const r=touch(a.stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=roomOf(a); if(!r.cond) r.cond='tot'; save(); refreshRow(a.stt); flashRes(a.stt); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); e.target.select(); } else if(l.length>1){ flash('warn','?',`Còn ${l.length} món khớp`,'Gõ thêm để chỉ còn 1 món rồi nhấn Enter'); } else { flash('bad','×','Không có món chưa kiểm nào khớp',e.target.value); } }
 });
 app.addEventListener('submit',e=>{
   if(e.target.id!=='psForm') return; e.preventDefault();

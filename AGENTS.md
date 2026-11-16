@@ -7,7 +7,8 @@ Quy ước riêng cho mã nguồn trang: [web/AGENTS.md](web/AGENTS.md). Quy tr�
 
 Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT Đà Nẵng, gồm 4 phần chính (trang chủ `#trang-chu`):
 - **Kiểm kê tài sản 2026** (đang dùng): mọi trang `#tong-quan`, `#don-vi`, `#vi-tri`, `#dv-…`, `#phong-…`, `#xac-minh`,
-  `#xuat`, trang một tài sản `#ts-…`; mã trong `web/index.html`.
+  `#xuat`, trang một tài sản `#ts-…`, `#ket-qua` / `#ket-qua-lech` (tài sản đã kiểm / lệch số lượng của cả trường, mở từ nút
+  "Xem →" của ô số liệu ở Bảng tổng quan — người dùng chọn 16/11/2026: cả 5 ô số liệu đều có nút "Xem →"); mã trong `web/index.html`.
 - **Quản lý mã QR tài sản** (`#ma-qr`, mã trong `web/ma-qr.js`): in tem mã QR (chọn tài sản, chỉnh mẫu tem, xem trước,
   tải PDF / ảnh PNG / Excel, CSV / In ngay) và **Sổ mã QR**. Quét tem bằng nút Quét mã mở thẳng trang tài sản `#ts-<khoá>`
   trong phần Kiểm kê.

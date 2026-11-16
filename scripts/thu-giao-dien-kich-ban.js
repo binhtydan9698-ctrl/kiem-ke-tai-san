@@ -190,6 +190,31 @@
   };
 
   // Chung: khấu hao (tạm tính, chọn số năm) và đầu mối theo sheet (hiện ở các phần khác, không xuất cho kế toán)
+  // Bảng tổng quan: 3 ô đầu có nút "Xem →" như 2 ô cuối; trang Kết quả đã kiểm của cả trường (#ket-qua, #ket-qua-lech)
+  KB['ket-qua'] = async () => {
+    const a = BY_UNIT.GD.find(x => x.sl >= 2 && !x.hoso && x.ma && res(x) === 'chua');
+    S.rows[a.stt] = { tt: a.sl - 1, nf: false, phong: roomOf(a), cond: 'tot', at: Date.now(), by: 'Người thử' }; save();
+    await go('tong-quan');
+    const links = [...document.querySelectorAll('.stats .stat')].map(s => (s.querySelector('.sub a') || {}).getAttribute?.('href') || '');
+    ok(links.slice(0, 3).join() === '#don-vi,#ket-qua,#ket-qua-lech', `3 ô đầu có nút “Xem →”: ${links.slice(0, 3).join(', ')}`);
+    { const s = getComputedStyle(document.querySelector('.stat .sub')); ok(+s.fontWeight >= 500 && s.color === getComputedStyle(document.body).color, 'dòng chữ dưới các ô đậm, cùng màu chữ chính (dễ đọc)'); }
+    document.querySelector('.stat.ok .sub a').click(); await W(500);
+    const daKiem = ASSETS.filter(x => res(x) !== 'chua');
+    const dong = () => [...app.querySelectorAll('.row[data-stt]')].map(r => BY_STT[r.dataset.stt]);
+    ok(location.hash === '#ket-qua' && /Tài sản đã kiểm/.test(app.querySelector('h1').textContent) && hd().sub === 'tong-quan', 'bấm “Xem →” ở ô Đã kiểm: mở trang Tài sản đã kiểm (menu tô Bảng tổng quan)');
+    ok(dong().length === daKiem.length && dong().every(x => res(x) !== 'chua'), `trang Đã kiểm: đủ ${daKiem.length} dòng đã có kết quả của cả trường, không lẫn dòng chưa kiểm`);
+    ok(app.querySelectorAll('.grp[data-by="unit"]').length >= 1 && !!app.querySelector('.row .by'), 'nhóm theo đơn vị, mỗi dòng ghi người kiểm và giờ kiểm');
+    await go('tong-quan'); document.querySelector('.stat.warn .sub a').click(); await W(500);
+    ok(location.hash === '#ket-qua-lech' && /lệch số lượng/.test(app.querySelector('h1').textContent) && app.querySelector('[data-filter="lech"]').getAttribute('aria-pressed') === 'true', 'bấm “Xem →” ở ô Lệch số lượng: mở sẵn bộ lọc Lệch');
+    ok(dong().length && dong().every(x => ['thieu', 'thua'].includes(res(x))) && dong().includes(a), 'trang Lệch: chỉ có tài sản Thiếu / Thừa, có tài sản vừa ghi thiếu');
+    app.querySelector('[data-filter="all"]').click(); await W(300);
+    ok(/Tài sản đã kiểm/.test(app.querySelector('h1').textContent) && dong().length === ASSETS.filter(x => res(x) !== 'chua').length, 'đổi bộ lọc “Tất cả đã kiểm”: hiện lại mọi tài sản đã kiểm');
+    const q = document.getElementById('q'); q.value = String(a.ma); q.dispatchEvent(new Event('input', { bubbles: true })); await W(500);
+    ok(dong().length === 1 && dong()[0] === a, 'tìm theo Mã TSCĐ trong trang kết quả');
+    app.querySelector(`.row[data-stt="${a.stt}"] [data-act="clr"]`).click(); await W(300);
+    ok(res(a) === 'chua', 'bấm “Kiểm lại” ngay trong trang kết quả: tài sản về Chưa kiểm');
+  };
+
   KB['chung'] = async () => {
     try { localStorage.removeItem(KEY + '.khNam'); } catch (e) { }
     KHV.nam = 0; KHV.dv = ''; KHV.q = '';
