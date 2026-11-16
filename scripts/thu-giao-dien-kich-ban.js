@@ -196,7 +196,32 @@
     S.rows[a.stt] = { tt: a.sl - 1, nf: false, phong: roomOf(a), cond: 'tot', at: Date.now(), by: 'Người thử' }; save();
     await go('tong-quan');
     const links = [...document.querySelectorAll('.stats .stat')].map(s => (s.querySelector('.sub a') || {}).getAttribute?.('href') || '');
-    ok(links.slice(0, 3).join() === '#don-vi,#ket-qua,#ket-qua-lech', `3 ô đầu có nút “Xem →”: ${links.slice(0, 3).join(', ')}`);
+    ok(links.slice(0, 3).join() === '#tong-hop,#ket-qua,#ket-qua-lech', `3 ô đầu có nút “Xem →”: ${links.slice(0, 3).join(', ')}`);
+    // ô Tổng số dòng → trang Tổng hợp toàn bộ tài sản: 5 nhóm theo thứ tự, gom tòa → phòng (tầng dưới lên trên) → bộ môn
+    document.querySelector('.stat.acc .sub a').click(); await W(600);
+    ok(location.hash === '#tong-hop' && /Tổng hợp toàn bộ tài sản/.test(app.querySelector('h1').textContent) && hd().sub === 'tong-quan', 'bấm “Xem →” ở ô Tổng số dòng: mở trang Tổng hợp toàn bộ tài sản');
+    const THU = ['th-du', 'th-lech', 'th-nf', 'th-novt', 'th-chua'], secs = [...app.querySelectorAll('.th-sec')].map(d => d.id);
+    ok(secs.length >= 4 && secs.every((id, i) => i === 0 || THU.indexOf(id) > THU.indexOf(secs[i - 1])), `nhóm từ trên xuống đúng thứ tự: ${secs.map(s => s.slice(3)).join(' → ')}`);
+    const trong = id => [...app.querySelectorAll(`#${id} .th-r`)].map(r => BY_STT[r.dataset.stt]);
+    ok(app.querySelectorAll('.th-r').length === ASSETS.length && new Set([...app.querySelectorAll('.th-r')].map(r => r.dataset.stt)).size === ASSETS.length, `đủ ${ASSETS.length} dòng, mỗi tài sản đúng 1 lần`);
+    ok(trong('th-du').every(x => ['du', 'hoso'].includes(res(x))) && trong('th-lech').every(x => ['thieu', 'thua'].includes(res(x))) && trong('th-lech').includes(a)
+      && trong('th-nf').every(x => res(x) === 'nf') && trong('th-novt').every(x => res(x) === 'chua' && !roomOf(x)) && trong('th-chua').every(x => res(x) === 'chua' && roomOf(x)),
+      'mỗi nhóm đúng tính chất: đủ / lệch / chưa tìm thấy / chưa kiểm chưa có phòng / chưa kiểm đã có phòng');
+    { const ph = [...app.querySelectorAll('#th-chua .th-ph a')].map(x => x.textContent), k = n => [thToa(n), thTang(n), thSoPhong(n)];
+      const dung = ph.every((n, i) => { if (!i) return true; const p = k(ph[i - 1]), c = k(n); return p[0] < c[0] || (p[0] === c[0] && (p[1] < c[1] || (p[1] === c[1] && p[2] <= c[2]))); });
+      ok(ph.length > 10 && dung, `nhóm Chưa kiểm: ${ph.length} phòng xếp theo tòa, tầng dưới lên tầng trên, số phòng nhỏ đến lớn (${ph.slice(0, 4).join(', ')}…)`); }
+    { const nhom = [...app.querySelectorAll('#th-chua .th-dv')].map(d => { const r = []; let e = d.nextElementSibling; while (e && e.classList.contains('th-r')) { r.push(BY_STT[e.dataset.stt]); e = e.nextElementSibling; } return r; });
+      ok(nhom.length && nhom.every(r => r.length && r.every(x => x.unit === r[0].unit && roomOf(x) === roomOf(r[0])) && r.every((x, i) => !i || thSapTen(r[i - 1], x) <= 0)),
+        'trong mỗi phòng: gom theo bộ môn, tài sản cùng loại đứng liền nhau (xếp theo tên, bỏ số lượng ở đầu)');
+      const ghe = [...app.querySelectorAll('#th-chua .th-r')].map(r => BY_STT[r.dataset.stt]).filter(x => roomOf(x) === '101 Alpha').map(x => thTenGom(x).split(' ')[0].toLowerCase());
+      ok(ghe.length < 2 || ghe.every((w, i) => !i || w === ghe[i - 1] || !ghe.slice(0, i - 1).includes(w)), `phòng 101 Alpha: cùng loại đồ liền nhau (${ghe.join(', ')})`); }
+    app.querySelector('[data-act="thdi"][data-k="nf"]').click(); await W(400);
+    { const t = document.getElementById('th-nf').getBoundingClientRect().top; ok(t >= 0 && t < 260, 'bấm nút nhóm “Chưa tìm thấy”: cuộn tới đúng nhóm'); }
+    { const q = document.getElementById('thq'); q.value = String(a.ma); q.dispatchEvent(new Event('input', { bubbles: true })); await W(500);
+      ok(app.querySelectorAll('.th-r').length === 1 && app.querySelector('.th-r').dataset.stt === String(a.stt), 'tìm theo Mã TSCĐ trong trang tổng hợp'); }
+    app.querySelector('.th-r').click(); await W(500);
+    ok(location.hash === '#ts-' + encodeURIComponent(a.key), 'bấm một dòng: mở trang của tài sản đó');
+    TH.q = ''; await go('tong-quan');
     { const s = getComputedStyle(document.querySelector('.stat .sub')); ok(+s.fontWeight >= 500 && s.color === getComputedStyle(document.body).color, 'dòng chữ dưới các ô đậm, cùng màu chữ chính (dễ đọc)'); }
     document.querySelector('.stat.ok .sub a').click(); await W(500);
     const daKiem = ASSETS.filter(x => res(x) !== 'chua');

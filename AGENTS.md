@@ -9,6 +9,10 @@ Trang **Quản lý tài sản** của Phòng Hành chính, Phân hiệu ĐH FPT 
 - **Kiểm kê tài sản 2026** (đang dùng): mọi trang `#tong-quan`, `#don-vi`, `#vi-tri`, `#dv-…`, `#phong-…`, `#xac-minh`,
   `#xuat`, trang một tài sản `#ts-…`, `#ket-qua` / `#ket-qua-lech` (tài sản đã kiểm / lệch số lượng của cả trường, mở từ nút
   "Xem →" của ô số liệu ở Bảng tổng quan — người dùng chọn 16/11/2026: cả 5 ô số liệu đều có nút "Xem →"); mã trong `web/index.html`.
+  `#tong-hop` **Tổng hợp toàn bộ tài sản** (ô "Tổng số dòng tài sản", người dùng đặt 16/11/2026): bảng gọn chỉ để lướt (bấm dòng
+  mở trang tài sản), 5 nhóm từ trên xuống: Đã kiểm đủ → Lệch số lượng → Chưa tìm thấy → Chưa có vị trí → Chưa kiểm (sổ đã ghi
+  phòng) — mỗi tài sản đúng 1 nhóm. Quy luật người dùng đặt: gom cùng tính chất, càng gom càng tốt để dễ lướt bằng mắt: Tòa →
+  Phòng (tầng dưới lên tầng trên, số phòng nhỏ đến lớn) → Bộ môn → cùng loại đồ liền nhau (xếp tên bỏ số lượng ở đầu).
 - **Quản lý mã QR tài sản** (`#ma-qr`, mã trong `web/ma-qr.js`): in tem mã QR (chọn tài sản, chỉnh mẫu tem, xem trước,
   tải PDF / ảnh PNG / Excel, CSV / In ngay) và **Sổ mã QR**. Quét tem bằng nút Quét mã mở thẳng trang tài sản `#ts-<khoá>`
   trong phần Kiểm kê.

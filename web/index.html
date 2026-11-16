@@ -387,6 +387,39 @@ body::before{background:var(--top-bg)}
 .stat .sub{grid-column:1/-1;font-size:12.5px;color:var(--fg);font-weight:500;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:8px;margin-top:6px}
 .stat .sub a{color:var(--accent);font-weight:700;text-decoration:none;white-space:nowrap;margin-left:auto}
 .stat .sub a:hover{text-decoration:underline}
+/* Tổng hợp toàn bộ tài sản (#tong-hop): bảng gọn để lướt bằng mắt */
+.th-tools .seg{flex-wrap:wrap}
+.th-dau,.th-r{display:grid;grid-template-columns:100px minmax(0,1fr) 92px 132px 160px;gap:10px;align-items:center}
+.th-dau{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:8px 14px 0 26px}
+.th-sec{margin-top:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);scroll-margin-top:calc(env(safe-area-inset-top,0px) + var(--toph,58px) + 8px)}
+.th-sec>summary{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;padding:12px 14px;cursor:pointer;position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--toph,58px));z-index:4;background:var(--surface);border-bottom:1px solid var(--line);border-radius:var(--r) var(--r) 0 0}
+.th-sec>summary b{font-size:16px}
+.th-sec>summary .num{color:var(--muted);font-size:13px}
+.th-sec>summary small{flex-basis:100%;color:var(--muted);font-size:12.5px}
+.th-du>summary{box-shadow:inset 4px 0 0 var(--ok)} .th-lech>summary{box-shadow:inset 4px 0 0 var(--warn)} .th-nf>summary{box-shadow:inset 4px 0 0 var(--bad)}
+.th-novt>summary{box-shadow:inset 4px 0 0 var(--info)} .th-chua>summary{box-shadow:inset 4px 0 0 var(--idle)}
+.th-bld{padding:14px 14px 0;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.th-ph{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:8px 14px 2px}
+.th-ph a{font-weight:700;color:var(--fg);text-decoration:none}
+.th-ph a:hover{color:var(--accent);text-decoration:underline}
+.th-ph span{color:var(--muted);font-size:12.5px}
+.th-dv{display:flex;gap:8px;align-items:baseline;padding:4px 14px 4px 26px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.th-dv em{font-style:normal;font-weight:500}
+.th-r{padding:6px 14px 6px 26px;color:var(--fg);text-decoration:none;border-top:1px solid var(--line);font-size:13.5px}
+.th-r:hover{background:var(--surface-2)}
+.th-r:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.th-ma{font-size:12.5px}
+.th-ten{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.th-r .badge{justify-self:start}
+.th-ai{color:var(--muted);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media (max-width:760px){
+  .th-dau{display:none}
+  .th-r{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding-left:14px}
+  .th-ma{grid-row:1;grid-column:1} .th-r .badge{grid-row:1;grid-column:2;justify-self:end}
+  .th-ten{grid-row:2;grid-column:1/-1;white-space:normal}
+  .th-sl{grid-row:3;grid-column:1} .th-ai{grid-row:3;grid-column:2;text-align:right}
+  .th-dv{padding-left:14px}
+}
 .stat .sub .bar{flex:1;max-width:110px}
 /* biểu đồ */
 .charts{margin-bottom:22px}
@@ -1890,7 +1923,7 @@ function viewOverview(){
   <div id="gres">${ovSearchHTML()}</div>
   <div class="stitle"><h2>Số liệu <strong>kiểm kê</strong></h2></div>
   <div class="stats">
-    <div class="stat acc"><span class="si">${ic('Boxes')}</span><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b><div class="sub"><span>${nf.format(all.sl)} cái · ${money(all.gia)}</span><a href="#don-vi">Xem →</a></div></div>
+    <div class="stat acc"><span class="si">${ic('Boxes')}</span><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b><div class="sub"><span>${nf.format(all.sl)} cái · ${money(all.gia)}</span><a href="#tong-hop">Xem →</a></div></div>
     <div class="stat ok"><span class="si">${ic('CircleCheck')}</span><small>Đã kiểm</small><b>${nf.format(all.da)}</b><div class="sub"><span class="num">${pct}%</span>${barHTML(all)}${all.da?`<a href="#ket-qua">Xem →</a>`:''}</div></div>
     <div class="stat warn"><span class="si">${ic('TriangleAlert')}</span><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b><div class="sub"><span>Thiếu ${nf.format(all.thieu)} · Thừa ${nf.format(all.thua)}</span>${all.lech?`<a href="#ket-qua-lech">Xem →</a>`:''}</div></div>
     <div class="stat bad"><span class="si">${ic('CircleAlert')}</span><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b><div class="sub"><span>${wait} chờ xác minh</span>${wait?`<a href="#xac-minh">Xác minh →</a>`:''}</div></div>
@@ -2140,6 +2173,63 @@ function viewKQ(){
   <div class="uhead kq-dau"><div><h1>${T[f]}</h1><p>${M[f]}</p></div></div>
   ${toolsHTML(c,'Nhóm theo đơn vị',false,[['all','Tất cả đã kiểm',c.tong],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]])}
   <div id="rows">${list.length?listBody(list,'unit'):'<div class="empty">Chưa có tài sản nào được kiểm.</div>'}</div>`;
+}
+/* Tổng hợp toàn bộ tài sản (#tong-hop, mở từ ô "Tổng số dòng tài sản" — người dùng đặt 16/11/2026). Bảng gọn chỉ để lướt
+   bằng mắt (bấm một dòng mở trang tài sản để kiểm). 5 nhóm từ trên xuống: Đã kiểm đủ → Lệch số lượng → Chưa tìm thấy →
+   Chưa có vị trí → Chưa kiểm (sổ đã ghi phòng). Quy tắc gom: cùng tính chất đứng liền nhau, càng gom càng tốt —
+   Tòa → Phòng (tầng dưới lên tầng trên, số phòng nhỏ đến lớn) → Bộ môn → tài sản cùng tên liền nhau. */
+const TH={q:''};
+const TH_NHOM=[['du','Đã kiểm đủ','Thực tế bằng sổ sách (kể cả công trình, dịch vụ đã xác nhận hồ sơ)'],
+  ['lech','Lệch số lượng','Thực tế khác sổ sách: Thiếu hoặc Thừa'],
+  ['nf','Chưa tìm thấy','Đã bấm “Không thấy”: hỏi đại diện phòng ban ở mục Tài sản thất lạc'],
+  ['novt','Chưa có vị trí','Chưa kiểm, chưa ghi phòng: kiểm trực tiếp rồi ghi phòng thực tế'],
+  ['chua','Chưa kiểm','Sổ đã ghi phòng, chưa ai kiểm']];
+function thNhom(a){ const r=res(a); return (r==='du'||r==='hoso')?'du':(r==='thieu'||r==='thua')?'lech':r==='nf'?'nf':roomOf(a)?'chua':'novt'; }
+// tầng của phòng: 101 → 1, 1003 → 10, "T4 Gamma" / "HL T3 Gamma" → 4 / 3, sảnh, cổng, sân → 1; không rõ → 99 (cuối tòa)
+function thTang(n){ const s=String(n||''); let m=s.match(/(?:^|\s)T(\d{1,2})(?=\s|$)/i); if(m) return +m[1];
+  m=s.match(/\d{3,4}/); if(m) return Math.floor(+m[0]/100); return /sảnh|cổng|khuôn viên|sân/i.test(s)?1:99; }
+function thSoPhong(n){ const m=String(n||'').match(/\d+/); return m?+m[0]:1e9; }
+function thToa(n){ const i=BLD_ORDER.indexOf(building(n)); return i<0?99:i; }
+function thSapPhong(x,y){ return (x===''?1:0)-(y===''?1:0)||thToa(x)-thToa(y)||thTang(x)-thTang(y)||thSoPhong(x)-thSoPhong(y)||x.localeCompare(y,'vi',{numeric:true}); }
+function thDong(a){
+  const s=S.rows[a.stt]||{}, r=res(a), who=whoLabel(s.by);
+  const sl=a.hoso?'—':r==='chua'?nf.format(a.sl):`${nf.format(r==='nf'?0:(s.tt!=null?s.tt:a.sl))}/${nf.format(a.sl)}`;
+  return `<a class="th-r" href="#ts-${encodeURIComponent(a.key)}" data-stt="${a.stt}"><span class="mono th-ma">${esc(a.ma||'STT '+a.stt)}</span><span class="th-ten" title="${esc(a.ten)}">${esc(a.short)}</span><span class="num th-sl" title="${r==='chua'?'Số lượng theo sổ':'Thực tế / sổ sách'}">${sl}</span><span class="badge ${r}">${RES_LABEL[r]}</span><span class="th-ai">${r!=='chua'&&s.at?`${who?esc(who)+' · ':''}${hm(s.at)}`:''}</span></a>`;
+}
+// tên để gom: bỏ số lượng ở đầu ("3 ghế đôn…", "4,61m2 _ Tấm LED…") để cùng loại đồ (ghế, bàn…) đứng liền nhau
+function thTenGom(a){ return a.short.replace(/^\s*[\d.,]+\s*(m2|m)?\s*[_\-:]?\s*/i,'').trim()||a.short; }
+function thSapTen(x,y){ return thTenGom(x).localeCompare(thTenGom(y),'vi',{numeric:true,sensitivity:'base'})||x.stt-y.stt; }
+function thTheoDv(list){
+  const m={}; list.forEach(a=>(m[a.unit]=m[a.unit]||[]).push(a));
+  return Object.keys(m).sort((x,y)=>UNITS.findIndex(u=>u.id===x)-UNITS.findIndex(u=>u.id===y)).map(id=>
+    `<div class="th-dv"><span>${esc(UNIT[id].ten)}</span><em class="num">${m[id].length}</em></div>`
+    +m[id].sort(thSapTen).map(thDong).join('')).join('');
+}
+function thTheoPhong(list){
+  const m={}; list.forEach(a=>{ const n=roomOf(a); (m[n]=m[n]||[]).push(a); });
+  let toa=null;
+  return Object.keys(m).sort(thSapPhong).map(n=>{
+    const b=n?building(n):'', t=thTang(n);
+    const dau=b!==toa?(toa=b,`<div class="th-bld">${b?(b==='KTX'||b==='Khu khác'?b:'Tòa '+esc(b)):'Chưa ghi phòng'}</div>`):'';
+    return dau+`<div class="th-ph"><a href="#phong-${n?slugify(n):NOROOM}">${esc(n||'Chưa có vị trí')}</a><span class="num">${n&&t<99?'tầng '+t+' · ':''}${m[n].length} dòng</span></div>`+thTheoDv(m[n]);
+  }).join('');
+}
+function thDanhSach(){
+  const q=fold(TH.q.trim()), g={}; TH_NHOM.forEach(([k])=>g[k]=[]);
+  ASSETS.forEach(a=>{ if(!q||fold(a.ma+' '+a.ten+' '+roomOf(a)+' '+UNIT[a.unit].ten+' '+UNIT[a.unit].sheet).includes(q)) g[thNhom(a)].push(a); });
+  return TH_NHOM.map(([k,ten,mo])=>{ const l=g[k]; if(!l.length) return ''; const nPh=new Set(l.map(roomOf).filter(Boolean)).size;
+    return `<details class="th-sec th-${k}" id="th-${k}" open><summary><b>${ten}</b><span class="num">${nf.format(l.length)} dòng${nPh?' · '+nPh+' phòng':''}</span><small>${mo}</small></summary>${k==='novt'?thTheoDv(l):thTheoPhong(l)}</details>`;
+  }).join('')||'<div class="empty">Không có tài sản nào khớp.</div>';
+}
+function viewTongHop(){
+  const c=count(ASSETS), n={}; TH_NHOM.forEach(([k])=>n[k]=0); ASSETS.forEach(a=>n[thNhom(a)]++);
+  app.innerHTML=`${demoBanner()}
+  <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Tổng hợp toàn bộ tài sản</div>
+  <div class="uhead"><div><h1>Tổng hợp toàn bộ tài sản</h1><p class="num">${nf.format(c.tong)} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p><p>Gom theo kết quả, rồi theo tòa, phòng (tầng dưới lên tầng trên, số phòng nhỏ đến lớn), bộ môn; tài sản cùng tên đứng liền nhau. Bấm một dòng để mở tài sản.</p></div></div>
+  <div class="tools th-tools"><label class="sbox search">${ic('Search')}<input class="in" id="thq" type="search" placeholder="Tìm theo mã, tên, phòng, bộ môn…" value="${esc(TH.q)}" aria-label="Tìm trong tổng hợp"></label>
+    <div class="seg" role="group" aria-label="Đi tới nhóm">${TH_NHOM.map(([k,ten])=>`<button type="button" data-act="thdi" data-k="${k}">${ten} <em class="num">${nf.format(n[k])}</em></button>`).join('')}</div></div>
+  <div class="th-dau" aria-hidden="true"><span>Mã TSCĐ</span><span>Tài sản</span><span>Thực tế / sổ</span><span>Kết quả</span><span>Người kiểm</span></div>
+  <div id="thDs">${thDanhSach()}</div>`;
 }
 function srow(a,roomName){
   const n=roomOf(a); const r=res(a);
@@ -2628,16 +2718,16 @@ function setMod(m){
 
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):V.type==='kq'?ASSETS.filter(a=>res(a)!=='chua'):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else viewOverview(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); }
 function route(){
   const h=(location.hash||'#trang-chu').slice(1);
-  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:{type:'ov'};
+  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:h==='tong-hop'?{type:'th'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(TSCU&&!(nv.type==='ts'&&(nv.id===TSCU.moi||nv.id===TSCU.cu))) TSCU=null;   // rời trang tài sản vừa mở bằng tem mã cũ
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:nv.type==='kq'&&nv.id==='lech'?'lech':'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
   V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':['khauhao','daumoi','danhba','quanly'].includes(V.type)?'ch':'kk');
   document.querySelectorAll('.top2 a[data-r]').forEach(a=>a.removeAttribute('aria-current'));
-  const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':(V.type==='ov'||V.type==='kq')?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
+  const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':(V.type==='ov'||V.type==='kq'||V.type==='th')?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
   const nav=document.querySelector(`.top2 a[data-r="${cur}"]`); if(nav) nav.setAttribute('aria-current','page');
   render(); updateBadge();
   if(V.type==='qr'&&V.id==='so') setTimeout(()=>document.getElementById('qrSo')?.scrollIntoView({block:'start'}),60);
@@ -2678,6 +2768,7 @@ app.addEventListener('click',e=>{
   if(b.dataset.ust){ OV.ust=b.dataset.ust; render(); return; }
   if(b.dataset.filter){ ui.filter=b.dataset.filter; ui.bulkArm=false; render(); return; }
   const act=b.dataset.act; const row=b.closest('[data-stt]'); const stt=row?+row.dataset.stt:null; const a=stt?BY_STT[stt]:null;
+  if(act==='thdi'){ const d=document.getElementById('th-'+b.dataset.k); if(d){ d.open=true; d.scrollIntoView({block:'start'}); } else toast('Nhóm này không có tài sản nào'+(TH.q?' khớp ô tìm':'')); return; }
   if(act==='goto'){ pendingQ=b.dataset.q||''; pendingU=b.dataset.u||''; return; }
   if(act==='quetlt'){ contOpen(V.id); return; }
   if(act==='qrin'||act==='qrso'){ e.preventDefault(); qrOpen(act==='qrso'?{so:true}:{unit:b.dataset.qu,room:b.dataset.qr,key:b.dataset.qk}); return; }
@@ -2781,6 +2872,7 @@ app.addEventListener('change',e=>{
 app.addEventListener('input',e=>{
   const t=e.target;
   if(t.id==='nsq'){ NS.q=t.value; NS.lim=200; clearTimeout(app._n); app._n=setTimeout(nsDraw,200); }
+  if(t.id==='thq'){ TH.q=t.value; clearTimeout(app._th); app._th=setTimeout(()=>{ const d=document.getElementById('thDs'); if(d) d.innerHTML=thDanhSach(); },200); }
   if(t.id==='llq'){ LL.q=t.value; clearTimeout(app._ll); app._ll=setTimeout(llResDraw,150); }
   if(t.id==='lq'){ LV.q=t.value; clearTimeout(app._l); app._l=setTimeout(logDraw,200); }
   if(t.id==='q'){ ui.q=t.value; ui.bulkArm=false; clearTimeout(app._q); app._q=setTimeout(()=>refocusAfter('q',()=>{ const l=currentList(); document.getElementById('rows').innerHTML=l.length?listBody(l,V.type==='unit'?'room':'unit'):''; refreshRow(-1); }),200); }

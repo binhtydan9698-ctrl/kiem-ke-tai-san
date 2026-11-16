@@ -25,7 +25,9 @@
 - Trang gồm 4 phần dưới "Quản lý tài sản": trang chủ `#trang-chu` (`viewHub`, cũng là trang mở khi không có `#`),
   **Kiểm kê** (mọi trang còn lại, gồm trang một tài sản `#ts-<khoá>` = `viewTS` và trang kết quả cả trường `#ket-qua` /
   `#ket-qua-lech` = `viewKQ`: `V.type='kq'`, `currentList()` = mọi tài sản đã có kết quả, dùng chung `toolsHTML` (bộ lọc riêng)
-  / `listBody` / `rowHTML` với trang sheet, phòng; mở từ nút "Xem →" của ô số liệu ở Bảng tổng quan), **Mã QR** (`#ma-qr`, `#so-ma-qr`, `viewQR`
+  / `listBody` / `rowHTML` với trang sheet, phòng; mở từ nút "Xem →" của ô số liệu ở Bảng tổng quan; và `#tong-hop` =
+  `viewTongHop`: bảng gọn `thDong` (thẻ `a.th-r` tới `#ts-`), nhóm `thNhom()` theo `TH_NHOM`, xếp phòng `thSapPhong`
+  (tòa `BLD_ORDER` → tầng `thTang` → số phòng), bộ môn theo `UNITS`, tên `thSapTen`; ô tìm `#thq`, nút nhóm `data-act="thdi"`), **Mã QR** (`#ma-qr`, `#so-ma-qr`, `viewQR`
   trong `ma-qr.js`), **Lịch sử** (`#lich-su` = `viewLog`, `#nhap-so` = `viewNhapSo`, `#ly-lich[-khoá]` = `viewLyLich`) và
   **Chung** (`#khau-hao` = `viewKhauHao`, `#dau-moi` = `viewDauMoi` trong `chung.js`).
   Đầu trang 2 tầng (khối CSS "Đầu trang 2 tầng" cuối `<style>`): `.top1` = logo `.lgo` + tên `.app` + 4 phần `.sec`
