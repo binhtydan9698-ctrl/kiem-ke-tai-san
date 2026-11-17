@@ -90,6 +90,16 @@
   điện thoại) phải 0 vi phạm. Ô nhập / ô chọn phải có nhãn (nhãn chữ ẩn trên máy tính thì thêm `aria-label`); chữ / nền tương phản
   ≥ 4.5:1 (chữ trắng trên nền cam dùng `--cta`, không dùng `--brand`); vùng bấm ≥ 24px (`.lnk` đã có `min-height:24px`); bảng cuộn
   ngang `tblwrap` có `tabindex="0" role="region" aria-label="…"` (mỗi bảng một nhãn riêng); tiêu đề không nhảy cấp (h1 → h2 → h3).
+- **Nâng cấp giao diện 17/11/2026 (người dùng chọn cả 4, giữ bằng thử giao diện `nang-cap-dt`, `nang-cap-pc`)**:
+  - Chữ nhỏ nhất **13px** ở mọi nơi (kể cả chữ đặt thẳng `style="font-size:…"`); cỡ 0 chỉ để ẩn chữ có chủ ý.
+  - Điện thoại (≤ 860px): vùng bấm **≥ 44px** cho nút trong dòng tài sản, ô chọn / ô nhập, nút −/+, nút lọc (khối CSS "Nâng cấp
+    điện thoại"); dòng tài sản xếp `order`: mã → tên → **nút Đủ / Không thấy** → ô phòng, phòng ban, số, tình trạng.
+  - "Đưa việc kiểm lên trước" chỉ trên điện thoại, máy tính giữ bố cục cũ: banner `banner()` gọn (ẩn ảnh, phần giới thiệu sau
+    nút "Giới thiệu" `data-act="pbanmo"`); khung phụ là `<details class="panel thu-gon" data-nho="…">` mở sẵn trên máy tính,
+    thu gọn trên điện thoại (`moSan(k)`, nhớ trạng thái trong `ui.mo` tới khi rời trang); trang một tài sản bọc `.ts-trang`,
+    điện thoại xếp tên `.tsx-dau` → phần kiểm `.ts-kiem` → thông tin → mã QR nhỏ, không mở sẵn chi tiết.
+  - Thanh tiến độ dính `#dinh` (nằm trong `<header>`, đặt tuyệt đối nên không làm giật trang): trang phòng / phòng ban, hiện khi
+    `#prog` cuộn khuất (`dinhGan()` sau mỗi lần vẽ, `dinhVe()` khi số đổi trong `refreshRow`); bấm để lên đầu trang.
 - Chèn chữ do người dùng nhập vào HTML luôn qua `esc()`.
 - Trạng thái kiểm kê nằm trong `S`; sau khi đổi `S` phải gọi `save()` rồi làm mới giao diện (`refreshRow`/`render`).
   Không gọi `save()` trong hàm render.

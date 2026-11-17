@@ -642,6 +642,66 @@
   };
   KB['tro-nang-dt'] = KB['tro-nang'];
 
+  // Nâng cấp giao diện (người dùng chọn 17/11/2026): đưa việc kiểm lên trước (điện thoại), vùng bấm ≥ 44px, chữ ≥ 13px, thanh tiến độ dính
+  const chuNho = () => [...document.querySelectorAll('body *')].filter(e => !e.closest('svg') && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())
+    && e.getClientRects().length && parseFloat(getComputedStyle(e).fontSize) > 0 && parseFloat(getComputedStyle(e).fontSize) < 13).map(e => (e.className || e.tagName) + ' ' + getComputedStyle(e).fontSize);
+  const caoDemo = () => (document.querySelector('#app .demo') || { offsetHeight: 0 }).offsetHeight;
+  const tuyetDoi = el => el.getBoundingClientRect().top + scrollY;
+  KB['nang-cap-dt'] = async () => {
+    await go('phong-108-gamma'); await W(300);
+    const dv = app.querySelector('details[data-nho="dv"]'), r1 = app.querySelector('#rows .row');
+    ok(dv && !dv.open, 'trang phòng (điện thoại): khung "Đơn vị có tài sản ở đây" thu gọn thành 1 dòng bấm mở');
+    ok(tuyetDoi(r1) - caoDemo() < innerHeight, `trang phòng: tài sản đầu tiên hiện ngay màn hình đầu (cách đầu trang ${Math.round(tuyetDoi(r1) - caoDemo())}px, màn hình cao ${innerHeight}px)`);
+    ok(r1.querySelector('.c-act').getBoundingClientRect().top < r1.querySelector('.c-room').getBoundingClientRect().top, 'mỗi dòng: nút Đủ / Không thấy nằm ngay dưới tên, trước ô chọn phòng');
+    const bam = [...app.querySelectorAll('#rows .row')].slice(0, 6).flatMap(r => [...r.querySelectorAll('.c-act .btn, select.in, input.in, .stepper button')]).filter(e => e.getClientRects().length);
+    const thap = bam.filter(e => e.getBoundingClientRect().height < 44);
+    ok(bam.length > 20 && !thap.length, `vùng bấm ≥ 44px: ${bam.length} nút / ô chọn ở 6 dòng đầu` + (thap.length ? ` — thấp: ${thap.slice(0, 3).map(e => (e.className || e.tagName) + ' ' + Math.round(e.getBoundingClientRect().height) + 'px').join(', ')}` : ''));
+    // thanh tiến độ dính
+    const dinh = document.getElementById('dinh');
+    ok(dinh.hidden, 'thanh tiến độ dính: ẩn khi khung Tiến độ kiểm còn nhìn thấy');
+    scrollTo(0, tuyetDoi(app.querySelector('#rows .row:nth-of-type(4)')) - 120); await W(500);
+    const so = () => +(/(\d+)\//.exec(dinh.textContent) || [])[1];
+    ok(!dinh.hidden && /108 Gamma/.test(dinh.textContent) && /\d+\/\d+/.test(dinh.textContent), `cuộn xuống: thanh dính hiện "${dinh.textContent.replace(/\s+/g, ' ').trim()}"`);
+    const truoc = so(), cho = [...app.querySelectorAll('#rows .row')].find(r => r.querySelector('[data-act="du"]') && BY_STT[r.dataset.stt] && res(BY_STT[r.dataset.stt]) === 'chua');
+    cho.querySelector('[data-act="du"]').click(); await W(400);
+    ok(so() === truoc + 1, `bấm Đủ: thanh dính cập nhật ngay (${truoc} → ${so()})`);
+    dinh.click(); await until(() => scrollY < 5, 4000); await W(300);
+    ok(scrollY < 5 && dinh.hidden, 'bấm thanh dính: lên đầu trang, thanh ẩn đi');
+    ok(!chuNho().length, 'chữ nhỏ nhất 13px (trang phòng)' + (chuNho().length ? ': ' + [...new Set(chuNho())].slice(0, 4).join(', ') : ''));
+    // trang một tài sản
+    await go('ts-6497474'); await W(300);
+    const nut = app.querySelector('.ts-kiem .c-act .btn');
+    ok(nut && tuyetDoi(nut) - caoDemo() + nut.offsetHeight < innerHeight && !app.querySelector('.ts-kiem .more'), `trang một tài sản (quét tem): nút kiểm hiện ngay màn hình đầu (đáy nút ${Math.round(tuyetDoi(nut) - caoDemo() + nut.offsetHeight)}px), chi tiết chưa mở sẵn`);
+    ok(app.querySelector('.tsx-qr').getBoundingClientRect().top > nut.getBoundingClientRect().top, 'mã QR thu nhỏ xuống dưới phần kiểm');
+    ok(!chuNho().length, 'chữ nhỏ nhất 13px (trang tài sản)' + (chuNho().length ? ': ' + [...new Set(chuNho())].slice(0, 4).join(', ') : ''));
+    // trang phòng ban: thành phần buổi kiểm thu gọn, mở rồi thì nhớ khi trang vẽ lại
+    await go('dv-GD'); await W(300);
+    let bk = app.querySelector('details[data-nho="bk"]');
+    ok(bk && !bk.open, 'trang phòng ban (điện thoại): "Thành phần buổi kiểm kê" thu gọn');
+    bk.open = true; await W(150); app.querySelector('[data-filter="du"]').click(); await W(300);
+    bk = app.querySelector('details[data-nho="bk"]');
+    ok(bk.open, 'mở khung ra rồi đổi bộ lọc (trang vẽ lại): khung vẫn mở');
+    // banner gọn
+    await go('vi-tri'); await W(300);
+    const pb = app.querySelector('.pban'), pm = pb.querySelector('.pban-mo');
+    ok(pb.offsetHeight < 140 && getComputedStyle(pb.querySelector('p')).display === 'none' && getComputedStyle(pb.querySelector('img')).display === 'none', `banner đầu trang gọn (cao ${pb.offsetHeight}px, ẩn ảnh và phần giới thiệu)`);
+    pm.click(); await W(150);
+    ok(getComputedStyle(pb.querySelector('p')).display !== 'none' && pm.getAttribute('aria-expanded') === 'true', 'bấm "Giới thiệu": hiện phần giới thiệu');
+    ok(!chuNho().length, 'chữ nhỏ nhất 13px (trang số phòng)' + (chuNho().length ? ': ' + [...new Set(chuNho())].slice(0, 4).join(', ') : ''));
+  };
+  KB['nang-cap-pc'] = async () => {
+    await go('ts-6497474'); await W(300);
+    const tsx = app.querySelector('.ts-trang .tsx');
+    ok(getComputedStyle(tsx).display === 'grid' && app.querySelector('.tsx-qr').getBoundingClientRect().left < app.querySelector('.tsx-dau').getBoundingClientRect().left && !!app.querySelector('.ts-kiem .more'),
+      'máy tính: trang một tài sản giữ bố cục cũ (mã QR bên trái, chi tiết mở sẵn)');
+    await go('phong-108-gamma'); await W(300);
+    ok(app.querySelector('details[data-nho="dv"]').open && getComputedStyle(app.querySelector('.pban-mo') || document.body).display !== 'inline-flex', 'máy tính: khung "Đơn vị có tài sản ở đây" mở sẵn như cũ');
+    scrollTo(0, 1600); await W(500);
+    const dinh = document.getElementById('dinh');
+    ok(!dinh.hidden && /\d+\/\d+/.test(dinh.textContent), 'máy tính: thanh tiến độ dính cũng hiện khi cuộn xuống');
+    for (const t of ['tong-quan', 'vi-tri', 'tong-hop', 'dv-GD']) { await go(t); await W(300); const l = chuNho(); ok(!l.length, `chữ nhỏ nhất 13px (#${t})` + (l.length ? ': ' + [...new Set(l)].slice(0, 4).join(', ') : '')); }
+  };
+
   KB['dien-thoai'] = async () => {
     await go('phong-108-gamma'); await W(300);
     const sc = document.getElementById('scanBtn').getBoundingClientRect();

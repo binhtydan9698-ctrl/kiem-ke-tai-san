@@ -273,6 +273,10 @@ chưa tìm thấy thì KHÔNG hiện xong (ghi rõ "N lệch", "N chưa thấy")
   mới; trang sheet gốc có mục "Đã chuyển sang phòng ban khác"; file kế toán ghi "Phân bổ về: …" ở Ghi chú kiểm kê (người dùng chọn).
 - **Tìm theo STT** (người dùng yêu cầu 16/11/2026) ở mọi ô tìm tài sản: "142" → tài sản STT 142 đứng đầu; "STT 142" / "#142" → chỉ
   đúng STT đó; ô tìm nhanh ở Bảng tổng quan gõ STT + Enter mở thẳng tài sản.
+- **Nâng cấp giao diện** (người dùng chọn cả 4, 17/11/2026): chữ nhỏ nhất 13px; điện thoại: nút / ô bấm cao ≥ 44px, việc kiểm lên
+  trước (nút Đủ / Không thấy ngay dưới tên tài sản, banner và khung phụ thu gọn, trang một tài sản: tên → phần kiểm → thông tin →
+  mã QR nhỏ; máy tính giữ bố cục cũ); thanh tiến độ dính ở trang phòng / phòng ban. Trang luôn đạt chuẩn trợ năng WCAG 2.2 AA
+  (thử giao diện `tro-nang`, `tro-nang-dt`). Chi tiết: web/AGENTS.md.
 - **Nút ⋯ trên mỗi dòng tài sản** (người dùng thêm 15/11/2026, mã trong `web/anh.js`): hộp mở rộng có mã QR của tài sản (In tem,
   Mở trang tài sản) và **ảnh tài sản** (tối đa 5 ảnh mỗi tài sản, thu nhỏ 1600px trước khi tải lên + ảnh nhỏ 400px), xem ảnh toàn
   màn hình kiểu Messenger (nền mờ, đếm ảnh, tải về / chia sẻ / đóng, mũi tên, dải ảnh nhỏ, vuốt, phím mũi tên). Ảnh ở kho riêng tư
