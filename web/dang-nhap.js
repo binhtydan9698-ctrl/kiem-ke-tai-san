@@ -34,6 +34,7 @@
     if (/Signups not allowed|signup.*disabled/i.test(m)) return 'Supabase đang tắt đăng ký tài khoản mới. Người quản trị bật “Allow new users to sign up” trong Supabase (tắt lại sau khi thêm xong).';
     if (/rate limit|only request this after|too many/i.test(m)) return 'Thao tác quá nhiều lần, thử lại sau ít phút.';
     if (/different from the old password|same_password/i.test(m)) return 'Mật khẩu mới phải khác mật khẩu ban đầu.';
+    if (/Could not find the function|PGRST202/i.test(m)) return 'Máy chủ chưa cập nhật: người quản trị cần chạy lại file supabase/dang-nhap.sql (bản mới nhất) trong Supabase → SQL Editor.';
     if (/reauthenticat/i.test(m)) return 'Cần đăng nhập lại rồi mới đổi được mật khẩu: bấm “Đăng xuất”, đăng nhập lại rồi đổi ngay.';
     if (/Password should|weak password|pwned|leaked/i.test(m)) return 'Mật khẩu chưa đủ mạnh hoặc đã từng bị lộ trên mạng. Chọn mật khẩu khác (ít nhất 12 ký tự).';
     if (/Failed to fetch|NetworkError|network|fetch failed/i.test(m)) return 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
