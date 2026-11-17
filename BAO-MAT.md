@@ -36,6 +36,14 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
 2. **Mật khẩu**: 12–72 ký tự; không chứa tên đăng nhập, email, họ tên; không toàn chữ số hay một ký tự lặp; không nằm trong danh sách
    mật khẩu phổ biến; có ngày tháng dạng ngày sinh thì cảnh báo. Nên dùng một câu dễ nhớ. Không bắt đổi định kỳ, nhưng **đổi ngay khi
    nghi bị lộ** (kể cả khi đã gửi mật khẩu qua chat, tin nhắn).
+   **Ngoại lệ (người dùng chốt 17/11/2026):** *mật khẩu ban đầu* do quản trị đặt cho thành viên (Thêm thành viên, Đặt lại mật khẩu)
+   **được** toàn chữ số và lặp lại ký tự (vd. `111111111111`); vẫn đủ 12 ký tự, vẫn chặn mật khẩu phổ biến (vd. `123456789012`) và
+   chứa tên / email. Mật khẩu tự đặt (tạo quản trị lần đầu, Đổi mật khẩu) vẫn theo đủ quy tắc trên. **Lần đăng nhập đầu bằng mật
+   khẩu ban đầu BẮT BUỘC đổi** sang mật khẩu riêng theo đủ quy tắc (màn hình "Đổi mật khẩu trước khi vào trang"); máy chủ cũng chặn:
+   chưa đổi thì không đọc / ghi được dữ liệu (`supabase/dang-nhap.sql`: bảng dấu vết `mk_ban_dau` — sha256 của bản băm, không phải mật
+   khẩu; `con_mk_ban_dau()` trong `du_cap_xac_thuc()`). Email đã có tài khoản từ trước thì giữ mật khẩu cũ, không bắt đổi.
+   (Máy soát: `npm test` bước 6; thử giao diện `dang-nhap`.) Vì mật khẩu ban đầu toàn số: Supabase → Email → *Password Requirements*
+   để **"No required characters"** (mặc định); độ dài tối thiểu 12 vẫn giữ.
 3. Không ai, kể cả trợ lý, được biết hay lưu mật khẩu của người khác. Quản trị đặt lại mật khẩu thì gửi riêng, người đó đổi ngay.
 4. Mật khẩu chỉ Supabase Auth giữ (đã băm). Trang không ghi mật khẩu vào đâu.
 5. **Xác thực 2 bước** (mã OTP 6 số từ Google Authenticator / Microsoft Authenticator) **bắt buộc với tài khoản quản trị** (người

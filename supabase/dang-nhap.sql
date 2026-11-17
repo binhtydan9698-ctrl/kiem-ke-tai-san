@@ -54,12 +54,41 @@ create table if not exists public.bi_mat (
 insert into public.bi_mat (ten, gia_tri) values ('khoa_du_lieu', encode(extensions.gen_random_bytes(32), 'base64'))
 on conflict (ten) do nothing;
 
+-- MẬT KHẨU BAN ĐẦU (người dùng chốt 17/11/2026): quản trị đặt cho thành viên (Thêm thành viên, Đặt lại mật khẩu) được đơn giản
+-- (toàn số, lặp ký tự), nhưng lần đăng nhập đầu BẮT BUỘC đổi. Lúc quản trị đặt, ghi DẤU VẾT = sha256 của bản băm mật khẩu (không
+-- phải mật khẩu, không phải bản băm). Dấu vết còn trùng mật khẩu hiện tại = chưa đổi → chưa được tính là thành viên (không đọc,
+-- không ghi được gì) cho tới khi tự đổi. Không có policy nào: chỉ các hàm bên dưới đọc / ghi bảng này.
+create table if not exists public.mk_ban_dau (
+  user_id  uuid primary key references auth.users(id) on delete cascade,
+  dau_vet  text not null,
+  dat_luc  timestamptz not null default now()
+);
+
 -- ===== hàm kiểm tra quyền (security definer: đọc thanh_vien không vướng RLS) =====
--- tài khoản đã bật xác thực 2 bước thì phiên phải qua bước 2 (aal2) mới được tính là thành viên
+-- dấu vết của mật khẩu hiện tại (so với mk_ban_dau)
+create or replace function public.dau_vet_mk(p_uid uuid) returns text
+language sql stable security definer set search_path = public, auth, extensions as $$
+  select encode(extensions.digest(coalesce(u.encrypted_password, '')::text, 'sha256'), 'hex') from auth.users u where u.id = p_uid
+$$;
+-- người đang đăng nhập vẫn dùng mật khẩu ban đầu quản trị đặt (chưa tự đổi)
+create or replace function public.con_mk_ban_dau() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.mk_ban_dau m where m.user_id = auth.uid() and m.dau_vet = public.dau_vet_mk(auth.uid()))
+$$;
+-- quản trị vừa đặt mật khẩu ban đầu cho một tài khoản: ghi dấu vết
+create or replace function public.ghi_mk_ban_dau(p_uid uuid) returns void
+language sql security definer set search_path = public as $$
+  insert into public.mk_ban_dau (user_id, dau_vet) values (p_uid, public.dau_vet_mk(p_uid))
+  on conflict (user_id) do update set dau_vet = excluded.dau_vet, dat_luc = now()
+$$;
+
+-- đủ điều kiện được tính là thành viên: tài khoản đã bật xác thực 2 bước thì phiên phải qua bước 2 (aal2); và đã tự đổi mật khẩu
+-- ban đầu (nếu quản trị đặt)
 create or replace function public.du_cap_xac_thuc() returns boolean
 language sql stable security definer set search_path = public, auth as $$
-  select coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2'
-      or not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status = 'verified')
+  select (coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2'
+      or not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status = 'verified'))
+     and not public.con_mk_ban_dau()
 $$;
 
 -- quyền đang có hiệu lực: quản trị chỉ có toàn quyền khi phiên đã qua xác thực 2 bước (aal2); chưa qua → coi như tra cứu
@@ -110,7 +139,8 @@ $$;
 -- thông tin tài khoản của chính mình (null nếu chưa là thành viên / đã bị khoá)
 create or replace function public.toi_la_ai() returns json
 language sql stable security definer set search_path = public, auth as $$
-  select json_build_object('uid', t.user_id, 'ten', t.ten_dang_nhap, 'ho_ten', t.ho_ten, 'quyen', t.quyen, 'email', u.email::text)
+  select json_build_object('uid', t.user_id, 'ten', t.ten_dang_nhap, 'ho_ten', t.ho_ten, 'quyen', t.quyen, 'email', u.email::text,
+    'doi_mk', public.con_mk_ban_dau())
   from public.thanh_vien t join auth.users u on u.id = t.user_id
   where t.user_id = auth.uid() and not t.khoa
 $$;
@@ -136,8 +166,10 @@ language sql stable security definer set search_path = public, auth as $$
   order by t.tao_luc
 $$;
 
--- quản trị: cấp quyền cho tài khoản (email) vừa tạo bằng đăng ký
-create or replace function public.quan_tri_them_thanh_vien(p_email text, p_ten text, p_ho_ten text, p_quyen text) returns void
+-- quản trị: cấp quyền cho tài khoản (email) vừa tạo bằng đăng ký. p_mk_moi = quản trị vừa đặt mật khẩu ban đầu cho tài khoản này
+-- (tài khoản mới) → lần đăng nhập đầu phải đổi; email đã có tài khoản từ trước thì giữ mật khẩu cũ, không bắt đổi.
+drop function if exists public.quan_tri_them_thanh_vien(text, text, text, text);
+create or replace function public.quan_tri_them_thanh_vien(p_email text, p_ten text, p_ho_ten text, p_quyen text, p_mk_moi boolean default true) returns void
 language plpgsql security definer set search_path = public, auth as $$
 declare v_uid uuid;
 begin
@@ -147,6 +179,7 @@ begin
   if v_uid is null then raise exception 'Chưa có tài khoản với email này'; end if;
   insert into public.thanh_vien (user_id, ten_dang_nhap, ho_ten, quyen)
   values (v_uid, lower(trim(p_ten)), coalesce(p_ho_ten, ''), p_quyen);
+  if p_mk_moi then perform public.ghi_mk_ban_dau(v_uid); end if;
 end $$;
 
 -- quản trị: đặt lại mật khẩu cho thành viên quên mật khẩu
@@ -158,20 +191,24 @@ begin
   if not exists (select 1 from public.thanh_vien where user_id = p_uid) then raise exception 'Không có thành viên này'; end if;
   update auth.users set encrypted_password = extensions.crypt(p_mat_khau, extensions.gen_salt('bf')), updated_at = now()
   where id = p_uid;
+  perform public.ghi_mk_ban_dau(p_uid);   -- mật khẩu quản trị đặt lại = mật khẩu ban đầu: lần đăng nhập sau phải đổi
 end $$;
 
 -- ===== ai được gọi hàm nào =====
 revoke all on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
-  public.quan_tri_them_thanh_vien(text, text, text, text), public.quan_tri_dat_mat_khau(uuid, text) from public, anon;
+  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau() from public, anon;
 grant execute on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
-  public.quan_tri_them_thanh_vien(text, text, text, text), public.quan_tri_dat_mat_khau(uuid, text) to authenticated;
+  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau() to authenticated;
+-- dấu vết mật khẩu, ghi dấu vết: chỉ dùng bên trong các hàm trên, không ai gọi thẳng được
+revoke all on function public.dau_vet_mk(uuid), public.ghi_mk_ban_dau(uuid) from public, anon, authenticated;
 grant execute on function public.trang_thai_dang_nhap(), public.email_dang_nhap(text) to anon, authenticated;
 
 -- người không đăng nhập (anon) không còn quyền gì trên các bảng (RLS vẫn là lớp thứ hai)
 revoke all on public.thanh_vien, public.danh_ba, public.bi_mat, public.kiemke_docs from anon;
 revoke all on public.bi_mat from authenticated;
+revoke all on public.mk_ban_dau from anon, authenticated;
 grant select, insert, update, delete on public.kiemke_docs, public.danh_ba to authenticated;
 grant select, update, delete on public.thanh_vien to authenticated;
 
@@ -179,6 +216,7 @@ grant select, update, delete on public.thanh_vien to authenticated;
 alter table public.thanh_vien enable row level security;
 alter table public.danh_ba enable row level security;
 alter table public.bi_mat enable row level security;   -- không có policy nào: chỉ đọc qua khoa_du_lieu()
+alter table public.mk_ban_dau enable row level security;   -- không có policy nào: chỉ các hàm mật khẩu ban đầu đọc / ghi
 
 drop policy if exists "tv xem" on public.thanh_vien;
 drop policy if exists "tv sua" on public.thanh_vien;

@@ -161,6 +161,10 @@ nhưng chỉ làm gợi ý nào người dùng đồng ý. Lỗi nhỏ thì tự
   (toàn quyền: danh bạ, đầu mối, thành viên, khoá dữ liệu; **bắt buộc xác thực 2 bước** — chưa bật thì phải bật ngay sau mật khẩu,
   máy chủ chỉ cho toàn quyền khi phiên đã qua bước 2). Người dùng khác chỉ cần mật khẩu. Máy chủ chặn ghi theo quyền
   (`duoc_ghi(col)`). Tên người kiểm (`ME`) lấy từ tài khoản.
+- **Mật khẩu ban đầu** quản trị đặt cho thành viên (Thêm thành viên, Đặt lại mật khẩu) **được toàn chữ số, lặp lại ký tự** (người
+  dùng chốt 17/11/2026; vẫn ≥ 12 ký tự, vẫn chặn mật khẩu phổ biến) và **lần đăng nhập đầu bắt buộc đổi** sang mật khẩu riêng theo đủ
+  quy tắc (máy chủ chặn đọc / ghi tới khi đổi: `mk_ban_dau`, `con_mk_ban_dau()`). Chỉ thay đổi duy nhất chỗ mật khẩu ban đầu; mọi mật
+  khẩu sau đó theo chính sách như cũ (BAO-MAT.md mục C.2).
 
 ### 5. File Excel BBKK là nguồn duy nhất
 

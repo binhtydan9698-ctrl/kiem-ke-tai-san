@@ -489,22 +489,25 @@
     await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', '123', 'xem');
     ok(/ít nhất 12/.test(txt('qlThemLoi')) && A.tk.length === 1, 'mật khẩu ban đầu quá ngắn: không tạo');
     await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', '123456789012', 'xem');
-    ok(/chỉ gồm chữ số|phổ biến/.test(txt('qlThemLoi')) && A.tk.length === 1, 'mật khẩu toàn số / quá phổ biến: không tạo');
-    await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', 'Ban-dau-2026!', 'xem');
+    ok(/phổ biến/.test(txt('qlThemLoi')) && A.tk.length === 1, 'mật khẩu ban đầu quá phổ biến (123456789012): không tạo');
+    // người dùng cho phép 17/11/2026: mật khẩu BAN ĐẦU được toàn chữ số, được lặp lại ký tự
+    await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', '111111111111', 'xem');
     await until(() => document.querySelectorAll('.ql-tbl tbody tr').length === 2);
-    ok(A.tk.length === 2 && A.tk[1].quyen === 'xem', 'thêm thành viên quyền "Tra cứu"');
+    ok(A.tk.length === 2 && A.tk[1].quyen === 'xem' && A.tk[1].mk === '111111111111', 'thêm thành viên quyền "Tra cứu", mật khẩu ban đầu lặp một chữ số (111111111111) được nhận');
     ok([...document.querySelectorAll('#qtQuyen option')].map(o => o.value).join() === 'xem,kiem,admin', 'có đủ 3 mức quyền: Tra cứu, Kiểm kê, Quản trị');
-    await them('thanhvien2', 'Thành Viên Hai', 'tv2@vd.vn', 'Song-Han-2026!', 'kiem');
+    await them('thanhvien2', 'Thành Viên Hai', 'tv2@vd.vn', '202611170002', 'kiem');
     await until(() => document.querySelectorAll('.ql-tbl tbody tr').length === 3);
-    ok(A.tk.length === 3 && A.tk[2].quyen === 'kiem', 'thêm thành viên quyền "Kiểm kê"');
-    ok(LOGMINE.some(e => e.kind === 'chung' && /Thêm thành viên thanhvien1/.test(e.title)) && !JSON.stringify(LOGMINE).includes('Ban-dau-2026!'), 'lịch sử ghi lần thêm thành viên, không ghi mật khẩu');
+    ok(A.tk.length === 3 && A.tk[2].quyen === 'kiem' && A.tk[2].mk === '202611170002', 'thêm thành viên quyền "Kiểm kê", mật khẩu ban đầu toàn chữ số được nhận');
+    ok(LOGMINE.some(e => e.kind === 'chung' && /Thêm thành viên thanhvien1/.test(e.title)) && !JSON.stringify(LOGMINE).includes('111111111111') && !JSON.stringify(LOGMINE).includes('202611170002'), 'lịch sử ghi lần thêm thành viên, không ghi mật khẩu');
     const tr = () => document.querySelector(`.ql-tbl tr[data-uid="${A.tk[1].uid}"]`);
     tr().querySelector('[data-ql="mk"]').click(); await W(200);
-    dien('qlDat-' + A.tk[1].uid, 'Dat-lai-2026!'); tr().querySelector('[data-ql="datmk"]').click(); await W(400);
-    ok(A.tk[1].mk === 'Dat-lai-2026!', 'quản trị đặt lại mật khẩu cho thành viên quên mật khẩu');
+    dien('qlDat-' + A.tk[1].uid, '999999999999'); tr().querySelector('[data-ql="datmk"]').click(); await W(400);
+    ok(A.tk[1].mk === '999999999999', 'quản trị đặt lại mật khẩu cho thành viên quên mật khẩu (mật khẩu ban đầu toàn số được nhận)');
     const doi = async (cu, moi, moi2) => { dien('qlMkCu', cu); dien('qlMkMoi', moi); dien('qlMkMoi2', moi2 == null ? moi : moi2); document.querySelector('#qlMk button[type="submit"]').click(); await W(400); };
     await doi('sai', 'Moi-moi-2026!');
     ok(/hiện tại chưa đúng/.test(txt('qlMkLoi')) && A.tk[0].mk === 'MatKhauThu#1', 'đổi mật khẩu: sai mật khẩu hiện tại thì không đổi');
+    await doi('MatKhauThu#1', '555555555555');
+    ok(/chỉ gồm chữ số/.test(txt('qlMkLoi')) && A.tk[0].mk === 'MatKhauThu#1', 'tự đổi mật khẩu của mình: vẫn không được toàn chữ số / lặp một ký tự (chỉ mật khẩu ban đầu mới được)');
     await doi('MatKhauThu#1', 'Ngay-15031990!');
     ok(/ngày tháng/.test(txt('qlMkLoi')) && A.tk[0].mk === 'MatKhauThu#1', 'mật khẩu có ngày sinh: cảnh báo trước, chưa đổi');
     await doi('MatKhauThu#1', 'Moi-moi-2026!');
@@ -534,8 +537,19 @@
 
     await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500);
     ok(!!document.getElementById('dnMan') && document.body.classList.contains('dn-cho'), 'đăng xuất: về màn hình đăng nhập, ẩn trang');
-    await dangNhap('thanhvien1', 'Dat-lai-2026!'); await until(() => !document.getElementById('dnMan'));
-    ok(DN.toi && DN.toi.quyen === 'xem', 'thành viên đăng nhập được bằng mật khẩu quản trị vừa đặt lại (không cần 2 lớp)');
+    // lần đăng nhập đầu bằng mật khẩu ban đầu: bắt đổi mật khẩu (người dùng chốt 17/11/2026), mật khẩu mới theo đủ quy tắc
+    await dangNhap('thanhvien1', '999999999999'); await until(() => document.getElementById('dnMkMoi'));
+    ok(!!document.getElementById('dnMkMoi') && !DN.toi && document.body.classList.contains('dn-cho') && /Đổi mật khẩu trước khi vào trang/.test(document.getElementById('dnMan').textContent),
+      'đăng nhập bằng mật khẩu ban đầu: phải đổi mật khẩu trước, chưa vào được trang');
+    const doiDau = async (a, b) => { dien('dnMkMoi', a); dien('dnMkMoi2', b == null ? a : b); document.getElementById('dnNut').click(); await W(400); };
+    await doiDau('888888888888');
+    ok(/chỉ gồm chữ số/.test(txt('dnLoi')) && A.tk[1].mk === '999999999999', 'mật khẩu mới không được toàn số / lặp một ký tự (quy tắc đầy đủ)');
+    await doiDau('Rieng-tu-cua-toi-1', 'Rieng-tu-cua-toi-2');
+    ok(/chưa giống nhau/.test(txt('dnLoi')) && A.tk[1].mk === '999999999999', 'hai lần nhập mật khẩu mới khác nhau: không đổi');
+    await doiDau('Rieng-tu-cua-toi-1'); await until(() => !document.getElementById('dnMan'));
+    ok(DN.toi && DN.toi.quyen === 'xem' && A.tk[1].mk === 'Rieng-tu-cua-toi-1' && !A.tk[1].doi, 'đổi xong mật khẩu riêng thì vào trang (thành viên không cần 2 lớp)');
+    await until(() => LOGMINE.some(e => /Đổi mật khẩu ban đầu/.test(e.title)));
+    ok(LOGMINE.some(e => /Đổi mật khẩu ban đầu/.test(e.title)) && !JSON.stringify(LOGMINE).includes('Rieng-tu-cua-toi-1'), 'lịch sử ghi “Đổi mật khẩu ban đầu”, không ghi mật khẩu');
     await go('ts-' + aGD.key);
     const nutDu = app.querySelector('.row [data-act="du"]');
     ok(document.body.classList.contains('ro') && READONLY && /Tài khoản Tra cứu/.test(app.textContent) && (!nutDu || getComputedStyle(nutDu.closest('.btns') || nutDu).pointerEvents === 'none'), 'quyền "Tra cứu": trang ở chế độ chỉ xem, nút ghi kết quả bị khoá');
@@ -547,7 +561,13 @@
     ok(/Tài khoản của tôi/.test(app.textContent) && !app.querySelector('.ql-tbl') && !document.getElementById('qlThem') && !/Khoá dữ liệu tài sản|Xác thực 2 bước/.test(app.textContent), 'người không phải quản trị: không thấy Thành viên, Khoá dữ liệu, Xác thực 2 bước');
     // Kiểm kê: ghi được kết quả, không sửa danh bạ, đầu mối
     app.querySelector('[data-ql="ra"]').click(); await W(500);
-    await dangNhap('thanhvien2', 'Song-Han-2026!'); await until(() => !document.getElementById('dnMan'));
+    await dangNhap('thanhvien2', '202611170002'); await until(() => document.getElementById('dnMkMoi'));
+    await doiDau('202611170002');
+    ok(/chỉ gồm chữ số/.test(txt('dnLoi')), 'không giữ lại mật khẩu ban đầu toàn số làm mật khẩu riêng');
+    A.tk[2].mk = 'Kiem-vien-hai-2026'; A.tk[2].doi = true;   // giả như quản trị đặt mật khẩu ban đầu “mạnh”: nhập lại đúng nó thì không được
+    await doiDau('Kiem-vien-hai-2026');
+    ok(/phải khác mật khẩu ban đầu/.test(txt('dnLoi')) && !DN.toi, 'mật khẩu mới trùng mật khẩu ban đầu: không được, báo rõ');
+    await doiDau('Kiem-vien-hai-rieng'); await until(() => !document.getElementById('dnMan'));
     ok(DN.toi && DN.toi.quyen === 'kiem' && !READONLY && !document.body.classList.contains('ro'), 'quyền "Kiểm kê": đăng nhập bằng mật khẩu (không cần 2 lớp), không ở chế độ chỉ xem');
     const aKK = ASSETS.find(a => a.unit === 'HC' && res(a) === 'chua' && !a.hoso);
     await go('ts-' + aKK.key); app.querySelector('.row [data-act="du"]').click(); await W(400);
@@ -562,7 +582,7 @@
     await until(() => document.getElementById('dnMan'));
     ok(/không dùng trang hơn 8 giờ/.test(txt('dnLoi')), 'màn hình đăng nhập báo rõ vì sao bị đăng xuất');
     A.tk[1].khoa = true;
-    await dangNhap('thanhvien1', 'Dat-lai-2026!');
+    await dangNhap('thanhvien1', 'Rieng-tu-cua-toi-1');
     ok(!!document.getElementById('dnMan') && /Sai tên đăng nhập/.test(txt('dnLoi')), 'tài khoản bị khoá: không đăng nhập được');
   };
 

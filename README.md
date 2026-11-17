@@ -40,7 +40,7 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | Thêm phòng chưa có trên app | Thêm vào `dữ liệu cập nhật/danh-muc-phong.json` (nhờ trợ lý AI), đẩy lên web; phòng mới hiện 0 tài sản, "Xong" |
 | Biết liên hệ ai về tài sản của một phòng ban, bộ môn | **Chung → Đầu mối**: nhập tên, chức vụ, email công việc cho từng sheet; đầu mối hiện ở trang tài sản, trang sheet, Tài sản thất lạc (không đưa vào file cho kế toán) |
 | Lưu số điện thoại, email của cán bộ liên quan | **Chung → Danh bạ** (chỉ người đã đăng nhập xem được; người có quyền sửa mới thêm, sửa) |
-| Đăng nhập, đổi mật khẩu, quản lý thành viên | Bật một lần bằng `supabase/dang-nhap.sql` (Supabase SQL Editor) + tắt "Confirm email"; sau đó **Chung → Quản lý**: đổi mật khẩu, xác thực 2 bước, đăng xuất (cả trên mọi thiết bị); quản trị thêm, khoá thành viên, đặt quyền, đặt lại mật khẩu |
+| Đăng nhập, đổi mật khẩu, quản lý thành viên | Bật một lần bằng `supabase/dang-nhap.sql` (Supabase SQL Editor) + tắt "Confirm email"; sau đó **Chung → Quản lý**: đổi mật khẩu, xác thực 2 bước, đăng xuất (cả trên mọi thiết bị); quản trị thêm, khoá thành viên, đặt quyền, đặt lại mật khẩu. Mật khẩu ban đầu quản trị đặt được toàn số (vd. 111111111111); người nhận đăng nhập lần đầu **bắt buộc đổi** sang mật khẩu riêng |
 | Bảo mật, riêng tư | Bộ quy tắc **`BAO-MAT.md`** (việc quản trị làm một lần ở mục F, xử lý sự cố ở mục G). Khoá danh sách tài sản và file Excel gốc sau đăng nhập: Chung → Quản lý → **Khoá dữ liệu tài sản** |
 | Thử giao diện tự động | `npm run thu-giao-dien` (không đụng dữ liệu chung) |
 | Xem ai đã làm gì, lúc nào | Trên web: **Lịch sử → Thao tác trên app** (Của tôi / Mọi người, lọc theo loại, tìm theo mã; **Tải Excel**) |

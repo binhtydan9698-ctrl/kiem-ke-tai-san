@@ -341,6 +341,12 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
   const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'dang-nhap.sql'), 'utf8');
   ok(/revoke all on public\.thanh_vien, public\.danh_ba, public\.bi_mat, public\.kiemke_docs from anon/.test(sql) && /du_cap_xac_thuc/.test(sql) && /length\(p_mat_khau\) < 12/.test(sql)
     && (sql.match(/security definer set search_path/g) || []).length >= 10, 'dang-nhap.sql: thu hồi quyền người không đăng nhập, bắt xác thực 2 bước, mật khẩu ≥ 12, hàm đặc quyền đều cố định search_path');
+  // mật khẩu ban đầu (người dùng chốt 17/11/2026): được đơn giản nhưng lần đăng nhập đầu phải đổi — máy chủ chặn tới khi đổi
+  ok(/create table if not exists public\.mk_ban_dau/.test(sql) && /alter table public\.mk_ban_dau enable row level security/.test(sql) && !/create policy [^;]* on public\.mk_ban_dau/.test(sql)
+    && /revoke all on public\.mk_ban_dau from anon, authenticated/.test(sql) && /and not public\.con_mk_ban_dau\(\)/.test(sql)
+    && (sql.match(/perform public\.ghi_mk_ban_dau\(/g) || []).length === 2 && /'doi_mk', public\.con_mk_ban_dau\(\)/.test(sql)
+    && /revoke all on function public\.dau_vet_mk\(uuid\), public\.ghi_mk_ban_dau\(uuid\) from public, anon, authenticated/.test(sql),
+    'dang-nhap.sql: mật khẩu ban đầu quản trị đặt (thêm thành viên, đặt lại) phải đổi ở lần đăng nhập đầu, chưa đổi thì máy chủ không cho đọc / ghi; bảng dấu vết không ai đọc thẳng được');
   {
     const pol = sql.match(/create policy "anh tai san[^;]*;/g) || [];
     ok(/values \('anh-tai-san', 'anh-tai-san', false,/.test(sql) && /set public = false/.test(sql) && pol.length === 4

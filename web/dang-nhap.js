@@ -33,6 +33,8 @@
     if (/duplicate key|unique/i.test(m)) return 'Tên đăng nhập này đã có người dùng.';
     if (/Signups not allowed|signup.*disabled/i.test(m)) return 'Supabase đang tắt đăng ký tài khoản mới. Người quản trị bật “Allow new users to sign up” trong Supabase (tắt lại sau khi thêm xong).';
     if (/rate limit|only request this after|too many/i.test(m)) return 'Thao tác quá nhiều lần, thử lại sau ít phút.';
+    if (/different from the old password|same_password/i.test(m)) return 'Mật khẩu mới phải khác mật khẩu ban đầu.';
+    if (/reauthenticat/i.test(m)) return 'Cần đăng nhập lại rồi mới đổi được mật khẩu: bấm “Đăng xuất”, đăng nhập lại rồi đổi ngay.';
     if (/Password should|weak password|pwned|leaked/i.test(m)) return 'Mật khẩu chưa đủ mạnh hoặc đã từng bị lộ trên mạng. Chọn mật khẩu khác (ít nhất 12 ký tự).';
     if (/Failed to fetch|NetworkError|network|fetch failed/i.test(m)) return 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
     return m || 'Có lỗi, thử lại.';
@@ -44,11 +46,13 @@
   const PHO_BIEN = ['password', 'matkhau', 'matkhaucuatoi', '123456', '12345678', '123456789', '1234567890', '123456789012', 'qwerty', 'qwertyuiop', 'abc123', '111111', 'iloveyou', 'admin', 'administrator',
     'fpt', 'fptu', 'fpt123', 'fptuniversity', 'fptdanang', 'fptudn', 'quanlytaisan', 'kiemke', 'kiemketaisan', 'hanhchinh', 'phonghanhchinh'];
   const gon = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]/g, '');
+  // o.banDau: mật khẩu BAN ĐẦU quản trị đặt cho thành viên (Thêm thành viên, Đặt lại mật khẩu) — người dùng cho phép 17/11/2026 chỉ
+  // gồm chữ số và lặp lại ký tự (dễ đọc cho người nhận). Mật khẩu tự đặt (tạo quản trị lần đầu, Đổi mật khẩu) vẫn kiểm đủ.
   DN.kiemTraMatKhau = function (mk, o) {
     o = o || {}; mk = String(mk || '');
     if (mk.length < 12) return 'Mật khẩu cần ít nhất 12 ký tự. Nên dùng một câu dễ nhớ, vd. “Kiem ke tai san nam 2027!”.';
     if (mk.length > 72) return 'Mật khẩu dài quá 72 ký tự.';
-    if (/^\d+$/.test(mk) || /^(.)\1+$/.test(mk)) return 'Mật khẩu không được chỉ gồm chữ số hoặc một ký tự lặp lại.';
+    if (!o.banDau && (/^\d+$/.test(mk) || /^(.)\1+$/.test(mk))) return 'Mật khẩu không được chỉ gồm chữ số hoặc một ký tự lặp lại.';
     const t = gon(mk);
     for (const w of [o.ten, String(o.email || '').split('@')[0], o.hoTen].map(gon).filter(x => x.length >= 3)) if (t.includes(w)) return 'Mật khẩu không được chứa tên đăng nhập, email hay họ tên.';
     if (PHO_BIEN.some(w => t === w || (w.length >= 6 && t.startsWith(w) && t.length - w.length <= 4))) return 'Mật khẩu này quá phổ biến, dễ đoán. Chọn mật khẩu khác.';
@@ -98,9 +102,12 @@
         const { error } = await sb2.auth.signUp({ email: o.email, password: o.mk });
         let daCo = false;
         if (error) { if (/already registered|already exists/i.test(error.message || '')) daCo = true; else throw error; }
-        await rpc('quan_tri_them_thanh_vien', { p_email: o.email, p_ten: o.ten, p_ho_ten: o.hoTen, p_quyen: o.quyen });
+        // tài khoản mới (mật khẩu ban đầu quản trị vừa đặt) → lần đăng nhập đầu phải đổi; email đã có tài khoản thì giữ mật khẩu cũ
+        await rpc('quan_tri_them_thanh_vien', { p_email: o.email, p_ten: o.ten, p_ho_ten: o.hoTen, p_quyen: o.quyen, p_mk_moi: !daCo });
         return { daCo };
       },
+      // lần đăng nhập đầu bằng mật khẩu ban đầu: tự đặt mật khẩu riêng (vừa đăng nhập xong nên không hỏi lại mật khẩu cũ)
+      async doiMkDau(moi) { const { error } = await sb.auth.updateUser({ password: moi }); if (error) throw error; },
       async suaThanhVien(uid, o) { const { error } = await sb.from('thanh_vien').update(o).eq('user_id', uid); if (error) throw error; },
       datMatKhau: (uid, mk) => rpc('quan_tri_dat_mat_khau', { p_uid: uid, p_mat_khau: mk }),
       khoaDuLieu: () => rpc('khoa_du_lieu'),
@@ -215,6 +222,7 @@
     if (!DN.vuaDangNhap || typeof logEvent !== 'function') return;
     const tb = DN.vuaDangNhap; DN.vuaDangNhap = null;
     try { logEvent({ kind: 'chung', title: 'Đăng nhập', lines: [tb] }); } catch (e) { }
+    if (DN.doiMkLanDau) { DN.doiMkLanDau = false; try { logEvent({ kind: 'chung', title: 'Đổi mật khẩu ban đầu (bắt buộc ở lần đăng nhập đầu)', lines: [] }); } catch (e) { } }
     if (DN.batMfaLanDau) { DN.batMfaLanDau = false; try { logEvent({ kind: 'chung', title: 'Bật xác thực 2 bước (bắt buộc với quản trị)', lines: [] }); } catch (e) { } }
   };
   DN.dangXuat = async function (phamVi, thongBao) {
@@ -313,12 +321,44 @@
     });
     setTimeout(() => document.getElementById('dnTen')?.focus(), 30);
   }
-  // sau mật khẩu: còn bước 2 thì hỏi mã; quản trị chưa bật 2 bước thì bắt bật ngay; xong thì vào trang. false = không có quyền
+  // sau mật khẩu: còn bước 2 thì hỏi mã; còn dùng mật khẩu ban đầu quản trị đặt thì bắt đổi; quản trị chưa bật 2 bước thì bắt bật
+  // ngay; xong thì vào trang. false = không có quyền
   async function hoanTat(moi) {
     if (await DN.api.canMa2()) { hienMa2(); return true; }
     const t = await DN.api.toiLaAi(); if (!t) return false;
+    if (t.doi_mk) { hienDoiMkDau(t, moi); return true; }
     if (t.quyen === 'admin' && !((await DN.api.dsYeuTo()) || []).some(f => f.status === 'verified')) { hienBatMfa(t, moi); return true; }
     vao(t, moi); return true;
+  }
+  // lần đăng nhập đầu bằng mật khẩu ban đầu (người dùng chốt 17/11/2026): bắt đổi sang mật khẩu riêng theo đủ quy tắc mới vào trang.
+  // Máy chủ cũng chặn: chưa đổi thì không đọc / ghi được dữ liệu (con_mk_ban_dau trong dang-nhap.sql).
+  function hienDoiMkDau(t, moi) {
+    const m = khung(`<form id="dnForm4" novalidate>
+      <div class="dn-dau"><b>Đổi mật khẩu trước khi vào trang</b><span>Bạn đang dùng <b>mật khẩu ban đầu</b> do người quản trị đặt. Đặt mật khẩu riêng của bạn để vào trang: ít nhất 12 ký tự, nên là một câu dễ nhớ (vd. “Kiem ke phong 108 Gamma!”); không toàn chữ số, không chứa tên đăng nhập, họ tên.</span></div>
+      <input type="text" id="dnTenAn" autocomplete="username" value="${E(t.ten || '')}" hidden>
+      ${fld('dnMkMoi', 'Mật khẩu mới (ít nhất 12 ký tự)', 'password', 'new-password', '')}
+      ${fld('dnMkMoi2', 'Nhập lại mật khẩu mới', 'password', 'new-password', '')}
+      <label class="dn-hien"><input type="checkbox" id="dnHien"> Hiện mật khẩu</label>
+      <p class="dn-loi" id="dnLoi" role="alert"></p>
+      <button type="submit" class="btn pri dn-nut" id="dnNut">Đổi mật khẩu và vào trang</button>
+      <button type="button" class="btn dn-nut" id="dnHuy">Đăng xuất</button></form>`);
+    m.querySelector('#dnHien').addEventListener('change', e => m.querySelectorAll('#dnMkMoi,#dnMkMoi2').forEach(i => { i.type = e.target.checked ? 'text' : 'password'; }));
+    m.querySelector('#dnHuy').addEventListener('click', async () => { try { await DN.api.dangXuat(); } catch (e) { } hienMan(''); });
+    let daCanhBao = '';
+    m.querySelector('#dnForm4').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nut = document.getElementById('dnNut'), loi = x => { document.getElementById('dnLoi').textContent = x; };
+      const mk = document.getElementById('dnMkMoi').value, mk2 = document.getElementById('dnMkMoi2').value;
+      const ly = DN.kiemTraMatKhau(mk, { ten: t.ten, email: t.email, hoTen: t.ho_ten }); if (ly) { loi(ly); return; }   // quy tắc đầy đủ (không phải mật khẩu ban đầu)
+      if (mk !== mk2) { loi('Hai lần nhập mật khẩu mới chưa giống nhau.'); return; }
+      const cb = DN.canhBaoMatKhau(mk); if (cb && daCanhBao !== mk) { daCanhBao = mk; loi(cb); return; }
+      nut.disabled = true; loi('');
+      try {
+        await DN.api.doiMkDau(mk); DN.doiMkLanDau = true;
+        if (!(await hoanTat(moi))) { try { await DN.api.dangXuat(); } catch (er) { } throw new Error('Tài khoản chưa được cấp quyền vào trang hoặc đã bị khoá. Liên hệ người quản trị.'); }
+      } catch (er) { loi(viLoi(er)); nut.disabled = false; }
+    });
+    setTimeout(() => document.getElementById('dnMkMoi')?.focus(), 30);
   }
   async function hienBatMfa(t, moi) {
     const m = khung(`<div class="dn-dau"><b>Bật xác thực 2 bước (bắt buộc với quản trị)</b><span>Tài khoản quản trị có toàn quyền nên cần thêm lớp mã 6 số.
@@ -423,7 +463,7 @@
           <td>${x.khoa ? '<span class="tag warn">Đã khoá</span>' : '<span class="tag info">Đang dùng</span>'}</td>
           <td class="num">${x.dang_nhap_cuoi ? ddmmyy(x.dang_nhap_cuoi) : 'Chưa đăng nhập'}</td>
           <td class="ql-act">${toi ? '' : (QLV.mk === x.user_id
-            ? `<input class="in" type="password" id="qlDat-${u}" placeholder="Mật khẩu mới (≥ 12 ký tự)" autocomplete="new-password" aria-label="Mật khẩu mới cho ${E(x.ten_dang_nhap)}"><button type="button" class="btn sm pri" data-ql="datmk">Lưu</button><button type="button" class="btn sm" data-ql="huymk">Huỷ</button>`
+            ? `<input class="in" type="password" id="qlDat-${u}" placeholder="Mật khẩu mới (≥ 12 ký tự, được toàn số)" autocomplete="new-password" aria-label="Mật khẩu mới cho ${E(x.ten_dang_nhap)}"><button type="button" class="btn sm pri" data-ql="datmk">Lưu</button><button type="button" class="btn sm" data-ql="huymk">Huỷ</button>`
             : `<button type="button" class="btn sm" data-ql="mk">${ic('KeyRound')}Đặt lại mật khẩu</button>`) + `<button type="button" class="btn sm" data-ql="khoa">${x.khoa ? 'Mở khoá' : 'Khoá'}</button>`}</td></tr>`;
       }).join('')}</tbody></table></div>`}
       <form class="ql-form" id="qlThem" novalidate>
@@ -432,7 +472,7 @@
           <div class="fld"><label for="qtTen">Tên đăng nhập</label><input class="in" id="qtTen" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="vd. tranthib"></div>
           <div class="fld"><label for="qtHoTen">Họ tên</label><input class="in" id="qtHoTen" autocomplete="off"></div>
           <div class="fld"><label for="qtEmail">Email công việc</label><input class="in" id="qtEmail" type="email" autocomplete="off" placeholder="ten@fe.edu.vn"></div>
-          <div class="fld"><label for="qtMk">Mật khẩu ban đầu</label><input class="in" id="qtMk" type="text" autocomplete="off" placeholder="ít nhất 12 ký tự"></div>
+          <div class="fld"><label for="qtMk">Mật khẩu ban đầu</label><input class="in" id="qtMk" type="text" autocomplete="off" placeholder="ít nhất 12 ký tự, được toàn số"></div>
           <div class="fld"><label for="qtQuyen">Quyền</label><select class="in" id="qtQuyen">${QUYEN_TK.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></div>
         </div>
         <p class="dn-loi" id="qlThemLoi" role="alert"></p>
@@ -516,7 +556,7 @@
       if (v === 'huymk') { QLV.mk = ''; render(); return; }
       if (v === 'datmk' && x) {
         const mk = (document.getElementById('qlDat-' + x.user_id)?.value || '');
-        const ly = DN.kiemTraMatKhau(mk, { ten: x.ten_dang_nhap, email: x.email, hoTen: x.ho_ten }); if (ly) { toast(ly); return; }
+        const ly = DN.kiemTraMatKhau(mk, { ten: x.ten_dang_nhap, email: x.email, hoTen: x.ho_ten, banDau: true }); if (ly) { toast(ly); return; }
         b.disabled = true;
         try { await DN.api.datMatKhau(x.user_id, mk); QLV.mk = ''; ghi('Đặt lại mật khẩu cho ' + x.ten_dang_nhap); toast('Đã đặt lại mật khẩu cho ' + x.ten_dang_nhap + '. Gửi riêng cho người đó, dặn đổi ngay.'); render(); }
         catch (er) { toast(viLoi(er)); b.disabled = false; }
@@ -558,7 +598,7 @@
       if (!TEN.test(ten)) { loi(viLoi('ten_dang_nhap_check')); return; }
       if (!hoTen) { loi('Nhập họ tên.'); return; }
       if (!EMAIL.test(email)) { loi('Email chưa đúng dạng, vd. ten@fe.edu.vn'); return; }
-      const ly = DN.kiemTraMatKhau(mk, { ten, email, hoTen }); if (ly) { loi('Mật khẩu ban đầu: ' + ly); return; }
+      const ly = DN.kiemTraMatKhau(mk, { ten, email, hoTen, banDau: true }); if (ly) { loi('Mật khẩu ban đầu: ' + ly); return; }
       if ((DN.tv || []).some(x => x.ten_dang_nhap === ten)) { loi('Tên đăng nhập này đã có người dùng.'); return; }
       nut.disabled = true;
       try {

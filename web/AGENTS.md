@@ -63,6 +63,9 @@
   hoTen, quyen, email}`; `ME` = họ tên tài khoản; bấm tên ở đầu trang → `#quan-ly`. Mọi lời gọi Supabase cho đăng nhập nằm trong
   `sbCong()`; bộ thử giao diện thay bằng `window.KIEMKE_AUTH_GIA` (`scripts/thu-dang-nhap-gia.js`, cùng tên hàm) — thêm hàm mới
   thì thêm ở cả hai. Không hiển thị / ghi mật khẩu vào lịch sử hay toast.
+  Mật khẩu ban đầu (quản trị đặt: Thêm thành viên, Đặt lại mật khẩu) kiểm bằng `DN.kiemTraMatKhau(mk, {…, banDau: true})` (được toàn
+  số, lặp ký tự); `toi_la_ai` trả `doi_mk` → `hoanTat()` mở `hienDoiMkDau()` (bắt buộc đổi, mật khẩu mới kiểm đủ quy tắc, gọi
+  `DN.api.doiMkDau`) trước bước bật 2 lớp / vào trang; lịch sử "Đổi mật khẩu ban đầu" ghi trong `DN.ghiDangNhap`.
   Nút `data-act="qrin"`
   (`data-qk` tài sản / `data-qu` sheet / `data-qr` phòng) gọi `qrOpen()` mở phần Mã QR lọc sẵn; `data-act="qrso"` mở Sổ mã QR.
 - Sổ mã QR trên trang: `SOQR = window.KIEMKE_SO_QR` (sinh khi build). Tài sản đã xoá khỏi BBKK: `viewTSXoa`; quét tem của nó
