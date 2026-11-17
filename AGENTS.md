@@ -51,7 +51,8 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
   email công việc; quy tắc 13) · `#danh-ba` Danh bạ (cần đăng nhập: họ tên, chức vụ, đơn vị, số điện thoại, email, ghi chú; bảng
   `danh_ba`; số điện thoại tự hiện kèm đầu mối khi cùng email / họ tên) · `#quan-ly` Quản lý ứng dụng (`web/dang-nhap.js`: tài
   khoản của tôi, đổi mật khẩu, đăng xuất; quản trị: thêm / khoá thành viên, đặt quyền, đặt lại mật khẩu — nơi phát triển tiếp phần
-  quản lý ứng dụng).
+  quản lý ứng dụng) · `#anh-tai-san` **Ảnh tài sản** (mục thứ 5, người dùng thêm 17/11/2026, mã trong `web/anh.js`: nơi quản lý toàn bộ
+  ảnh tài sản, cần đăng nhập).
 - Cả app phải **đăng nhập** (quy tắc 4); mỗi dòng tài sản có **nút ⋯** (mã QR + ảnh tài sản, mục "Quyết định khác").
 - Đầu trang 2 tầng: logo FPT University (`web/img/logo-fpt-university.png`, về trang chủ) · 4 phần chính [Kiểm kê | Mã QR |
   Lịch sử | Chung] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
@@ -282,3 +283,8 @@ chưa tìm thấy thì KHÔNG hiện xong (ghi rõ "N lệch", "N chưa thấy")
   màn hình kiểu Messenger (nền mờ, đếm ảnh, tải về / chia sẻ / đóng, mũi tên, dải ảnh nhỏ, vuốt, phím mũi tên). Ảnh ở kho riêng tư
   Supabase Storage `anh-tai-san` (tạo trong `supabase/dang-nhap.sql`): chỉ thành viên xem (đường dẫn có hạn 1 giờ), quyền Kiểm kê /
   Quản trị tải lên, xoá. Chưa bật đăng nhập thì chưa dùng được ảnh (hộp vẫn có mã QR).
+- **Chung › Ảnh tài sản `#anh-tai-san`** (người dùng yêu cầu 17/11/2026: giữ ảnh trong nút ⋯ và thêm mục thứ 5 của phần Chung, sau
+  Khấu hao, Đầu mối, Danh bạ, Quản lý — "chỗ quản lý toàn bộ ảnh tài sản"): số liệu (tài sản có ảnh, tổng số ảnh, chưa có ảnh — không
+  tính công trình, xây lắp, phần mềm), lọc theo sheet, **Có ảnh** (ảnh mới nhất trước hoặc gom theo phòng) / **Chưa có ảnh** (xếp theo
+  phòng để đi chụp lần lượt), tìm theo STT / mã / tên / phòng. Thêm, xoá ảnh mở **đúng hộp ⋯** (không viết đường tải lên thứ hai) nên
+  quyền, tối đa 5 ảnh, thu nhỏ ảnh, lịch sử giống hệt. Giữ bằng thử giao diện `anh`, `chung`.

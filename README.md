@@ -34,6 +34,7 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | Biết khi Supabase bị tạm dừng | GitHub tự đọc thử mỗi sáng 8h; không đọc được thì gửi mail báo (tới email nhận thông báo của tài khoản GitHub) |
 | Gom tài sản hết khấu hao đi thanh lý | **Chung → Khấu hao**: chọn số năm khấu hao (đang tạm tính), xem tài sản đã hết và sắp hết trong 12 tháng tới, **Tải Excel danh sách** |
 | Xem mã QR, thêm ảnh cho một tài sản | Bấm nút **⋯** trên dòng tài sản: mã QR (In tem, Mở trang tài sản) và ảnh (tối đa 5 ảnh, **Thêm ảnh** / **Chụp ảnh**); bấm ảnh để xem toàn màn hình, vuốt hoặc bấm mũi tên sang ảnh khác, tải về, chia sẻ. Cần bật đăng nhập; quyền Tra cứu chỉ xem |
+| Xem, quản lý ảnh của mọi tài sản | **Chung → Ảnh tài sản**: tài sản có ảnh (ảnh mới nhất trước hoặc theo phòng), danh sách **Chưa có ảnh** xếp theo phòng để đi chụp lần lượt, tìm theo STT / mã / tên / phòng; **Thêm, xoá ảnh** mở đúng hộp ⋯ (cần bật đăng nhập) |
 | Chuyển tài sản sang phòng ban khác (vd. tài sản Phòng Hành chính đang gộp) | Dòng tài sản → ô **Phòng ban** (dưới ô Phòng thực tế): chọn phòng ban mới, tài sản sang trang của phòng ban đó; file cho kế toán ghi "Phân bổ về: …" |
 | Xem toàn bộ tài sản gom theo kết quả, tòa, phòng, bộ môn | **Bảng tổng quan** → ô Tổng số dòng tài sản → **Xem →** (Tổng hợp toàn bộ tài sản, có **Tải Excel**) |
 | Thêm phòng chưa có trên app | Thêm vào `dữ liệu cập nhật/danh-muc-phong.json` (nhờ trợ lý AI), đẩy lên web; phòng mới hiện 0 tài sản, "Xong" |

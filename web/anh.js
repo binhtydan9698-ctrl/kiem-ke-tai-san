@@ -49,7 +49,10 @@
       document.body.appendChild(d);
       d.addEventListener('click', e => { if (e.target === d) d.close(); xtClick(e); });
       d.addEventListener('change', xtChange);
-      d.addEventListener('close', () => { const s = XT.stt; XT.stt = null; XT.xoa = ''; if (s != null && typeof refreshRow === 'function') try { refreshRow(s); } catch (er) { } });
+      d.addEventListener('close', () => {
+        const s = XT.stt; XT.stt = null; XT.xoa = ''; if (s == null) return;
+        try { if (V.type === 'anh') avSauDong(s); else if (typeof refreshRow === 'function') refreshRow(s); } catch (er) { }
+      });
     }
     return d;
   }
@@ -179,6 +182,113 @@
       if (v === 'chiase') { const f = new File([blob], ten, { type: 'image/jpeg' }); if (navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: LB.ten }); }
     } catch (e) { if (!/AbortError/.test(e && e.name)) toast('Không ' + (v === 'tai' ? 'tải' : 'chia sẻ') + ' được ảnh'); }
   }
+  /* ---------- Chung › Ảnh tài sản (#anh-tai-san) — người dùng yêu cầu 17/11/2026: mục thứ 5 của phần Chung, nơi quản lý toàn bộ
+     ảnh tài sản. Xem ảnh của mọi tài sản, tìm theo STT / mã / tên / phòng, lọc theo sheet, danh sách tài sản chưa có ảnh (xếp theo
+     phòng để đi chụp lần lượt). Thêm / xoá ảnh dùng lại đúng hộp ⋯ (moMoRong) nên quyền, tối đa 5 ảnh, thu nhỏ ảnh, lịch sử giống hệt. */
+  const AV_LIM = { co: 48, chua: 100 };
+  g.AV = { q: '', dv: '', loc: 'co', xep: 'moi', lim: AV_LIM.co };
+  const moiNhat = a => dsAnh(a).reduce((m, x) => x.at > m.at ? x : m, { at: 0 });
+  const urlCo = p => { const x = URLS.get(p); return x && x.het > Date.now() ? x.u : ''; };
+  const phongCua = a => roomOf(a) || 'Chưa có vị trí';
+  function avPham() {   // tài sản trong sheet đang chọn: có ảnh / chưa có ảnh (không tính công trình, xây lắp, phần mềm)
+    const l = ASSETS.filter(a => !AV.dv || a.unit === AV.dv);
+    return { co: l.filter(a => dsAnh(a).length), chua: l.filter(a => !a.hoso && !dsAnh(a).length), can: l.filter(a => !a.hoso).length };
+  }
+  function avLoc(p) {
+    const q = fold(AV.q.trim());
+    let l = p[AV.loc].filter(a => !q || timKhop(a, q, fold([a.ma, a.ten, roomOf(a), UNIT[a.unit].sheet].join(' '))));
+    if (AV.loc === 'co' && AV.xep === 'moi') l.sort((x, y) => moiNhat(y).at - moiNhat(x).at || x.stt - y.stt);
+    else l.sort((x, y) => thSapPhong(roomOf(x), roomOf(y)) || x.stt - y.stt);
+    return sttTruoc(l, q);
+  }
+  const avThe = (a, tai) => {
+    const ds = dsAnh(a), m = moiNhat(a), x0 = ds[0], ten = a.short || a.ten;
+    return `<article class="at-the" data-stt="${a.stt}">
+      <button type="button" class="at-anh" data-at="xem" aria-label="Xem ${ds.length} ảnh của ${esc(ten)}"><img data-p="${esc(x0.n || x0.p)}"${urlCo(x0.n || x0.p) ? ` src="${esc(urlCo(x0.n || x0.p))}"` : ''} alt="" loading="lazy"><span class="at-dem">${ic('Images')}${ds.length}</span></button>
+      <div class="at-tt"><small class="mono">${esc(a.ma || 'không mã')} · STT ${a.stt}</small><b>${esc(ten)}</b><small>${esc(phongCua(a))} · ${esc(UNIT[a.unit].sheet)}</small>
+        ${m.at ? `<small>Ảnh mới nhất ${ddmmyy(m.at)}${m.by ? ' · ' + esc(whoLabel(m.by) || m.by) : ''}</small>` : ''}</div>
+      <div class="at-b"><button type="button" class="btn sm${tai ? ' pri' : ''}" data-at="mo">${ic(tai ? 'ImagePlus' : 'Images')}${tai ? 'Thêm, xoá ảnh' : 'Xem ảnh, mã QR'}</button><a class="btn sm" href="#ts-${encodeURIComponent(a.key)}">${ic('ArrowRight')}Trang tài sản</a></div>
+    </article>`;
+  };
+  const avDong = (a, tai) => `<div class="dm-it at-chua" data-stt="${a.stt}">
+      <div class="dm-u"><b>${esc(a.short || a.ten)}</b><small class="mono">${esc(a.ma || 'không mã')} · STT ${a.stt}${a.sl > 1 ? ' · SL ' + nf.format(a.sl) : ''}</small></div>
+      <div class="dm-v"><span>${esc(UNIT[a.unit].sheet)}</span></div>
+      ${tai ? `<button type="button" class="btn sm pri" data-at="mo">${ic('Camera')}Thêm ảnh</button>` : `<a class="btn sm" href="#ts-${encodeURIComponent(a.key)}">${ic('ArrowRight')}Trang tài sản</a>`}
+    </div>`;
+  function avKetQua() {
+    const p = avPham(), l = avLoc(p), tai = duocTai(), show = l.slice(0, AV.lim), con = l.length - show.length;
+    const dem = AV.loc === 'co'
+      ? `<b class="num">${nf.format(l.length)}</b> tài sản có ảnh · <b class="num">${nf.format(l.reduce((s, a) => s + dsAnh(a).length, 0))}</b> ảnh`
+      : `<b class="num">${nf.format(l.length)}</b> tài sản chưa có ảnh · xếp theo phòng để đi chụp lần lượt`;
+    let than;
+    if (!l.length) than = `<div class="empty">${AV.q.trim() ? 'Không có tài sản nào khớp ô tìm.' : AV.loc === 'co' ? 'Chưa có tài sản nào có ảnh.' + (tai ? ' Chọn “Chưa có ảnh” rồi bấm “Thêm ảnh”, hoặc bấm nút ⋯ trên dòng tài sản.' : '') : 'Mọi tài sản ở đây đều đã có ảnh.'}</div>`;
+    else if (AV.loc === 'co' && AV.xep === 'moi') than = `<div class="at-luoi">${show.map(a => avThe(a, tai)).join('')}</div>`;
+    else {   // gom theo phòng (tòa → tầng → số phòng), như trang Tổng hợp
+      const nhom = new Map(); show.forEach(a => { const k = phongCua(a); if (!nhom.has(k)) nhom.set(k, []); nhom.get(k).push(a); });
+      than = [...nhom].map(([k, ds]) => `<div class="sect"><h2>${esc(k)}</h2><span class="num">${ds.length} tài sản</span></div>${AV.loc === 'co'
+        ? `<div class="at-luoi">${ds.map(a => avThe(a, tai)).join('')}</div>` : `<div class="dm-list">${ds.map(a => avDong(a, tai)).join('')}</div>`}`).join('');
+    }
+    return { dem, than: than + (con > 0 ? `<div class="lmorebtn"><button type="button" class="btn" data-at="them">Xem thêm ${nf.format(Math.min(AV_LIM[AV.loc], con))} tài sản</button></div>` : '') };
+  }
+  async function avAnhNho() {   // lấy đường dẫn có hạn cho ảnh nhỏ của các thẻ đang hiện (một lần gọi)
+    const imgs = [...app.querySelectorAll('.at-anh img[data-p]:not([src])')]; if (!imgs.length) return;
+    try { await layUrl([...new Set(imgs.map(i => i.dataset.p))]); }
+    catch (e) { const k = document.getElementById('avKq'); if (k && !k.querySelector('.dn-loi')) k.insertAdjacentHTML('afterbegin', `<p class="dn-loi" role="alert">${esc(dnLoi(e))}</p>`); return; }
+    imgs.forEach(i => { const u = urlCo(i.dataset.p); if (u && i.isConnected) i.src = u; });
+  }
+  function avVe() {   // chỉ vẽ lại phần kết quả (giữ con trỏ trong ô tìm)
+    const k = document.getElementById('avKq'), d = document.getElementById('avDem'); if (!k) return;
+    const r = avKetQua(); d.innerHTML = r.dem; k.innerHTML = r.than; avAnhNho();
+  }
+  g.viewAnhTS = function () {
+    avBind();
+    const ban = banner('can-tin', 'Chung', 'Ảnh tài sản', 'Toàn bộ ảnh chụp tài sản ở một chỗ: xem, tìm theo STT, mã, tên, phòng; thêm hoặc xoá ảnh của từng tài sản. Ảnh cũng xem được ở nút ⋯ trên mỗi dòng tài sản.');
+    if (!coKho()) {
+      app.innerHTML = `${demoBanner()}${ban}<div class="ch-note warn">${ic('Lock')}<div><b>Ảnh tài sản cần đăng nhập.</b> Ảnh lưu ở kho riêng, chỉ thành viên đã đăng nhập mới xem được. Đăng nhập chưa được bật nên chưa dùng được ảnh. Xem cách bật ở <a href="#quan-ly">Chung › Quản lý</a>.</div></div>`;
+      return;
+    }
+    const p = avPham(), tai = duocTai(), soAnh = p.co.reduce((s, a) => s + dsAnh(a).length, 0), pct0 = p.can ? p.co.length / p.can * 100 : 0, pct = pct0 > 0 && pct0 < 1 ? 'dưới 1' : Math.min(100, Math.round(pct0));
+    const r = avKetQua();
+    app.innerHTML = `${demoBanner()}${ban}
+    <div class="ch-note">${ic('Lock')}<div>Ảnh lưu ở <b>kho riêng</b>, chỉ thành viên đã đăng nhập xem được${tai ? '; bạn được thêm, xoá ảnh' : ' (quyền Tra cứu chỉ xem, không thêm, xoá)'}. Mỗi tài sản tối đa ${ANH_TOI_DA} ảnh, ảnh được thu nhỏ trước khi tải lên. Ảnh <b>không</b> đưa vào file “Xuất cho kế toán”.</div></div>
+    <div class="ns-sum at-sum">
+      <div><small>Tài sản có ảnh</small><b class="num">${nf.format(p.co.length)}</b><span>trên ${nf.format(p.can)} tài sản · ${pct}%</span></div>
+      <div><small>Tổng số ảnh</small><b class="num">${nf.format(soAnh)}</b><span>tối đa ${ANH_TOI_DA} ảnh mỗi tài sản</span></div>
+      <div><small>Chưa có ảnh</small><b class="num">${nf.format(p.chua.length)}</b><span>tài sản (không tính công trình, xây lắp, phần mềm)</span></div>
+    </div>
+    <div class="tools at-tools">
+      <select class="in" id="avdv" aria-label="Sheet"><option value="">Mọi sheet</option>${UNITS.map(u => `<option value="${u.id}" ${AV.dv === u.id ? 'selected' : ''}>${esc(u.sheet)}</option>`).join('')}</select>
+      <div class="seg" role="group" aria-label="Lọc theo ảnh"><button type="button" data-at="loc" data-v="co" aria-pressed="${AV.loc === 'co'}">Có ảnh <em class="num">${nf.format(p.co.length)}</em></button><button type="button" data-at="loc" data-v="chua" aria-pressed="${AV.loc === 'chua'}">Chưa có ảnh <em class="num">${nf.format(p.chua.length)}</em></button></div>
+      ${AV.loc === 'co' ? `<select class="in" id="avxep" aria-label="Xếp theo"><option value="moi" ${AV.xep === 'moi' ? 'selected' : ''}>Ảnh mới nhất trước</option><option value="phong" ${AV.xep === 'phong' ? 'selected' : ''}>Theo phòng</option></select>` : ''}
+      <label class="sbox search">${ic('Search')}<input class="in" id="avq" type="search" placeholder="Tìm STT, mã, tên, phòng…" value="${esc(AV.q)}" aria-label="Tìm tài sản"></label>
+    </div>
+    <p class="dm-sum" id="avDem">${r.dem}</p>
+    <div id="avKq">${r.than}</div>`;
+    avAnhNho();
+  };
+  // đóng hộp ⋯ khi đang ở trang Ảnh tài sản: vẽ lại để số ảnh, ảnh bìa đúng; đưa con trỏ về lại nút vừa bấm
+  function avSauDong(stt) {
+    const y = window.scrollY; render(); window.scrollTo(0, y);
+    app.querySelector(`[data-stt="${stt}"] [data-at="mo"]`)?.focus({ preventScroll: true });
+  }
+  function avBind() {
+    if (avBind.ok) return; avBind.ok = true;
+    app.addEventListener('click', e => {
+      const b = e.target.closest('[data-at]'); if (!b || V.type !== 'anh') return;
+      const v = b.dataset.at, a = BY_STT[(b.closest('[data-stt]') || {}).dataset?.stt];
+      if (v === 'loc') { AV.loc = b.dataset.v; AV.lim = AV_LIM[AV.loc]; render(); return; }
+      if (v === 'them') { AV.lim += AV_LIM[AV.loc]; avVe(); return; }
+      if (!a) return;
+      if (v === 'xem') { moXem(a, 0); return; }
+      if (v === 'mo') { moMoRong(a); return; }
+    });
+    app.addEventListener('input', e => { if (e.target.id === 'avq') { AV.q = e.target.value; AV.lim = AV_LIM[AV.loc]; clearTimeout(app._av); app._av = setTimeout(avVe, 200); } });
+    app.addEventListener('change', e => {
+      if (e.target.id === 'avdv') { AV.dv = e.target.value; AV.lim = AV_LIM[AV.loc]; render(); }
+      else if (e.target.id === 'avxep') { AV.xep = e.target.value; AV.lim = AV_LIM[AV.loc]; render(); }
+    });
+  }
+
   // câu lịch sử khi thêm / xoá ảnh (logDescribe gọi)
   g.logAnhLines = (o, n) => {
     const a = (o && o.ds) || [], b = (n && n.ds) || [], them = b.filter(x => !a.some(y => y.p === x.p)).length, bot = a.filter(x => !b.some(y => y.p === x.p)).length;

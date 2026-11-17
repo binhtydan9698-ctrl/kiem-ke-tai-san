@@ -21,10 +21,10 @@ const KICH_BAN = [
   { ten: 'phong-ban', mo: 'Phòng bổ sung (Gamma, Alpha), quy tắc “xong”, đổi phòng ban như đổi phòng, Tải Excel Tổng hợp' },
   { ten: 'ket-qua', mo: 'Bảng tổng quan: nút “Xem →” ở 3 ô đầu, trang Kết quả đã kiểm / Lệch số lượng' },
   { ten: 'xuat-goc', mo: 'Xuất cho kế toán sau nhiều thao tác thật: file gốc giữ nguyên, chỉ khác 3 cột cuối + sheet Tài sản phát sinh' },
-  { ten: 'chung', mo: 'Chung: khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán' },
+  { ten: 'chung', mo: 'Chung: 5 mục, khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán, Ảnh tài sản khi chưa đăng nhập' },
   { ten: 'dang-nhap-dau', mo: 'Đăng nhập: lần đầu tạo tài khoản quản trị (đăng nhập giả, không đụng Supabase)' },
   { ten: 'dang-nhap', mo: 'Đăng nhập: mật khẩu, chặn nhập sai, chính sách mật khẩu, xác thực 2 bước, thành viên, quyền, Danh bạ, tự đăng xuất' },
-  { ten: 'anh', mo: 'Nút ⋯ trên dòng tài sản: mã QR, tải ảnh lên (thu nhỏ), xem ảnh kiểu Messenger, quyền' },
+  { ten: 'anh', mo: 'Ảnh: nút ⋯ trên dòng tài sản (mã QR, tải ảnh lên, thu nhỏ, xem kiểu Messenger) + Chung › Ảnh tài sản (xem, tìm, thêm, xếp, quyền, trợ năng)' },
   { ten: 'ma-hoa', mo: 'Dữ liệu tài sản mã hoá: chưa đăng nhập không đọc được, đăng nhập xong giải mã và chạy', maHoa: true },
   { ten: 'nang-cap-dt', mo: 'Nâng cấp điện thoại: việc kiểm lên trước, vùng bấm ≥ 44px, chữ ≥ 13px, thanh tiến độ dính, banner gọn', dt: true },
   { ten: 'nang-cap-pc', mo: 'Nâng cấp — máy tính giữ bố cục cũ, thanh tiến độ dính, chữ ≥ 13px' },
@@ -105,9 +105,12 @@ await gui('Page.enable'); await gui('Runtime.enable'); await gui('Network.enable
 
 console.log(`Thử giao diện trên ${path.basename(ung)} chạy ngầm (chế độ chỉ lưu trên máy, không đọc / ghi Supabase)`);
 let so = 0;
+// dùng khi sửa: THU_CHI=anh,chung chỉ chạy các kịch bản này; THU_DT=1 chạy cỡ điện thoại; THU_CHUP=<thư mục> chụp màn hình cuối mỗi kịch bản
+const CHI = (process.env.THU_CHI || '').split(',').filter(Boolean), CHUP = process.env.THU_CHUP || '';
 for (const k of KICH_BAN) {
+  if (CHI.length && !CHI.includes(k.ten)) continue;
   console.log(`${++so}. ${k.mo}`);
-  await gui('Emulation.setDeviceMetricsOverride', k.dt ? { width: 390, height: 844, deviceScaleFactor: 2, mobile: true } : { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
+  await gui('Emulation.setDeviceMetricsOverride', (k.dt || process.env.THU_DT) ? { width: 390, height: 844, deviceScaleFactor: 2, mobile: true } : { width: 1366, height: 900, deviceScaleFactor: 1, mobile: false });
   loiTrang.length = 0;
   await gui('Page.navigate', { url: `${k.maHoa ? GOC_MH : GOC}?${k.ten}` });
   const t0 = Date.now(); let kq = null;
@@ -123,10 +126,11 @@ for (const k of KICH_BAN) {
   // chính sách chặn mã lạ (CSP) không được chặn nhầm chức năng nào (bỏ qua pdf.js — chỉ bộ thử dùng để đọc lại PDF)
   const csp = JSON.parse((await gui('Runtime.evaluate', { expression: 'JSON.stringify(window.__CSP||[])', returnByValue: true })).result?.result?.value || '[]').filter(x => !/pdf\.worker|pdf\.js/.test(x));
   ok(!csp.length, 'không vi phạm chính sách chặn mã lạ (CSP)' + (csp.length ? ': ' + [...new Set(csp)].slice(0, 4).join(' | ') : ''));
+  if (CHUP) { const m = (await gui('Page.getLayoutMetrics')).result.cssContentSize, r = await gui('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width: m.width, height: Math.min(m.height, 6000), scale: 1 } }); fs.mkdirSync(CHUP, { recursive: true }); fs.writeFileSync(path.join(CHUP, k.ten + (process.env.THU_DT ? '-dt' : '') + '.png'), Buffer.from(r.result.data, 'base64')); }
 }
 
 console.log('Cuối cùng: dữ liệu chung trên Supabase');
-ok(!guiSupa.length && soYeuCau > 100 && SUPA, guiSupa.length ? `bộ thử đã gửi ${guiSupa.length} yêu cầu tới Supabase: ${[...new Set(guiSupa)].slice(0, 3).join(' | ')}`
+ok(!guiSupa.length && soYeuCau > (CHI.length ? 0 : 100) && SUPA, guiSupa.length ? `bộ thử đã gửi ${guiSupa.length} yêu cầu tới Supabase: ${[...new Set(guiSupa)].slice(0, 3).join(' | ')}`
   : `theo dõi ${soYeuCau.toLocaleString('vi-VN')} yêu cầu mạng của cả bộ thử: không yêu cầu nào tới Supabase — dữ liệu chung không bị đụng (quy tắc vàng 3)`);
 
 ws.close(); tr.kill(); may.close(); don();

@@ -14,6 +14,14 @@
   const txt = id => (document.getElementById(id) || {}).textContent || '';
   const hd = () => ({ mod: document.body.dataset.mod, sec: [...document.querySelectorAll('.sec a[aria-current]:not(.sec-home)')].map(a => a.id).join(), sub: [...document.querySelectorAll('.top2 a[aria-current]')].map(a => a.dataset.r).join(), top2: getComputedStyle(document.querySelector('.top2')).display });
   const loadScript = src => new Promise((ok2, no) => { const s = document.createElement('script'); s.src = src; s.onload = ok2; s.onerror = () => no(new Error('không tải được ' + src)); document.head.appendChild(s); });
+  // axe-core: chuẩn WCAG 2.2 AA + khuyến nghị. preload:false — axe không tự tải lại tệp CSS (phông Google) để soi; trang chặn việc đó
+  // bằng CSP và không được nới CSP vì bộ thử. Tắt riêng luật "skip-link" (nhóm khuyến nghị, KHÔNG phải tiêu chí WCAG): app dùng
+  // đường link #… làm trang, menu con cuộn ngang trên điện thoại đẩy mục đầu ra khỏi màn hình và axe đoán nhầm đó là "link nhảy tới
+  // nội dung". Thay bằng kiểm tra chặt hơn linkHong(): mọi link #… trên trang phải mở một trang có thật hoặc trỏ tới phần tử có thật.
+  const AXE = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, rules: { 'skip-link': { enabled: false } }, resultTypes: ['violations'], preload: false };
+  const TRANG_CO = /^(trang-chu|tong-quan|don-vi|vi-tri|xac-minh|xuat|ket-qua|ket-qua-lech|tong-hop|ma-qr|so-ma-qr|lich-su|nhap-so|ly-lich|khau-hao|dau-moi|danh-ba|quan-ly|anh-tai-san|(ts|ly-lich|phong)-.+)$/;
+  const linkHong = () => [...new Set([...document.querySelectorAll('a[href^="#"]')].map(a => decodeURIComponent(a.getAttribute('href').slice(1))))]
+    .filter(h => h && !document.getElementById(h) && !(h.startsWith('dv-') ? UNIT[h.slice(3)] : TRANG_CO.test(h)));
   const KB = {};
 
   KB['dau-trang'] = async () => {
@@ -23,7 +31,7 @@
     { const t = document.querySelector('.top1').getBoundingClientRect(); ok(t.height < 80, `đầu trang 1366px: 4 phần chính nằm gọn một hàng (cao ${Math.round(t.height)}px)`); }
     ok(document.querySelector('.lgo img') && document.querySelector('.lgo img').naturalWidth === 960, 'logo FPT University tải được (960×375)');
     for (const [hash, mod, sec, sub] of [['tong-quan', 'kk', 'swKK', 'tong-quan'], ['vi-tri', 'kk', 'swKK', 'vi-tri'], ['xac-minh', 'kk', 'swKK', 'xac-minh'], ['xuat', 'kk', 'swKK', 'xuat'],
-      ['ma-qr', 'qr', 'swQR', 'ma-qr'], ['so-ma-qr', 'qr', 'swQR', 'so-ma-qr'], ['lich-su', 'ls', 'swLS', 'lich-su'], ['nhap-so', 'ls', 'swLS', 'nhap-so'], ['ly-lich', 'ls', 'swLS', 'ly-lich'], ['khau-hao', 'ch', 'swCH', 'khau-hao'], ['dau-moi', 'ch', 'swCH', 'dau-moi']]) {
+      ['ma-qr', 'qr', 'swQR', 'ma-qr'], ['so-ma-qr', 'qr', 'swQR', 'so-ma-qr'], ['lich-su', 'ls', 'swLS', 'lich-su'], ['nhap-so', 'ls', 'swLS', 'nhap-so'], ['ly-lich', 'ls', 'swLS', 'ly-lich'], ['khau-hao', 'ch', 'swCH', 'khau-hao'], ['dau-moi', 'ch', 'swCH', 'dau-moi'], ['anh-tai-san', 'ch', 'swCH', 'anh-tai-san']]) {
       await go(hash); h = hd();
       ok(h.mod === mod && h.sec === sec && h.sub === sub && h.top2 !== 'none', `#${hash}: tô đúng phần và mục con`);
     }
@@ -371,6 +379,10 @@
       return { het, gan };
     };
     const so = () => [...document.querySelectorAll('.kh-sum b')].map(b => +b.textContent.replace(/\D/g, ''));
+    await go('anh-tai-san');
+    ok([...document.querySelectorAll('#navCH a[data-r]')].map(x => x.textContent.trim()).join('|') === 'Khấu hao|Đầu mối|Danh bạ|Quản lý|Ảnh tài sản' && document.querySelector('#navCH a[data-r="anh-tai-san"]').getAttribute('aria-current') === 'page' && document.body.dataset.mod === 'ch',
+      'phần Chung có mục thứ 5 “Ảnh tài sản” (#anh-tai-san), sau Khấu hao, Đầu mối, Danh bạ, Quản lý');
+    ok(/Ảnh tài sản cần đăng nhập/.test(app.textContent) && !app.querySelector('.at-luoi') && !!app.querySelector('#app a[href="#quan-ly"]'), 'Ảnh tài sản khi chưa bật đăng nhập: báo rõ cần đăng nhập (chỉ chỗ xem cách bật), không hiện ảnh');
     await go('khau-hao');
     let s = so(); const t5 = tinh(5);
     ok(KHV.nam === 5 && s[0] === t5.het && s[1] === t5.gan, `khấu hao mặc định tạm tính 5 năm: ${s[0]} đã hết, ${s[1]} sắp hết trong 12 tháng (tính lại khớp)`);
@@ -616,6 +628,35 @@
     ok(S.anh[a.stt].ds.length === 4 && A.kho.size === 8, 'bấm lần nữa: xoá cả ảnh lớn và ảnh nhỏ');
     d.close(); await W(300);
     ok((app.querySelector('.row .xt-n') || {}).textContent === '4', 'nút ⋯ trên dòng hiện số ảnh của tài sản');
+
+    // Chung › Ảnh tài sản (#anh-tai-san): nơi quản lý toàn bộ ảnh tài sản
+    await go('anh-tai-san'); await until(() => app.querySelector('.at-the .at-anh img[src]'));
+    const the = () => [...app.querySelectorAll('.at-the')], soLieu = () => [...app.querySelectorAll('.at-sum b')].map(x => +x.textContent.replace(/\D/g, ''));
+    ok(the().length === 1 && +the()[0].dataset.stt === a.stt && the()[0].querySelector('.at-dem').textContent.trim() === '4', 'Ảnh tài sản: có thẻ của tài sản vừa chụp, ảnh bìa hiện, đếm 4 ảnh');
+    const chua0 = ASSETS.filter(x => !x.hoso && x.stt !== a.stt).length, sl = soLieu();
+    ok(sl[0] === 1 && sl[1] === 4 && sl[2] === chua0, `số liệu: 1 tài sản có ảnh, 4 ảnh, ${nf.format(chua0)} tài sản chưa có ảnh (không tính công trình, xây lắp, phần mềm)`);
+    the()[0].querySelector('[data-at="xem"]').click(); await until(() => lb.open && lb.querySelector('.lb-anh'));
+    ok(/1\/4/.test(lb.querySelector('.lb-dem').textContent), 'bấm ảnh bìa: mở trình xem ảnh toàn màn hình, 1/4');
+    lb.querySelector('[data-lb="dong"]').click(); await W(200);
+    app.querySelector('[data-at="loc"][data-v="chua"]').click(); await W(300);
+    const b2 = BY_UNIT.GD.find(x => x !== a && !x.hoso && x.ma && !(S.anh[x.stt] || {}).ds);
+    const tim = v => { const i = document.getElementById('avq'); i.focus(); i.value = v; i.dispatchEvent(new Event('input', { bubbles: true })); };
+    tim('STT ' + b2.stt); await W(400);
+    ok(app.querySelectorAll('.at-chua').length === 1 && +app.querySelector('.at-chua').dataset.stt === b2.stt && document.activeElement.id === 'avq', 'Chưa có ảnh: tìm “STT …” ra đúng 1 tài sản, con trỏ vẫn ở ô tìm');
+    app.querySelector('.at-chua [data-at="mo"]').click(); await until(() => d.open && d.querySelector('.xt-dau small').textContent.includes('STT ' + b2.stt));
+    chon([await taoAnh('#1d4ed8', 'C1')]);
+    await until(() => ((S.anh[b2.stt] || {}).ds || []).length === 1 && !d.querySelector('.xt-cho'), 30000);
+    d.close(); await W(300);
+    ok(!app.querySelector('.at-chua') && soLieu()[0] === 2 && soLieu()[1] === 5, 'thêm ảnh ngay từ trang: đóng hộp thì tài sản rời danh sách “Chưa có ảnh”, số liệu tăng (2 tài sản, 5 ảnh)');
+    ok(LOGMINE.some(e => e.key === b2.key && (e.lines || []).some(l => /Thêm 1 ảnh/.test(l))), 'thêm ảnh từ trang Ảnh tài sản cũng ghi lịch sử');
+    tim(''); app.querySelector('[data-at="loc"][data-v="co"]').click(); await W(300);
+    ok(the().map(x => +x.dataset.stt).join() === [b2.stt, a.stt].join(), 'Có ảnh, xếp “Ảnh mới nhất trước”: tài sản vừa thêm ảnh đứng đầu');
+    const xep = document.getElementById('avxep'); xep.value = 'phong'; xep.dispatchEvent(new Event('change', { bubbles: true })); await W(300);
+    ok(app.querySelectorAll('#avKq .sect h2').length >= 1 && the().length === 2, 'xếp “Theo phòng”: gom thẻ ảnh theo phòng, có tên phòng làm tiêu đề');
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+    const kqAxe = await axe.run(document, AXE);
+    ok(!kqAxe.violations.length && !linkHong().length, 'trang Ảnh tài sản (đã đăng nhập, có ảnh) đạt trợ năng WCAG 2.2 AA, không có link hỏng' + (kqAxe.violations.length ? ': ' + kqAxe.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : ''));
+    xep.value = 'moi'; AV.xep = 'moi';
     await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500);
     await dangNhap('tracuu', 'Tra-cuu-thu-01'); await until(() => DN.toi && !document.getElementById('dnMan'));
     await go('ts-' + a.key); app.querySelector('.row [data-act="xt"]').click();
@@ -624,6 +665,11 @@
     d.querySelector('[data-xt="xem"]').click(); await until(() => lb.open && lb.querySelector('.lb-anh'));
     ok(lb.open, 'quyền Tra cứu: mở xem ảnh toàn màn hình được');
     lb.close(); d.close();
+    await go('anh-tai-san'); await until(() => app.querySelector('.at-the .at-anh img[src]'));
+    ok(the().length === 2 && !app.querySelector('[data-at="mo"].pri') && /quyền Tra cứu chỉ xem/.test(app.textContent), 'quyền Tra cứu ở trang Ảnh tài sản: xem được 2 tài sản có ảnh, không có nút thêm, xoá');
+    app.querySelector('[data-at="loc"][data-v="chua"]').click(); await W(300);
+    ok(app.querySelectorAll('.at-chua').length > 0 && !app.querySelector('.at-chua [data-at="mo"]'), 'quyền Tra cứu: danh sách “Chưa có ảnh” chỉ có link Trang tài sản, không có nút Thêm ảnh');
+    AV.loc = 'co'; AV.q = ''; render(); window.scrollTo(0, 0); await until(() => app.querySelector('.at-the .at-anh img[src]'));
   };
 
   // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,
@@ -634,10 +680,13 @@
     const sai = [];
     for (const t of TRANG) {
       await go(t); await W(400);
-      // preload:false — axe không tự tải lại tệp CSS (phông Google) để soi; trang chặn việc đó bằng CSP và không được nới CSP vì bộ thử
-      const kq = await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, resultTypes: ['violations'], preload: false });
+      const kq = await axe.run(document, AXE);
       kq.violations.forEach(v => sai.push(`#${t}: ${v.id} (${v.nodes.length} chỗ, vd ${v.nodes[0].target.join(' ')})`));
+      linkHong().forEach(h => sai.push(`#${t}: link #${h} không mở trang nào`));
     }
+    const gia = document.createElement('a'); gia.href = '#khong-co-trang-nay'; gia.textContent = 'thử'; app.appendChild(gia);
+    const bat = linkHong(); gia.remove();
+    ok(bat.length === 1 && bat[0] === 'khong-co-trang-nay', 'kiểm tra link #… bắt được link hỏng thật (thử chèn một link không mở trang nào)');
     ok(!sai.length, sai.length ? `trợ năng: ${sai.length} loại vi phạm — ${sai.slice(0, 4).join(' · ')}` : `trợ năng (axe-core, WCAG 2.2 AA): ${TRANG.length} trang chính không có vi phạm nào`);
   };
   KB['tro-nang-dt'] = KB['tro-nang'];

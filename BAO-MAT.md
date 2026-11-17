@@ -25,7 +25,7 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
 6. Repo GitHub để **riêng tư**. Dù vậy vẫn coi như có thể lộ: không commit khoá, mật khẩu, email thật, dữ liệu cá nhân.
 7. Trang không cho máy tìm kiếm lập chỉ mục (`robots.txt`, tiêu đề `X-Robots-Tag`).
 8. Chỉ thu thập thông tin cần cho quản lý tài sản.
-9. **Ảnh tài sản** (nút ⋯): chỉ chụp tài sản, tem, số máy; không chụp người, giấy tờ cá nhân, màn hình có thông tin cá nhân. Ảnh nằm ở
+9. **Ảnh tài sản** (nút ⋯ và trang Chung › Ảnh tài sản — trang này dùng lại đúng hộp ⋯, không có đường tải lên / xoá riêng): chỉ chụp tài sản, tem, số máy; không chụp người, giấy tờ cá nhân, màn hình có thông tin cá nhân. Ảnh nằm ở
    kho Supabase Storage **riêng tư** `anh-tai-san`: không có đường link công khai, thành viên xem qua đường dẫn có hạn 1 giờ, chỉ
    quyền Kiểm kê / Quản trị tải lên, xoá (máy chủ chặn). Ảnh được thu nhỏ trong trình duyệt trước khi gửi.
 

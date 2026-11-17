@@ -1187,6 +1187,25 @@ dialog.lb::backdrop{background:#000}
 .lb-nho.chon{border-color:#fff;opacity:1}
 @media (max-width:640px){.lb-khung{inset:64px 8px 96px}.lb-truoc{left:4px}.lb-sau{right:4px}.xt-qr{grid-template-columns:1fr}.xt-qr>svg{width:130px;height:130px}.xt-luoi{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
   dialog.xt{width:100vw;max-height:100dvh;height:100dvh;border-radius:0;max-width:none}}
+/* Chung › Ảnh tài sản (#anh-tai-san, anh.js viewAnhTS) */
+.at-sum{margin-bottom:14px}
+.at-tools{flex-wrap:wrap;align-items:center}.at-tools select.in{width:auto;max-width:220px}
+.at-luoi{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:6px 0 10px}
+.at-the{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow-sm)}
+.at-anh{position:relative;display:block;width:100%;aspect-ratio:4/3;padding:0;border:0;background:var(--surface-2);cursor:zoom-in}
+.at-anh img{width:100%;height:100%;object-fit:cover;display:block}
+.at-anh img:not([src]){visibility:hidden}
+.at-anh:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.at-dem{position:absolute;top:8px;right:8px;display:inline-flex;align-items:center;gap:4px;background:rgba(15,23,42,.78);color:#fff;border-radius:999px;padding:3px 9px;font-size:13px;font-weight:700}
+.at-dem svg{width:15px;height:15px}
+.at-tt{display:grid;gap:2px;padding:10px 12px 8px;flex:1}
+.at-tt b{font-size:14.5px;line-height:1.35;overflow-wrap:anywhere}
+.at-tt small{color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.at-b{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 12px}
+.at-chua .dm-v span{color:var(--muted)}
+@media (max-width:860px){.at-b .btn,.at-chua .btn{min-height:44px}.at-tools select.in{max-width:none;flex:1 1 140px}}
+@media (max-width:640px){.ns-sum.at-sum{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.ns-sum.at-sum>div{padding:10px 12px}.ns-sum.at-sum b{font-size:20px}.ns-sum.at-sum span{display:none}}
+@media (max-width:480px){.at-luoi{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.at-tt{padding:8px 10px 6px}.at-b{padding:0 10px 10px}.at-b .btn{flex:1 1 100%;justify-content:center}}
 .ql-mfa{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
 .ql-mfa img{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;max-width:100%;height:auto}
 .ql-mfa p{margin:0 0 8px;font-size:14px;overflow-wrap:anywhere}
@@ -1281,6 +1300,7 @@ dialog.scan.cont .cam{min-height:170px}
       <a href="#dau-moi" data-r="dau-moi"><span data-ic="Contact"></span>Đầu mối</a>
       <a href="#danh-ba" data-r="danh-ba"><span data-ic="BookUser"></span>Danh bạ</a>
       <a href="#quan-ly" data-r="quan-ly"><span data-ic="UserCog"></span>Quản lý</a>
+      <a href="#anh-tai-san" data-r="anh-tai-san"><span data-ic="Images"></span>Ảnh tài sản</a>
     </nav>
   </div></div>
   <button type="button" class="dinh" id="dinh" hidden></button>
@@ -2860,7 +2880,7 @@ function viewHub(){
   </div>
   <div class="mbig mrow2">
     ${tile('#lich-su','vuon','Lịch sử','Thao tác trên app · nhập sổ · lý lịch từng tài sản (có từ khi nào, đã làm gì, lúc nào)','big')}
-    ${tile('#khau-hao','sanh-giai-tri','Chung','Khấu hao: tài sản hết và sắp hết khấu hao · đầu mối quản lý tài sản của từng phòng ban, bộ môn','big')}
+    ${tile('#khau-hao','sanh-giai-tri','Chung','Khấu hao · đầu mối, danh bạ · ảnh tài sản (xem, thêm ảnh mọi tài sản) · quản lý ứng dụng','big')}
   </div>`;
 }
 /* phần đang mở: hub = trang chủ, kk = Kiểm kê tài sản, qr = Mã QR tài sản, ls = Lịch sử (chung cho cả app), ch = Chung (chung.js) */
@@ -2877,7 +2897,7 @@ function setMod(m){
 
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):V.type==='kq'?ASSETS.filter(a=>res(a)!=='chua'):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); dinhGan(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='anh') viewAnhTS(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); dinhGan(); }
 /* Thanh tiến độ dính (người dùng chọn 17/11/2026): trang phòng / phòng ban — khi khung "Tiến độ kiểm" (#prog) đã cuộn khuất dưới đầu
    trang, thanh mảnh #dinh (nằm trong <header>, đặt tuyệt đối nên không làm giật nội dung) hiện "tên · x/y · % · còn N"; bấm để lên đầu. */
 const DINH={io:null,ten:''};
@@ -2901,17 +2921,19 @@ function dinhGan(){
 document.getElementById('dinh').addEventListener('click',()=>window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));
 function route(){
   const h=(location.hash||'#trang-chu').slice(1);
-  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:h==='tong-hop'?{type:'th'}:{type:'ov'};
+  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='anh-tai-san'?{type:'anh'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:h==='tong-hop'?{type:'th'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(TSCU&&!(nv.type==='ts'&&(nv.id===TSCU.moi||nv.id===TSCU.cu))) TSCU=null;   // rời trang tài sản vừa mở bằng tem mã cũ
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:nv.type==='kq'&&nv.id==='lech'?'lech':'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
-  V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':['khauhao','daumoi','danhba','quanly'].includes(V.type)?'ch':'kk');
+  V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':['khauhao','daumoi','danhba','anh','quanly'].includes(V.type)?'ch':'kk');
   document.querySelectorAll('.top2 a[data-r]').forEach(a=>a.removeAttribute('aria-current'));
   const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':(V.type==='ov'||V.type==='kq'||V.type==='th')?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
-  const nav=document.querySelector(`.top2 a[data-r="${cur}"]`); if(nav) nav.setAttribute('aria-current','page');
+  const nav=document.querySelector(`.top2 a[data-r="${cur}"]`); if(nav){ nav.setAttribute('aria-current','page'); menuThay(nav); }
   render(); updateBadge();
   if(V.type==='qr'&&V.id==='so') setTimeout(()=>document.getElementById('qrSo')?.scrollIntoView({block:'start'}),60);
 }
+// menu con cuộn ngang (điện thoại, màn hẹp): kéo mục đang mở vào giữa tầm nhìn, không để bị cắt chữ
+function menuThay(a){ const p=a.closest('.nav'); if(!p||p.scrollWidth<=p.clientWidth+1) return; requestAnimationFrame(()=>{ const r=a.getBoundingClientRect(), pr=p.getBoundingClientRect(); if(!pr.width) return; p.scrollLeft+=(r.left-pr.left)-(pr.width-r.width)/2; }); }
 function updateBadge(){const n=xmPending();const b=document.getElementById('xmCount');b.textContent=n;b.hidden=!n;}
 
 function refreshRow(stt){

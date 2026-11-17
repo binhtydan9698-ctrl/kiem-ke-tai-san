@@ -31,7 +31,8 @@
   `viewTongHop`: bảng gọn `thDong` (thẻ `a.th-r` tới `#ts-`), nhóm `thNhom()` theo `TH_NHOM`, xếp phòng `thSapPhong`
   (tòa `BLD_ORDER` → tầng `thTang` → số phòng), bộ môn theo `UNITS`, tên `thSapTen`; ô tìm `#thq`, nút nhóm `data-act="thdi"`), **Mã QR** (`#ma-qr`, `#so-ma-qr`, `viewQR`
   trong `ma-qr.js`), **Lịch sử** (`#lich-su` = `viewLog`, `#nhap-so` = `viewNhapSo`, `#ly-lich[-khoá]` = `viewLyLich`) và
-  **Chung** (`#khau-hao` = `viewKhauHao`, `#dau-moi` = `viewDauMoi` trong `chung.js`).
+  **Chung** (`#khau-hao` = `viewKhauHao`, `#dau-moi` = `viewDauMoi`, `#danh-ba` = `viewDanhBa` trong `chung.js`; `#quan-ly` =
+  `viewQuanLy` trong `dang-nhap.js`; `#anh-tai-san` = `viewAnhTS` trong `anh.js`, `V.type='anh'`).
   Đầu trang 2 tầng (khối CSS "Đầu trang 2 tầng" cuối `<style>`): `.top1` = logo `.lgo` + tên `.app` + 4 phần `.sec`
   (`#swKK`, `#swQR`, `#swLS`, `#swCH`; `#swHub` luôn ẩn — về trang chủ bằng logo) + Quét mã + người dùng; `.top2` = menu con
   (`#nav` Kiểm kê, `#navQR`, `#navLS`, `#navCH`, mục `a[data-r]`). `setMod()` đặt `body[data-mod=hub|kk|qr|ls|ch]`, đánh dấu
@@ -49,6 +50,13 @@
   qua `save()` nên có lịch sử (`logAnhLines`). Tệp ảnh qua `DN.api.anh` (`tai`, `url` đường dẫn có hạn, `xoa`) — có ở cả `sbCong()`
   và đăng nhập giả. Chỉ dùng ảnh khi `DN.cai && DN.toi`; tải lên / xoá khi `DN.duocKiemKe() && !READONLY`. Ảnh luôn thu nhỏ trong
   trình duyệt trước khi tải lên. `toast()` là popover nên nổi trên cả hộp thoại đang mở.
+  Trang Chung › Ảnh tài sản (`viewAnhTS`, trạng thái `AV = {q, dv, loc: co|chua, xep: moi|phong, lim}`): thẻ `.at-the` (ảnh bìa = ảnh
+  nhỏ đầu tiên, lấy đường dẫn có hạn một lần cho mọi thẻ đang hiện — `avAnhNho`), dòng `.at-chua` cho tài sản chưa có ảnh; nút
+  `data-at="mo"` gọi `moMoRong(a)` — KHÔNG viết đường tải lên / xoá thứ hai. Gõ tìm chỉ vẽ lại `#avKq` (`avVe`) để giữ con trỏ. Đóng
+  hộp ⋯ khi đang ở trang này thì vẽ lại cả trang (`avSauDong`) và đưa con trỏ về nút vừa bấm.
+- Menu con cuộn ngang trên màn hẹp: `route()` gọi `menuThay(a)` kéo mục đang mở vào giữa (không để cắt chữ).
+- Bộ thử khi đang sửa: `THU_CHI=anh,chung` chỉ chạy các kịch bản đó, `THU_DT=1` chạy cỡ điện thoại, `THU_CHUP=<thư mục>` chụp cả
+  trang cuối mỗi kịch bản (để trong thư mục tạm, không đưa vào repo).
 - Đăng nhập (`dang-nhap.js`, đối tượng `DN`): một kết nối Supabase dùng chung `kiemkeSupabase()` (supabase-db.js, giữ phiên
   trong localStorage `kiemke-dang-nhap`). `connect()` gọi `DN.batDau(tiep)`: hỏi `trang_thai_dang_nhap` → chưa cài thì chạy như
   cũ; đã cài thì màn hình `#dnMan` (`body.dn-cho` ẩn trang) tới khi đăng nhập, rồi mới `listen()` dữ liệu. `DN.toi = {uid, ten,
@@ -90,6 +98,9 @@
   điện thoại) phải 0 vi phạm. Ô nhập / ô chọn phải có nhãn (nhãn chữ ẩn trên máy tính thì thêm `aria-label`); chữ / nền tương phản
   ≥ 4.5:1 (chữ trắng trên nền cam dùng `--cta`, không dùng `--brand`); vùng bấm ≥ 24px (`.lnk` đã có `min-height:24px`); bảng cuộn
   ngang `tblwrap` có `tabindex="0" role="region" aria-label="…"` (mỗi bảng một nhãn riêng); tiêu đề không nhảy cấp (h1 → h2 → h3).
+  Bộ thử tắt riêng luật axe `skip-link` (nhóm khuyến nghị, không phải tiêu chí WCAG: app dùng link `#…` làm trang, menu con cuộn ngang
+  bị axe đoán nhầm) và thay bằng `linkHong()`: mọi link `#…` phải mở trang có thật (`TRANG_CO`) hoặc trỏ tới phần tử có thật. Thêm
+  trang mới (`#…`) thì thêm vào `TRANG_CO` trong `scripts/thu-giao-dien-kich-ban.js`.
 - **Nâng cấp giao diện 17/11/2026 (người dùng chọn cả 4, giữ bằng thử giao diện `nang-cap-dt`, `nang-cap-pc`)**:
   - Chữ nhỏ nhất **13px** ở mọi nơi (kể cả chữ đặt thẳng `style="font-size:…"`); cỡ 0 chỉ để ẩn chữ có chủ ý.
   - Điện thoại (≤ 860px): vùng bấm **≥ 44px** cho nút trong dòng tài sản, ô chọn / ô nhập, nút −/+, nút lọc (khối CSS "Nâng cấp
