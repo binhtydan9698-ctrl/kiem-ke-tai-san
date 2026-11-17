@@ -729,6 +729,27 @@
       && /≈ [\d.]+ ảnh nữa/.test(dl.textContent) && !!dl.querySelector('[role="meter"]'), `quản trị thấy dung lượng kho ảnh: ${nf.format(soAnhNay)} ảnh, ${nf.format(A.kho.size)} tệp, ${Math.round(tong / 1024)} KB đã dùng / 1 GB, còn trống ≈ số ảnh nữa`);
     const kqAxe2 = await axe.run(document, AXE);
     ok(!kqAxe2.violations.length, 'trang Ảnh tài sản có ô dung lượng (quản trị) đạt trợ năng WCAG 2.2 AA' + (kqAxe2.violations.length ? ': ' + kqAxe2.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : ''));
+    ok(!document.getElementById('khoAnhBao') && !app.querySelector('.at-pa'), 'kho còn ít: không báo, không hiện phương án');
+    // kho sắp đầy (người dùng dặn 17/11/2026): từ 80% báo quản trị ở đầu mọi trang + phương án không tốn kinh phí
+    const gocDl = A.dungLuongAnh, G85 = Math.round(0.85 * 1024 ** 3);
+    A.dungLuongAnh = async () => ({ so_tep: A.kho.size, byte: G85, byte_moi_kho: G85, gioi_han_tep: 3145728 });
+    try { sessionStorage.removeItem('kiemke-kho-anh-an'); } catch (e) { }
+    AV.dl = null; await go('trang-chu'); await until(() => document.getElementById('khoAnhBao'));
+    const bao = document.getElementById('khoAnhBao');
+    ok(!!bao && /85%/.test(bao.textContent) && !!bao.querySelector('a[href="#anh-tai-san"]') && /không tốn kinh phí/.test(bao.textContent), 'kho đã dùng 85%: trang chủ hiện thanh báo cho quản trị, dẫn tới cách xử lý không tốn kinh phí');
+    await go('khau-hao');
+    ok(!!document.getElementById('khoAnhBao'), 'thanh báo hiện ở đầu mọi trang (không chỉ trang ảnh)');
+    const quyenGoc = DN.toi.quyen; DN.toi.quyen = 'kiem'; render();
+    ok(!document.getElementById('khoAnhBao'), 'tài khoản không phải quản trị: không thấy thanh báo (quy tắc vàng 16)');
+    DN.toi.quyen = quyenGoc; render();
+    document.querySelector('#khoAnhBao [data-kho="an"]').click(); await W(150);
+    await go('dau-moi');
+    ok(!document.getElementById('khoAnhBao'), 'bấm “Để sau”: ẩn trong phiên này');
+    await go('anh-tai-san'); await until(() => app.querySelector('#atDl .at-pa'));
+    const pa = app.querySelector('#atDl .at-pa'), vuotThat = ASSETS.reduce((t, x) => t + Math.max(0, ((S.anh[x.stt] || {}).ds || []).length - 2), 0);
+    ok(/không tốn kinh phí/.test(pa.textContent) && pa.querySelectorAll('li').length === 4 && pa.textContent.includes(`${nf.format(vuotThat)} ảnh vượt mức 2 ảnh`) && !/nâng gói/i.test(pa.textContent)
+      && !!app.querySelector('#atDl .at-dl-thanh.day'), `trang Ảnh tài sản: thanh dung lượng đỏ, 4 bước xử lý không tốn kinh phí (có ${vuotThat} ảnh vượt mức 2 ảnh / tài sản), không khuyên nâng gói trả tiền`);
+    A.dungLuongAnh = gocDl; AV.dl = null; try { sessionStorage.removeItem('kiemke-kho-anh-an'); } catch (e) { }
     render(); window.scrollTo(0, 0); await until(() => app.querySelector('.at-the .at-anh img[src]'));
   };
 

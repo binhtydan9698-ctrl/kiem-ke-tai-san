@@ -307,3 +307,11 @@ thấy". Thêm thông số mới thì thêm bước thử: quyền thường kh�
   quyền, tối đa 5 ảnh, thu nhỏ ảnh, lịch sử giống hệt. Giữ bằng thử giao diện `anh`, `chung`. Quản trị thấy thêm khung **Dung lượng kho
   ảnh** (đã dùng / 1 GB, còn trống ≈ bao nhiêu ảnh, số ảnh / tệp, trung bình mỗi ảnh, giới hạn, cảnh báo ≥ 80%; hàm máy chủ
   `dung_luong_anh()`) — quy tắc 16.
+- **Mục đích của kho ảnh** (người dùng nói rõ 17/11/2026, dùng làm căn cứ cho mọi thay đổi phần ảnh): mã tài sản khô khan, ít ai biết
+  hình dáng, màu sắc của toàn bộ tài sản; bộ phận mua sắm, kế toán chỉ lo phần việc của họ, không dùng mã cho kiểm kê. Ảnh là **căn cứ
+  nhận diện tài sản** cho người quản lý tài sản. Từ nay **cán bộ mua sắm khi mua sẽ tự tải ảnh kèm mã**, người quản lý tài sản lấy
+  thông tin từ chính ảnh đó → ưu tiên: ảnh đủ rõ để nhận ra (hình dáng, màu sắc, tem), tải lên dễ cho người không rành máy tính.
+- **Kho ảnh sắp đầy** (người dùng dặn 17/11/2026): từ **80%** app tự báo quản trị ở đầu mọi trang (`khoAnhBao()`, "Để sau" ẩn trong
+  phiên, tăng thêm 1% thì báo lại) và trang Ảnh tài sản hiện **phương án KHÔNG TỐN KINH PHÍ** theo thứ tự: bớt ảnh thừa (giữ 1–2 ảnh
+  rõ nhất mỗi tài sản) → tải lưu trữ về máy / Drive rồi xoá ảnh tài sản đã thanh lý, bàn giao → thu nhỏ ảnh mới (1280 điểm ảnh) →
+  chuyển kho sang Cloudflare R2 (miễn phí 10 GB). Không đề xuất gói trả phí trừ khi người dùng hỏi. Giữ bằng thử giao diện `anh`.

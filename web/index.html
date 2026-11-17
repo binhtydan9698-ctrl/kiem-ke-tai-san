@@ -1204,6 +1204,8 @@ dialog.lb::backdrop{background:#000}
 .at-b{display:flex;flex-wrap:wrap;gap:8px;padding:0 12px 12px}
 .at-chua .dm-v span{color:var(--muted)}
 /* dung lượng kho ảnh: chỉ quản trị thấy */
+.kho-bao{margin:0 0 14px}
+.at-pa ol{margin:6px 0 0;padding-left:20px;display:grid;gap:6px}
 .at-dl{margin-top:14px}
 .at-dl-so{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}.at-dl-so b{font-size:24px}.at-dl-so span{color:var(--muted);font-size:14px}
 .at-dl-thanh{height:12px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
@@ -2904,7 +2906,7 @@ function setMod(m){
 
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):V.type==='kq'?ASSETS.filter(a=>res(a)!=='chua'):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='anh') viewAnhTS(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); dinhGan(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='anh') viewAnhTS(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); dinhGan(); if(typeof khoAnhBao==='function') khoAnhBao(); }
 /* Thanh tiến độ dính (người dùng chọn 17/11/2026): trang phòng / phòng ban — khi khung "Tiến độ kiểm" (#prog) đã cuộn khuất dưới đầu
    trang, thanh mảnh #dinh (nằm trong <header>, đặt tuyệt đối nên không làm giật nội dung) hiện "tên · x/y · % · còn N"; bấm để lên đầu. */
 const DINH={io:null,ten:''};

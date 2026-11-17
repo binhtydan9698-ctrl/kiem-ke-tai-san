@@ -252,6 +252,45 @@
     catch (e) { AV.dl.loi = /dung_luong_anh|PGRST202|Could not find/i.test(String(e && e.message)) ? 'Máy chủ chưa cập nhật: chạy lại file supabase/dang-nhap.sql (bản mới nhất) trong Supabase → SQL Editor.' : dnLoi(e); }
     AV.dl.tai = true;
     const el = document.getElementById('atDl'); if (el && V.type === 'anh') el.outerHTML = avDungLuongHTML();
+    if (V.type !== 'anh') g.khoAnhBao();
+  }
+  /* Kho ảnh sắp đầy (người dùng dặn 17/11/2026: "khi gần 80% thì báo tôi và cho phương án xử lý hợp lý, không tốn kinh phí").
+     Quản trị mở app → đếm dung lượng (mỗi lần mở trang, quá 1 giờ đếm lại); từ 80% hiện thanh cảnh báo ở đầu MỌI trang, dẫn tới
+     phương án ở Chung › Ảnh tài sản. Chỉ quản trị thấy (quy tắc vàng 16). "Để sau" ẩn trong phiên này, tăng thêm 1% thì báo lại. */
+  const NGUONG = 80;
+  const khoPct = () => { const s = AV.dl; return s && s.tai && !s.loi && s.d ? (+s.d.byte_moi_kho || 0) / KHO_GOI * 100 : 0; };
+  const soPct = p => p.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+  g.khoAnhBao = function () {
+    if (!(g.DN && DN.cai && DN.toi && DN.laQuanTri() && DN.api && DN.api.dungLuongAnh)) return;
+    if (!AV.dl) { avTaiDungLuong(); return; }
+    if (!AV.dl.tai) return;
+    if (Date.now() - AV.dl.luc > 3600e3) { avTaiDungLuong(); return; }
+    document.getElementById('khoAnhBao')?.remove();
+    const pct = khoPct(); if (pct < NGUONG || V.type === 'anh') return;   // trang Ảnh tài sản đã có khung dung lượng + phương án
+    let an = ''; try { an = sessionStorage.getItem('kiemke-kho-anh-an') || ''; } catch (e) { }
+    if (an !== '' && +an >= Math.floor(pct)) return;
+    app.insertAdjacentHTML('afterbegin', `<div class="ch-note warn kho-bao" id="khoAnhBao" role="status">${ic('TriangleAlert')}<div><b>Kho ảnh tài sản đã dùng ${soPct(pct)}%</b> (${bytes(+AV.dl.d.byte_moi_kho || 0)} / ${bytes(KHO_GOI)} gói miễn phí). <a href="#anh-tai-san">Xem cách xử lý không tốn kinh phí</a> · <button type="button" class="lnk" data-kho="an">Để sau</button></div></div>`);
+  };
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-kho="an"]')) return;
+    try { sessionStorage.setItem('kiemke-kho-anh-an', String(Math.floor(khoPct()))); } catch (er) { }
+    document.getElementById('khoAnhBao')?.remove();
+  });
+  // phương án khi kho từ 80%: KHÔNG TỐN KINH PHÍ, xếp theo thứ tự nên làm; kèm số ảnh có thể bớt (chỉ quản trị thấy)
+  function phuongAnHTML() {
+    let vuot = 0, khongDung = 0;
+    ASSETS.forEach(a => {
+      const n = dsAnh(a).length; if (!n) return;
+      vuot += Math.max(0, n - 2);
+      if (['da_tl', 'bg'].includes((S.rows[a.stt] || {}).sd)) khongDung += n;
+    });
+    return `<div class="ch-note warn at-pa">${ic('TriangleAlert')}<div><b>Kho sắp đầy — cách xử lý không tốn kinh phí</b> (làm lần lượt, tới khi đủ chỗ):
+      <ol>
+        <li><b>Bớt ảnh thừa:</b> mỗi tài sản giữ 1–2 ảnh rõ nhất để nhận diện (hình dáng, màu sắc, tem). Hiện có <b>${nf.format(vuot)}</b> ảnh vượt mức 2 ảnh / tài sản — xoá trong nút ⋯.</li>
+        <li><b>Lưu trữ rồi xoá ảnh tài sản không còn dùng:</b> <b>${nf.format(khongDung)}</b> ảnh thuộc tài sản đã thanh lý / đã bàn giao. Tải về máy tính hoặc Drive công việc trước (nhờ trợ lý làm nút “Tải tất cả ảnh”), rồi mới xoá trên web.</li>
+        <li><b>Thu nhỏ ảnh mới thêm một chút</b> (cạnh dài 1280 thay vì 1600 điểm ảnh): chứa thêm khoảng 1,5 lần, vẫn đủ rõ để nhận diện — nhờ trợ lý sửa.</li>
+        <li><b>Vẫn thiếu chỗ:</b> nhờ trợ lý chuyển kho ảnh sang Cloudflare R2 (miễn phí 10 GB, gấp 10 lần hiện nay).</li>
+      </ol></div></div>`;
   }
   function avDungLuongHTML() {
     if (!DN.laQuanTri()) return '';
@@ -271,7 +310,7 @@
           <div><dt>Giới hạn</dt><dd>mỗi tệp ≤ ${bytes(+d.gioi_han_tep || 3145728)} · mỗi tài sản ≤ ${ANH_TOI_DA} ảnh</dd></div>
           ${khac ? `<div><dt>Tệp khác trong kho</dt><dd>${bytes(khac)}</dd></div>` : ''}
         </dl>
-        ${pct >= 80 ? `<div class="ch-note warn">${ic('TriangleAlert')}<div><b>Kho sắp đầy.</b> Xoá ảnh thừa, ảnh trùng, hoặc nâng gói Supabase trước khi chụp thêm.</div></div>` : ''}
+        ${pct >= NGUONG ? phuongAnHTML() : ''}
         <p class="note">Cập nhật ${hh(s.luc)} · <button type="button" class="lnk" data-at="dl">Tính lại</button></p>`;
     }
     return `<section class="ql-the at-dl" id="atDl" aria-labelledby="atDlTd"><h2 id="atDlTd">${ic('HardDrive')}Dung lượng kho ảnh</h2>
@@ -279,7 +318,7 @@
   }
   g.viewAnhTS = function () {
     avBind();
-    const ban = banner('can-tin', 'Chung', 'Ảnh tài sản', 'Toàn bộ ảnh chụp tài sản ở một chỗ: xem, tìm theo STT, mã, tên, phòng; thêm hoặc xoá ảnh của từng tài sản. Ảnh cũng xem được ở nút ⋯ trên mỗi dòng tài sản.');
+    const ban = banner('can-tin', 'Chung', 'Ảnh tài sản', 'Ảnh giúp nhận ra tài sản bằng hình dáng, màu sắc thay vì chỉ đọc mã. Toàn bộ ảnh ở một chỗ: xem, tìm theo STT, mã, tên, phòng; thêm hoặc xoá ảnh của từng tài sản (cũng làm được ở nút ⋯ trên mỗi dòng tài sản).');
     if (!coKho()) {
       app.innerHTML = `${demoBanner()}${ban}<div class="ch-note warn">${ic('Lock')}<div><b>Ảnh tài sản cần đăng nhập.</b> Ảnh lưu ở kho riêng, chỉ thành viên đã đăng nhập mới xem được. Đăng nhập chưa được bật nên chưa dùng được ảnh. Xem cách bật ở <a href="#quan-ly">Chung › Quản lý</a>.</div></div>`;
       return;

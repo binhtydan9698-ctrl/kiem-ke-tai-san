@@ -57,7 +57,9 @@
 - **Thông số quản lý chỉ Quản trị thấy (quy tắc vàng 16)**: khung chỉ vẽ khi `DN.laQuanTri()`, số liệu qua hàm máy chủ chỉ trả cho
   `la_quan_tri()` (người khác `null`), khung ghi "Thông số quản lý — chỉ tài khoản Quản trị thấy". Mẫu: `avDungLuongHTML()` /
   `avTaiDungLuong()` trong `anh.js` (`DN.api.dungLuongAnh` → `dung_luong_anh()`; có ở cả `sbCong()` và đăng nhập giả), đếm lại sau
-  khi đóng hộp ⋯ và khi quá 1 phút; thanh `role="meter"` có nhãn; ≥ 80% thì cảnh báo.
+  khi đóng hộp ⋯ và khi quá 1 phút; thanh `role="meter"` có nhãn; ≥ 80% (`NGUONG`) thì hiện `phuongAnHTML()` (4 bước không tốn
+  kinh phí, kèm số ảnh vượt mức 2 ảnh / tài sản và số ảnh của tài sản đã thanh lý, bàn giao). `render()` gọi `khoAnhBao()` sau mỗi
+  lần vẽ: quản trị + kho ≥ 80% → chèn thanh `#khoAnhBao` ở đầu `#app` (mọi trang trừ trang Ảnh tài sản); đếm lại khi quá 1 giờ.
 - Menu con cuộn ngang trên màn hẹp: `route()` gọi `menuThay(a)` kéo mục đang mở vào giữa (không để cắt chữ).
 - Bộ thử khi đang sửa: `THU_CHI=anh,chung` chỉ chạy các kịch bản đó, `THU_DT=1` chạy cỡ điện thoại, `THU_CHUP=<thư mục>` chụp cả
   trang cuối mỗi kịch bản (để trong thư mục tạm, không đưa vào repo).
