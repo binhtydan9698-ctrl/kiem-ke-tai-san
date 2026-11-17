@@ -130,7 +130,10 @@ const ketQua = {};
 rows.forEach((r, i) => { const [kq, rr] = KIEU[i % KIEU.length];
   ketQua[r[8]] = { kq, vt: rr === 'chua' ? '' : (i % 5 ? 'Phòng thử ' + i : 'Chưa có vị trí'), gc: rr === 'chua' ? '' : KHO[i % KHO.length], thucTe: rr === 'du' ? r[3] : rr === 'nf' ? 0 : '', sl: r[3], r: rr }; });
 const coKq = rows.filter((r, i) => KIEU[i % KIEU.length][1] !== 'chua').length;
-const soDong = await window.xuatExcelKeToan({ ketQua, phatSinh: [{ mo_ta: 'Đồ thử', sl: 1, phong: 'P1', cond: 'Tốt', noi: 'Thử' }], tenFile: 'kiem-tra' });
+// sheet phát sinh: 1 tài sản phát hiện khi kiểm (kiểu cũ) + 1 tài sản mới tạo trên app (Chung › Tài sản mới, người dùng chốt 17/11/2026)
+const TS_MOI = { mo_ta: 'Máy chiếu mới thử', sl: 2, phong: '202 Gamma', cond: '', noi: 'Phòng Hành chính', nguon: 'Tạo bởi: Cán bộ mua sắm', nguoi: 'Người thử',
+  luc: '17/11/2026 08:00', ma: '', ngay: '17/11/2026', gia: 15000000, ghi: '1 ảnh trên app' };
+const soDong = await window.xuatExcelKeToan({ ketQua, phatSinh: [{ mo_ta: 'Đồ thử', sl: 1, phong: 'P1', cond: 'Tốt', noi: 'Thử' }, TS_MOI], tenFile: 'kiem-tra' });
 ok(blob && tenFile.endsWith('.xlsx'), `tạo được file "${tenFile}"`);
 ok(soDong === coKq, `báo đúng ${coKq} tài sản có kết quả (nhận ${soDong})`);
 
@@ -139,6 +142,12 @@ const xuatBuf = Buffer.from(await blob.arrayBuffer());
 const goc = new ExcelJS.Workbook(); await goc.xlsx.load(gocBuf);
 const moi = new ExcelJS.Workbook(); await moi.xlsx.load(xuatBuf);
 ok(moi.worksheets.length === goc.worksheets.length + 1 && moi.worksheets[moi.worksheets.length - 1].name === 'Tài sản phát sinh', `giữ đủ ${goc.worksheets.length} sheet gốc + 1 sheet "Tài sản phát sinh" ở cuối`);
+{
+  const ps = moi.worksheets[moi.worksheets.length - 1], o = (r, c) => ps.getRow(r).getCell(c).value;
+  ok(o(1, 7) === 'Nguồn' && o(1, 13) === 'Ghi chú' && o(2, 2) === 'Đồ thử' && o(2, 7) === 'Phát hiện khi kiểm kê' && o(3, 2) === TS_MOI.mo_ta && o(3, 3) === 2 && o(3, 7) === TS_MOI.nguon
+    && o(3, 8) === 'Người thử' && o(3, 12) === 15000000 && o(3, 13) === TS_MOI.ghi,
+    'sheet "Tài sản phát sinh": gộp tài sản phát hiện khi kiểm và tài sản mới tạo trên app, cột "Nguồn" cho biết từ đâu (13 cột)');
+}
 
 let sheetDS = 0, thieuCot = [], thieuKq = [], saiMau = [], saiChu = 0, thucTe = 0;
 for (const wg of goc.worksheets) {
@@ -349,7 +358,7 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
     'dang-nhap.sql: mật khẩu ban đầu quản trị đặt (thêm thành viên, đặt lại) phải đổi ở lần đăng nhập đầu, chưa đổi thì máy chủ không cho đọc / ghi; bảng dấu vết không ai đọc thẳng được');
   // "Miễn mã 6 số" (người dùng chốt 17/11/2026): chỉ đổi qua hàm (phiên đã qua 2 bước), quản trị không sửa thẳng được cột mien_2_lop
   ok(/add column if not exists mien_2_lop boolean not null default false/.test(sql) && /revoke update on public\.thanh_vien from authenticated/.test(sql)
-    && /grant update \(ho_ten, quyen, khoa\) on public\.thanh_vien to authenticated/.test(sql) && !/grant [^;]*update on public\.thanh_vien/.test(sql)
+    && /grant update \(ho_ten, quyen, khoa, nhom\) on public\.thanh_vien to authenticated/.test(sql) && !/grant [^;]*update on public\.thanh_vien/.test(sql)
     && /function public\.quan_tri_dat_mien_2_lop[\s\S]*?coalesce\(auth\.jwt\(\) ->> 'aal', 'aal1'\) <> 'aal2' then raise exception 'CAN_2_LOP'/.test(sql)
     && /or public\.duoc_mien_2_lop\(\)\)/.test(sql),
     'dang-nhap.sql: "Miễn mã 6 số" chỉ đổi được qua hàm, bởi quản trị đã qua mã 6 số; cột không sửa thẳng được');
@@ -359,9 +368,17 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
   {
     const pol = sql.match(/create policy "anh tai san[^;]*;/g) || [];
     ok(/values \('anh-tai-san', 'anh-tai-san', false,/.test(sql) && /set public = false/.test(sql) && pol.length === 4
-      && pol.every(p => / to authenticated /.test(p) && /bucket_id = 'anh-tai-san' and public\.(la_thanh_vien|duoc_ghi)\(/.test(p)),
-      'dang-nhap.sql: kho ảnh tài sản riêng tư (không công khai), chỉ thành viên xem, chỉ quyền Kiểm kê / Quản trị tải lên, xoá');
+      && pol.every(p => / to authenticated /.test(p) && /bucket_id = 'anh-tai-san' and public\.(la_thanh_vien\(\)|duoc_ghi_anh\(name\))/.test(p))
+      && /function public\.duoc_ghi_anh\(p_ten text\)[\s\S]*?select public\.duoc_ghi\('anh'\)\s+or \(split_part\(p_ten, '\/', 1\) = 'moi' and public\.duoc_ghi\('moi'\)[\s\S]*?public\.chu_moi\(d\.data\)/.test(sql),
+      'dang-nhap.sql: kho ảnh tài sản riêng tư (không công khai), chỉ thành viên xem; ảnh tài sản trong sổ chỉ Kiểm kê / Quản trị tải lên, xoá; ảnh tài sản mới thêm người tạo tài sản đó');
   }
+  // Tài sản mới (người dùng chốt 17/11/2026): quyền "moi" chỉ ghi được tài sản mới của chính mình, không đụng tài sản BBKK;
+  // máy chủ tự gắn người tạo + tag "Tạo bởi" (nhóm tài khoản), người không phải quản trị không đổi được
+  ok(/check \(quyen in \('admin', 'kiem', 'moi', 'xem'\)\)/.test(sql) && /when p_col = 'moi' then coalesce\(public\.quyen_cua_toi\(\) in \('admin', 'kiem', 'moi'\), false\)/.test(sql)
+    && /else coalesce\(public\.quyen_cua_toi\(\) in \('admin', 'kiem'\), false\) end/.test(sql)
+    && (sql.match(/col <> 'moi' or public\.chu_moi\(data\)/g) || []).length === 4
+    && /create trigger giu_tai_san_moi before insert or update on public\.kiemke_docs/.test(sql) && /'tao_boi', coalesce\(\(select t\.nhom from public\.thanh_vien t where t\.user_id = auth\.uid\(\)\), ''\)/.test(sql),
+    'dang-nhap.sql: quyền Tạo tài sản mới chỉ ghi được tài sản mới của chính mình (không đụng tài sản BBKK); máy chủ tự gắn người tạo và tag "Tạo bởi"');
 }
 
 /* 7. Quy tắc trong mã + bộ quy tắc AGENTS.md (bảng "Quy tắc vàng" phải trỏ đúng tới các bước kiểm tra có thật) */

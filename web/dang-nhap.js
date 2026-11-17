@@ -13,7 +13,9 @@
    File nạp trong <head>: chỉ dùng app, render()… của index.html khi mã chính đã chạy. */
 (function () {
   const g = window;
-  g.QUYEN_TK = [['xem', 'Tra cứu (chỉ xem)'], ['kiem', 'Kiểm kê (xem + ghi kết quả kiểm)'], ['admin', 'Quản trị (toàn quyền, bắt buộc 2 lớp)']];
+  g.QUYEN_TK = [['xem', 'Tra cứu (chỉ xem)'], ['moi', 'Tạo tài sản mới (xem + tạo, sửa tài sản mới của mình)'], ['kiem', 'Kiểm kê (xem + ghi kết quả kiểm)'], ['admin', 'Quản trị (toàn quyền, bắt buộc 2 lớp)']];
+  // nhóm người dùng = tag "Tạo bởi" của tài sản mới (người dùng chốt 17/11/2026; quản trị gõ thêm nhóm khác tuỳ ý)
+  g.NHOM_GOI_Y = ['Cán bộ mua sắm', 'Giảng viên', 'Cán bộ khác', 'Phòng Hành chính'];
   const DN = g.DN = { cai: false, toi: null, api: null, coQuanTri: true, maHoa: false, tv: null, tvTai: false, tvLoi: '', db: { ds: [], tai: false, loi: '' }, mfa: null };
   const QLV = { mk: '', mfaMoi: null };   // đang đặt lại mật khẩu cho thành viên nào; đang bật xác thực 2 bước
   const NHAN_ROI_GIO = 8;                 // không dùng trang quá 8 giờ → tự đăng xuất (máy dùng chung)
@@ -35,7 +37,7 @@
     if (/rate limit|only request this after|too many/i.test(m)) return 'Thao tác quá nhiều lần, thử lại sau ít phút.';
     if (/different from the old password|same_password/i.test(m)) return 'Mật khẩu mới phải khác mật khẩu ban đầu.';
     if (/CAN_2_LOP/.test(m)) return 'Chỉ quản trị đã đăng nhập bằng mã 6 số mới đổi được mục này.';
-    if (/Could not find the function|PGRST202/i.test(m)) return 'Máy chủ chưa cập nhật: người quản trị cần chạy lại file supabase/dang-nhap.sql (bản mới nhất) trong Supabase → SQL Editor.';
+    if (/Could not find the function|PGRST202|PGRST204|schema cache/i.test(m)) return 'Máy chủ chưa cập nhật: người quản trị cần chạy lại file supabase/dang-nhap.sql (bản mới nhất) trong Supabase → SQL Editor.';
     if (/reauthenticat/i.test(m)) return 'Cần đăng nhập lại rồi mới đổi được mật khẩu: bấm “Đăng xuất”, đăng nhập lại rồi đổi ngay.';
     if (/Password should|weak password|pwned|leaked/i.test(m)) return 'Mật khẩu chưa đủ mạnh hoặc đã từng bị lộ trên mạng. Chọn mật khẩu khác (ít nhất 12 ký tự).';
     if (/Failed to fetch|NetworkError|network|fetch failed/i.test(m)) return 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
@@ -105,7 +107,7 @@
         let daCo = false;
         if (error) { if (/already registered|already exists/i.test(error.message || '')) daCo = true; else throw error; }
         // tài khoản mới (mật khẩu ban đầu quản trị vừa đặt) → lần đăng nhập đầu phải đổi; email đã có tài khoản thì giữ mật khẩu cũ
-        await rpc('quan_tri_them_thanh_vien', { p_email: o.email, p_ten: o.ten, p_ho_ten: o.hoTen, p_quyen: o.quyen, p_mk_moi: !daCo });
+        await rpc('quan_tri_them_thanh_vien', { p_email: o.email, p_ten: o.ten, p_ho_ten: o.hoTen, p_quyen: o.quyen, p_mk_moi: !daCo, p_nhom: o.nhom || '' });
         return { daCo };
       },
       // lần đăng nhập đầu bằng mật khẩu ban đầu: tự đặt mật khẩu riêng (vừa đăng nhập xong nên không hỏi lại mật khẩu cũ)
@@ -152,6 +154,7 @@
   DN.laQuanTri = () => !!(DN.toi && DN.toi.quyen === 'admin');
   DN.duocSuaDanhBa = () => DN.laQuanTri();   // danh bạ, đầu mối: chỉ quản trị sửa
   DN.duocKiemKe = () => !!(DN.toi && ['admin', 'kiem'].includes(DN.toi.quyen));
+  DN.duocTaoMoi = () => !!(DN.toi && ['admin', 'kiem', 'moi'].includes(DN.toi.quyen));   // tạo / sửa tài sản mới của mình (tai-san-moi.js)
 
   /* ---------- nạp dữ liệu rồi mới chạy mã chính ---------- */
   const napScript = src => new Promise((ok, loi) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => loi(new Error('Không tải được ' + src)); document.head.appendChild(s); });
@@ -210,7 +213,7 @@
   };
   const phienSan = async () => DN.api.coPhien ? DN.api.coPhien() : !!(await DN.api.toiLaAi());
   function vao(t, moi) {
-    DN.toi = { uid: t.uid, ten: t.ten, hoTen: t.ho_ten || '', quyen: t.quyen, email: t.email || '', mien: !!t.mien_2_lop };
+    DN.toi = { uid: t.uid, ten: t.ten, hoTen: t.ho_ten || '', quyen: t.quyen, email: t.email || '', mien: !!t.mien_2_lop, nhom: t.nhom || '' };
     DN.coQuanTri = true; DN.tv = null; DN.tvLoi = ''; DN.mfa = null;
     if (moi) DN.vuaDangNhap = thietBi();
     ghiHoatDong(true); theoDoiNhanRoi();
@@ -464,20 +467,21 @@
       <p class="note">Chỉ người có tài khoản mới mở được trang; ai làm gì đều ghi lịch sử theo tên. <b>Tra cứu</b>: chỉ xem mọi thông tin (kể cả danh bạ), không ghi được gì. <b>Kiểm kê</b>: thêm ghi kết quả kiểm kê, tài sản phát sinh, thất lạc. <b>Quản trị</b>: toàn quyền (danh bạ, đầu mối, thành viên), bắt buộc xác thực 2 bước — trừ khi chọn <b>Miễn</b> ở cột “Mã 6 số” (đăng nhập chỉ cần mật khẩu; chỉ nên dùng tạm, xong việc chọn lại “Bắt buộc”). Khoá tài khoản có hiệu lực ngay, kể cả máy đang đăng nhập.</p>
       ${DN.toi.mien ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>Bạn đang đăng nhập không qua mã 6 số nên không đổi được cột “Mã 6 số”. Việc này cần một quản trị đã đăng nhập bằng mã 6 số.</div></div>` : ''}
       ${DN.tvLoi ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>${E(DN.tvLoi)}</div></div>` : ''}
-      ${!l ? '<div class="empty">Đang tải danh sách thành viên…</div>' : `<div class="tblwrap ql-tbl" tabindex="0" role="region" aria-label="Danh sách thành viên"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Quyền</th><th>Mã 6 số</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th></th></tr></thead><tbody>${l.map(x => {
+      ${!l ? '<div class="empty">Đang tải danh sách thành viên…</div>' : `<div class="tblwrap ql-tbl" tabindex="0" role="region" aria-label="Danh sách thành viên"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Quyền</th><th>Nhóm (Tạo bởi)</th><th>Mã 6 số</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th></th></tr></thead><tbody>${l.map(x => {
         const toi = x.user_id === DN.toi.uid, u = E(x.user_id), ad = x.quyen === 'admin';
         // ô chọn "Mã 6 số khi đăng nhập" (chỉ tài khoản quản trị mới cần mã; người dùng chốt 17/11/2026 cho phép miễn tạm)
         const mien = !ad ? '<span class="dm-no">Không cần</span>'
           : `<select class="in" data-ql="mien" aria-label="Mã 6 số khi đăng nhập của ${E(x.ten_dang_nhap)}"${DN.toi.mien ? ' disabled' : ''}><option value="0"${x.mien_2_lop ? '' : ' selected'}>Bắt buộc</option><option value="1"${x.mien_2_lop ? ' selected' : ''}>Miễn (chỉ mật khẩu)</option></select>`;
         return `<tr data-uid="${u}"><td class="mono">${E(x.ten_dang_nhap)}${toi ? ' <small>(bạn)</small>' : ''}</td><td>${E(x.ho_ten || '')}</td><td>${E(x.email || '')}</td>
           <td>${toi ? E(lbl(QUYEN_TK, x.quyen)) : `<select class="in" data-ql="quyen" aria-label="Quyền của ${E(x.ten_dang_nhap)}">${QUYEN_TK.map(([k, n]) => `<option value="${k}" ${x.quyen === k ? 'selected' : ''}>${n}</option>`).join('')}</select>`}</td>
+          <td><input class="in ql-nhom" data-ql="nhom" list="dlNhom" value="${E(x.nhom || '')}" placeholder="vd. Cán bộ mua sắm" aria-label="Nhóm (tag Tạo bởi) của ${E(x.ten_dang_nhap)}" maxlength="60"></td>
           <td>${mien}</td>
           <td>${x.khoa ? '<span class="tag warn">Đã khoá</span>' : '<span class="tag info">Đang dùng</span>'}${ad && x.mien_2_lop ? ' <span class="tag warn">Miễn mã 6 số</span>' : ''}</td>
           <td class="num">${x.dang_nhap_cuoi ? ddmmyy(x.dang_nhap_cuoi) : 'Chưa đăng nhập'}</td>
           <td class="ql-act">${toi ? '' : (QLV.mk === x.user_id
             ? `<input class="in" type="password" id="qlDat-${u}" placeholder="Mật khẩu mới (≥ 12 ký tự, được toàn số)" autocomplete="new-password" aria-label="Mật khẩu mới cho ${E(x.ten_dang_nhap)}"><button type="button" class="btn sm pri" data-ql="datmk">Lưu</button><button type="button" class="btn sm" data-ql="huymk">Huỷ</button>`
             : `<button type="button" class="btn sm" data-ql="mk">${ic('KeyRound')}Đặt lại mật khẩu</button>`) + `<button type="button" class="btn sm" data-ql="khoa">${x.khoa ? 'Mở khoá' : 'Khoá'}</button>`}</td></tr>`;
-      }).join('')}</tbody></table></div>`}
+      }).join('')}</tbody></table></div><datalist id="dlNhom">${[...new Set(NHOM_GOI_Y.concat(l.map(x => x.nhom).filter(Boolean)))].map(n => `<option value="${E(n)}"></option>`).join('')}</datalist>`}
       <form class="ql-form" id="qlThem" novalidate>
         <h3>Thêm thành viên</h3>
         <div class="ql-f ql-f5">
@@ -486,6 +490,7 @@
           <div class="fld"><label for="qtEmail">Email công việc</label><input class="in" id="qtEmail" type="email" autocomplete="off" placeholder="ten@fe.edu.vn"></div>
           <div class="fld"><label for="qtMk">Mật khẩu ban đầu</label><input class="in" id="qtMk" type="text" autocomplete="off" placeholder="ít nhất 12 ký tự, được toàn số"></div>
           <div class="fld"><label for="qtQuyen">Quyền</label><select class="in" id="qtQuyen">${QUYEN_TK.map(([k, n]) => `<option value="${k}">${n}</option>`).join('')}</select></div>
+          <div class="fld"><label for="qtNhom">Nhóm (tag “Tạo bởi”)</label><input class="in" id="qtNhom" list="dlNhom" autocomplete="off" maxlength="60" placeholder="vd. Cán bộ mua sắm"></div>
         </div>
         <p class="dn-loi" id="qlThemLoi" role="alert"></p>
         <div class="ql-b"><button type="submit" class="btn pri">${ic('UserPlus')}Thêm thành viên</button></div>
@@ -582,6 +587,16 @@
     });
     app.addEventListener('change', async e => {
       const s = e.target;
+      if (s.dataset.ql === 'nhom') {   // nhóm = tag "Tạo bởi" của tài sản mới người đó tạo (tài sản đã tạo giữ tag cũ)
+        const x = tvCua(s); if (!x) return;
+        const nhom = s.value.trim().replace(/\s+/g, ' ').slice(0, 60); if (nhom === (x.nhom || '')) return;
+        try {
+          await DN.api.suaThanhVien(x.user_id, { nhom });
+          ghi('Đổi nhóm tài khoản ' + x.ten_dang_nhap, [`Nhóm (tag Tạo bởi): ${x.nhom || 'chưa có'} → ${nhom || 'chưa có'}`]);
+          toast(`Đã đặt nhóm của ${x.ten_dang_nhap}: ${nhom || 'chưa có'}`); await qlTaiTv(true);
+        } catch (er) { toast(viLoi(er)); s.value = x.nhom || ''; }
+        return;
+      }
       if (s.dataset.ql === 'mien') {   // Miễn / Bắt buộc mã 6 số cho một tài khoản quản trị
         const x = tvCua(s); if (!x) return;
         const mien = s.value === '1'; s.disabled = true;
@@ -618,7 +633,7 @@
         return;
       }
       const loi = t => { document.getElementById('qlThemLoi').textContent = t; };
-      const ten = v('qtTen').trim().toLowerCase(), hoTen = v('qtHoTen').trim().replace(/\s+/g, ' '), email = v('qtEmail').trim().toLowerCase(), mk = v('qtMk'), quyen = v('qtQuyen'); loi('');
+      const ten = v('qtTen').trim().toLowerCase(), hoTen = v('qtHoTen').trim().replace(/\s+/g, ' '), email = v('qtEmail').trim().toLowerCase(), mk = v('qtMk'), quyen = v('qtQuyen'), nhom = v('qtNhom').trim().replace(/\s+/g, ' ').slice(0, 60); loi('');
       if (!TEN.test(ten)) { loi(viLoi('ten_dang_nhap_check')); return; }
       if (!hoTen) { loi('Nhập họ tên.'); return; }
       if (!EMAIL.test(email)) { loi('Email chưa đúng dạng, vd. ten@fe.edu.vn'); return; }
@@ -626,8 +641,8 @@
       if ((DN.tv || []).some(x => x.ten_dang_nhap === ten)) { loi('Tên đăng nhập này đã có người dùng.'); return; }
       nut.disabled = true;
       try {
-        const r = await DN.api.themThanhVien({ ten, hoTen, email, mk, quyen }) || {};
-        ghi('Thêm thành viên ' + ten, [`Họ tên: ${hoTen}`, `Quyền: ${lbl(QUYEN_TK, quyen)}`]);
+        const r = await DN.api.themThanhVien({ ten, hoTen, email, mk, quyen, nhom }) || {};
+        ghi('Thêm thành viên ' + ten, [`Họ tên: ${hoTen}`, `Quyền: ${lbl(QUYEN_TK, quyen)}`].concat(nhom ? [`Nhóm: ${nhom}`] : []));
         toast(r.daCo ? `Email đã có tài khoản: đã cấp quyền cho ${ten}, mật khẩu giữ như cũ` : `Đã thêm thành viên ${ten}`);
         f.reset(); await qlTaiTv(true);
       } catch (er) { loi(viLoi(er)); }

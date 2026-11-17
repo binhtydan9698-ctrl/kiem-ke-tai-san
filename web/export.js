@@ -159,19 +159,23 @@
     }
     return kq;
   }
+  // gồm tài sản phát sinh (cán bộ kiểm kê phát hiện) và tài sản mới tạo trên app chưa vào sổ (người dùng chốt 17/11/2026: gộp
+  // chung sheet này, cột "Nguồn" cho biết từ đâu)
   function sheetPhatSinh(ds, sTD, sO) {
-    const H = ['STT', 'Mô tả (không có trong sổ)', 'Số lượng', 'Phòng', 'Tình trạng', 'Ghi nhận tại'], W = [6, 50, 10, 20, 18, 34];
+    const H = ['STT', 'Mô tả (không có trong sổ)', 'Số lượng', 'Phòng', 'Tình trạng', 'Ghi nhận tại', 'Nguồn', 'Người ghi', 'Lúc ghi', 'Mã TSCĐ (nếu có)', 'Ngày bắt đầu sử dụng', 'Nguyên giá', 'Ghi chú'],
+      W = [6, 50, 10, 20, 18, 34, 30, 22, 17, 16, 14, 15, 40];
     const o = (r, c, v, s) => v == null || v === '' ? `<c r="${colChu(c)}${r}" s="${s}"/>` : typeof v === 'number' && isFinite(v) ? `<c r="${colChu(c)}${r}" s="${s}"><v>${v}</v></c>`
       : `<c r="${colChu(c)}${r}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
     const dong = [`<row r="1">${H.map((h, i) => o(1, i + 1, h, sTD)).join('')}</row>`]
-      .concat(ds.map((p, i) => `<row r="${i + 2}">${[i + 1, p.mo_ta, Number(p.sl) || p.sl, p.phong, p.cond, p.noi].map((v, j) => o(i + 2, j + 1, v, sO)).join('')}</row>`));
+      .concat(ds.map((p, i) => `<row r="${i + 2}">${[i + 1, p.mo_ta, Number(p.sl) || p.sl, p.phong, p.cond, p.noi, p.nguon || 'Phát hiện khi kiểm kê', p.nguoi, p.luc, p.ma, p.ngay, Number(p.gia) || '', p.ghi]
+        .map((v, j) => o(i + 2, j + 1, v, sO)).join('')}</row>`));
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
-      + `<dimension ref="A1:F${ds.length + 1}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
+      + `<dimension ref="A1:${colChu(H.length)}${ds.length + 1}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>`
       + `<sheetFormatPr defaultRowHeight="15"/><cols>${W.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`
       + `<sheetData>${dong.join('')}</sheetData><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>`;
   }
 
-  // opts.ketQua: { [khoá]: {kq, vt, gc, r} } · opts.phatSinh: [{mo_ta, sl, phong, cond, noi}] · opts.tenFile
+  // opts.ketQua: { [khoá]: {kq, vt, gc, r} } · opts.phatSinh: [{mo_ta, sl, phong, cond, noi, nguon, nguoi, luc, ma, ngay, gia, ghi}] · opts.tenFile
   window.xuatExcelKeToan = async function (opts) {
     const X = window.KIEMKE_EXCEL;
     if (!X) throw new Error('thiếu excel-rules.js');

@@ -10,11 +10,15 @@
   const g = window;
   const ANH_TOI_DA = 5, CANH = 1600, CANH_NHO = 400;
   const URLS = new Map();   // đường dẫn ảnh → {u, het}
-  const XT = { stt: null, dang: 0, xoa: '' };   // dialog đang mở cho tài sản nào; số ảnh đang tải lên; ảnh đang hỏi xoá
+  // hộp đang mở cho: tài sản trong sổ (stt) hoặc tài sản mới (moi = mã tài sản mới, tai-san-moi.js); số ảnh đang tải lên; ảnh đang hỏi xoá
+  const XT = { stt: null, moi: null, dang: 0, xoa: '' };
   const LB = { ds: [], i: 0, ma: '' };            // trình xem ảnh
 
-  const dsAnh = a => ((S.anh || {})[a.stt] || {}).ds || [];
-  g.soAnh = a => dsAnh(a).length;
+  const dsAnh = a => ((S.anh || {})[a.stt] || {}).ds || [];   // ảnh của chính tài sản trong sổ (thêm / xoá ở nút ⋯)
+  // ảnh của tài sản mới đã vào sổ thành tài sản này (Mã TSCĐ trùng hoặc quản trị nối tay — người dùng chốt 17/11/2026: ảnh tự hiện)
+  const dsNoi = a => (S.moi && typeof g.moiCuaTS === 'function' ? g.moiCuaTS(a) : []).flatMap(m => m.anh || []);
+  const dsHien = a => dsAnh(a).concat(dsNoi(a));
+  g.soAnh = a => dsHien(a).length;
   const coKho = () => !!(g.DN && DN.cai && DN.toi && DN.api && DN.api.anh);
   const duocTai = () => coKho() && DN.duocKiemKe() && !READONLY;
   const khoaTep = k => String(k).replace(/[^A-Za-z0-9._-]/g, '_');
@@ -50,82 +54,107 @@
       d.addEventListener('click', e => { if (e.target === d) d.close(); xtClick(e); });
       d.addEventListener('change', xtChange);
       d.addEventListener('close', () => {
-        const s = XT.stt; XT.stt = null; XT.xoa = ''; if (s == null) return;
-        try { if (V.type === 'anh') avSauDong(s); else if (typeof refreshRow === 'function') refreshRow(s); } catch (er) { }
+        const s = XT.stt, mo = XT.moi; XT.stt = null; XT.moi = null; XT.xoa = '';
+        try {
+          if (mo != null) { if (V.type === 'tsm' || V.type === 'anh') { const y = window.scrollY; render(); window.scrollTo(0, y); } return; }
+          if (s == null) return;
+          if (V.type === 'anh') avSauDong(s); else if (typeof refreshRow === 'function') refreshRow(s);
+        } catch (er) { }
       });
     }
     return d;
   }
+  // "mục" đang mở trong hộp: tài sản trong sổ hoặc tài sản mới — cùng cách thêm, xem, xoá ảnh
+  function muc() {
+    if (XT.moi != null) {
+      const id = XT.moi, m = (S.moi || {})[id]; if (!m) return null;
+      return { loai: 'moi', id, khoa: 'moi:' + id, ten: m.ten || 'Tài sản mới', ds: m.anh || [], noi: [],
+        dau: `${m.ma ? `Mã TSCĐ <b class="mono">${esc(m.ma)}</b>` : 'Chưa có Mã TSCĐ'} · Tài sản mới${m.tao_boi ? ' · Tạo bởi ' + esc(m.tao_boi) : ''}`,
+        sua: coKho() && typeof g.moiDuocSua === 'function' && g.moiDuocSua(m), thuMuc: 'moi/' + khoaTep(id), maXem: String(m.ma || 'tai-san-moi'),
+        ghi: l => { if (S.moi[id]) S.moi[id].anh = l; } };
+    }
+    const a = BY_STT[XT.stt]; if (!a) return null;
+    return { loai: 'ts', a, khoa: 'ts:' + a.stt, ten: a.short || a.ten, ds: dsAnh(a), noi: dsNoi(a),
+      dau: `Mã TSCĐ <b class="mono">${esc(a.ma || 'không mã')}</b> · STT ${a.stt}`, sua: duocTai(), thuMuc: 'ts/' + khoaTep(a.key), maXem: String(a.ma || a.key),
+      ghi: l => { S.anh = S.anh || {}; if (l.length) S.anh[a.stt] = { ds: l }; else delete S.anh[a.stt]; } };
+  }
   g.moMoRong = function (a) {
-    XT.stt = a.stt; XT.xoa = '';
+    XT.stt = a.stt; XT.moi = null; XT.xoa = '';
     const d = hop(); veHop(); if (!d.open) d.showModal();
   };
+  g.moAnhMoi = function (id) {   // ảnh của một tài sản mới (tai-san-moi.js)
+    XT.moi = id; XT.stt = null; XT.xoa = '';
+    const d = hop(); veHop(); if (!d.open) d.showModal();
+  };
+  const luoi = (ds, ten, sua, loai) => ds.map((x, i) => `<div class="xt-o"><button type="button" class="xt-thumb" data-xt="${loai}" data-i="${i}" aria-label="Xem ảnh ${i + 1}"><img data-p="${esc(x.n || x.p)}" alt="Ảnh ${i + 1} của ${esc(ten)}" loading="lazy"></button>
+        ${sua ? `<button type="button" class="xt-xoa${XT.xoa === x.p ? ' hoi' : ''}" data-xt="xoa" data-i="${i}" aria-label="Xoá ảnh ${i + 1}">${XT.xoa === x.p ? 'Xoá?' : '×'}</button>` : ''}</div>`).join('');
   async function veHop() {
-    const d = hop(), a = BY_STT[XT.stt]; if (!a) return;
-    const ds = dsAnh(a), qr = KIEMKE_QR.payload(a.key), tai = duocTai(), kho = coKho();
-    d.innerHTML = `<div class="xt-dau"><div><small>Mã TSCĐ <b class="mono">${esc(a.ma || 'không mã')}</b> · STT ${a.stt}</small><h2 id="xtTieuDe">${esc(a.short || a.ten)}</h2></div>
+    const d = hop(), m = muc(); if (!m) return;
+    const ds = m.ds, tai = m.sua, kho = coKho(), qr = m.loai === 'ts' ? KIEMKE_QR.payload(m.a.key) : '';
+    d.innerHTML = `<div class="xt-dau"><div><small>${m.dau}</small><h2 id="xtTieuDe">${esc(m.ten)}</h2></div>
         <button type="button" class="btn sm xt-dong" data-xt="dong" aria-label="Đóng">${ic('X') || '×'}</button></div>
       <div class="xt-than">
-        <section class="xt-qr" aria-label="Mã QR của tài sản">${qrSvg(qr, 150)}<div><b>Mã QR trên tem</b><small class="mono">${esc(qr)}</small>
-          <div class="xt-b"><button type="button" class="btn sm" data-xt="intem">${ic('Printer')}In tem mã QR</button><a class="btn sm" href="#ts-${encodeURIComponent(a.key)}" data-xt="mo">${ic('ArrowRight')}Mở trang tài sản</a></div></div></section>
+        ${m.loai === 'ts' ? `<section class="xt-qr" aria-label="Mã QR của tài sản">${qrSvg(qr, 150)}<div><b>Mã QR trên tem</b><small class="mono">${esc(qr)}</small>
+          <div class="xt-b"><button type="button" class="btn sm" data-xt="intem">${ic('Printer')}In tem mã QR</button><a class="btn sm" href="#ts-${encodeURIComponent(m.a.key)}" data-xt="mo">${ic('ArrowRight')}Mở trang tài sản</a></div></div></section>` : ''}
         <section class="xt-anh" aria-label="Ảnh tài sản">
           <div class="xt-anh-dau"><b>Ảnh tài sản</b><small>${ds.length}/${ANH_TOI_DA}</small>
             ${tai && ds.length < ANH_TOI_DA ? `<label class="btn sm pri">${ic('ImagePlus')}Thêm ảnh<input type="file" accept="image/*" multiple data-xt="them" hidden></label><label class="btn sm xt-chup">${ic('Camera')}Chụp ảnh<input type="file" accept="image/*" capture="environment" data-xt="them" hidden></label>` : ''}</div>
           ${!kho ? `<p class="note">${ic('Lock')} Ảnh tài sản dùng được khi trang đã bật đăng nhập (ảnh lưu kho riêng, chỉ thành viên xem được).</p>`
-            : `<div class="xt-luoi" id="xtLuoi">${ds.length || XT.dang ? '' : '<p class="note">Chưa có ảnh.' + (tai ? ' Bấm “Thêm ảnh” hoặc “Chụp ảnh”.' : '') + '</p>'}</div>
-          ${tai ? `<p class="note">Mỗi tài sản tối đa ${ANH_TOI_DA} ảnh; ảnh được thu nhỏ trước khi tải lên. Không chụp người, giấy tờ cá nhân.</p>` : ''}`}
+            : `<div class="xt-luoi" id="xtLuoi">${luoi(ds, m.ten, tai, 'xem')}${Array.from({ length: XT.dang }, () => '<div class="xt-o xt-cho"><span>Đang tải lên…</span></div>').join('')}${ds.length || XT.dang ? '' : '<p class="note">Chưa có ảnh.' + (tai ? ' Bấm “Thêm ảnh” hoặc “Chụp ảnh”.' : '') + '</p>'}</div>
+          ${tai ? `<p class="note">Mỗi tài sản tối đa ${ANH_TOI_DA} ảnh; ảnh được thu nhỏ trước khi tải lên. Chụp rõ hình dáng, màu sắc, tem để mọi người nhận ra tài sản. Không chụp người, giấy tờ cá nhân.</p>` : ''}`}
         </section>
+        ${kho && m.noi.length ? `<section class="xt-anh xt-noi" aria-label="Ảnh từ tài sản mới đã vào sổ"><div class="xt-anh-dau"><b>Ảnh từ tài sản mới đã vào sổ</b><small>${m.noi.length} ảnh · sửa ở <a href="#tai-san-moi" data-xt="mo">Chung › Tài sản mới</a></small></div>
+          <div class="xt-luoi" id="xtNoi">${luoi(m.noi, m.ten, false, 'xemnoi')}</div></section>` : ''}
       </div>`;
     if (!kho) return;
-    const l = d.querySelector('#xtLuoi'), nho = ds.map(x => x.n || x.p);
-    let urls = [];
-    try { urls = await layUrl(nho); } catch (e) { l.innerHTML = `<p class="dn-loi">${esc(dnLoi(e))}</p>`; return; }
-    if (XT.stt !== a.stt) return;
-    l.innerHTML = ds.map((x, i) => `<div class="xt-o"><button type="button" class="xt-thumb" data-xt="xem" data-i="${i}" aria-label="Xem ảnh ${i + 1}"><img src="${esc(urls[i])}" alt="Ảnh ${i + 1} của ${esc(a.short || a.ten)}" loading="lazy"></button>
-        ${tai ? `<button type="button" class="xt-xoa${XT.xoa === x.p ? ' hoi' : ''}" data-xt="xoa" data-i="${i}" aria-label="Xoá ảnh ${i + 1}">${XT.xoa === x.p ? 'Xoá?' : '×'}</button>` : ''}</div>`).join('')
-      + Array.from({ length: XT.dang }, () => '<div class="xt-o xt-cho"><span>Đang tải lên…</span></div>').join('')
-      + (ds.length || XT.dang ? '' : '<p class="note">Chưa có ảnh.' + (tai ? ' Bấm “Thêm ảnh” hoặc “Chụp ảnh”.' : '') + '</p>');
+    const imgs = [...d.querySelectorAll('img[data-p]')];
+    try { await layUrl([...new Set(imgs.map(i => i.dataset.p))]); } catch (e) { const l = d.querySelector('#xtLuoi'); if (l) l.insertAdjacentHTML('afterbegin', `<p class="dn-loi">${esc(dnLoi(e))}</p>`); return; }
+    if (!muc() || muc().khoa !== m.khoa) return;
+    imgs.forEach(i => { const u = urlCo(i.dataset.p); if (u && i.isConnected) i.src = u; });
   }
   async function xtClick(e) {
     const b = e.target.closest('[data-xt]'); if (!b || b.tagName === 'INPUT') return;
-    const d = hop(), a = BY_STT[XT.stt], v = b.dataset.xt; if (!a) return;
+    const d = hop(), m = muc(), v = b.dataset.xt; if (!m) return;
     if (v === 'dong') { d.close(); return; }
     if (v === 'mo') { d.close(); return; }   // để đường link tự chuyển trang
-    if (v === 'intem') { d.close(); if (typeof qrOpen === 'function') qrOpen({ key: a.key }); return; }
-    if (v === 'xem') { moXem(a, +b.dataset.i); return; }
-    if (v === 'xoa') {
-      const x = dsAnh(a)[+b.dataset.i]; if (!x) return;
+    if (v === 'intem' && m.loai === 'ts') { d.close(); if (typeof qrOpen === 'function') qrOpen({ key: m.a.key }); return; }
+    if (v === 'xem') { moXemDs(m.ds, +b.dataset.i, m.maXem, m.ten); return; }
+    if (v === 'xemnoi') { moXemDs(m.noi, +b.dataset.i, m.maXem, m.ten); return; }
+    if (v === 'xoa' && m.sua) {
+      const x = m.ds[+b.dataset.i]; if (!x) return;
       if (XT.xoa !== x.p) { XT.xoa = x.p; b.textContent = 'Xoá?'; b.classList.add('hoi'); return; }
       b.disabled = true;
       try {
         await DN.api.anh.xoa([x.p, x.n].filter(Boolean));
-        S.anh[a.stt] = { ds: dsAnh(a).filter(y => y.p !== x.p) }; if (!S.anh[a.stt].ds.length) delete S.anh[a.stt];
-        save(); XT.xoa = ''; toast('Đã xoá ảnh'); veHop();
+        m.ghi(m.ds.filter(y => y.p !== x.p)); save(); XT.xoa = ''; toast('Đã xoá ảnh'); veHop();
       } catch (er) { toast(dnLoi(er)); b.disabled = false; }
     }
   }
+  // chờ tài liệu của tài sản mới ghi xong lên máy chủ (máy chủ chỉ cho tải ảnh vào thư mục của tài sản mới đã có, do mình tạo)
+  async function choGhi(p) { for (let i = 0; i < 150 && typeof WR !== 'undefined' && (WR.busy.has(p) || WR.next.has(p)); i++) await new Promise(r => setTimeout(r, 100)); }
   async function xtChange(e) {
     const inp = e.target; if (inp.dataset.xt !== 'them') return;
-    const a = BY_STT[XT.stt], files = [...(inp.files || [])].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));
+    const m = muc(), files = [...(inp.files || [])].filter(f => /^image\//.test(f.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name));
     inp.value = '';
-    if (!a || !files.length || !duocTai()) return;
-    const con = ANH_TOI_DA - dsAnh(a).length - XT.dang;
+    if (!m || !files.length || !m.sua) return;
+    const con = ANH_TOI_DA - m.ds.length - XT.dang;
     if (con <= 0) { toast(`Mỗi tài sản tối đa ${ANH_TOI_DA} ảnh`); return; }
     const lay = files.slice(0, con);
     if (files.length > con) toast(`Chỉ thêm được ${con} ảnh nữa (tối đa ${ANH_TOI_DA} ảnh mỗi tài sản)`);
     XT.dang += lay.length; veHop();
+    if (m.loai === 'moi') await choGhi('moi/' + m.id);
     let xong = 0;
     for (const f of lay) {
       try {
         const [lon, nho] = await Promise.all([nen(f, CANH, 0.82), nen(f, CANH_NHO, 0.72)]);
-        const ten = `ts/${khoaTep(a.key)}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+        const ten = `${m.thuMuc}/${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
         await DN.api.anh.tai(ten + '.jpg', lon);
         await DN.api.anh.tai(ten + '-nho.jpg', nho);
-        S.anh = S.anh || {};
-        S.anh[a.stt] = { ds: dsAnh(a).concat([{ p: ten + '.jpg', n: ten + '-nho.jpg', at: Date.now(), by: ME || '' }]) };
+        const m2 = muc(), ds0 = m2 && m2.khoa === m.khoa ? m2.ds : (m.loai === 'moi' ? ((S.moi || {})[m.id] || {}).anh || [] : dsAnh(m.a));
+        m.ghi(ds0.concat([{ p: ten + '.jpg', n: ten + '-nho.jpg', at: Date.now(), by: ME || '' }]));
         save(); xong++;
       } catch (er) { toast('Không tải được ảnh: ' + dnLoi(er)); }
-      XT.dang--; if (XT.stt === a.stt) veHop();
+      XT.dang--; if (muc() && muc().khoa === m.khoa) veHop();
     }
     if (xong) toast(`Đã thêm ${xong} ảnh`);
   }
@@ -144,8 +173,11 @@
     }
     return d;
   }
-  async function moXem(a, i) {
-    LB.ds = dsAnh(a); LB.i = i; LB.ma = String(a.ma || a.key); LB.ten = a.short || a.ten;
+  const moXem = (a, i) => moXemDs(dsHien(a), i, String(a.ma || a.key), a.short || a.ten);   // ảnh của tài sản + ảnh từ tài sản mới đã nối
+  g.xemAnhDs = (ds, i, ma, ten) => moXemDs(ds, i, ma, ten);
+  async function moXemDs(ds, i, ma, ten) {
+    if (!ds || !ds.length) return;
+    LB.ds = ds; LB.i = Math.min(i, ds.length - 1); LB.ma = ma; LB.ten = ten;
     const d = khungXem(); d.innerHTML = '<div class="lb-khung"><p class="lb-cho">Đang mở ảnh…</p></div>';
     if (!d.open) d.showModal();
     try { await layUrl(LB.ds.map(x => x.p).concat(LB.ds.map(x => x.n || x.p))); } catch (e) { d.innerHTML = `<div class="lb-khung"><p class="lb-cho">${esc(dnLoi(e))}</p></div>`; return; }
@@ -187,12 +219,21 @@
      phòng để đi chụp lần lượt). Thêm / xoá ảnh dùng lại đúng hộp ⋯ (moMoRong) nên quyền, tối đa 5 ảnh, thu nhỏ ảnh, lịch sử giống hệt. */
   const AV_LIM = { co: 48, chua: 100 };
   g.AV = { q: '', dv: '', loc: 'co', xep: 'moi', lim: AV_LIM.co };
-  const moiNhat = a => dsAnh(a).reduce((m, x) => x.at > m.at ? x : m, { at: 0 });
+  const moiNhat = a => dsHien(a).reduce((m, x) => x.at > m.at ? x : m, { at: 0 });
   const urlCo = p => { const x = URLS.get(p); return x && x.het > Date.now() ? x.u : ''; };
   const phongCua = a => roomOf(a) || 'Chưa có vị trí';
+  // dùng chung cho trang Tài sản mới (tai-san-moi.js): điền ảnh (img[data-p] chưa có src) trong một vùng; có kho ảnh chưa
+  g.anhUrlCo = p => urlCo(p);
+  g.anhCoKho = () => coKho();
+  g.anhVeBia = async function (root) {
+    if (!coKho()) return;
+    const imgs = [...(root || app).querySelectorAll('img[data-p]:not([src])')]; if (!imgs.length) return;
+    try { await layUrl([...new Set(imgs.map(i => i.dataset.p))]); } catch (e) { return; }
+    imgs.forEach(i => { const u = urlCo(i.dataset.p); if (u && i.isConnected) i.src = u; });
+  };
   function avPham() {   // tài sản trong sheet đang chọn: có ảnh / chưa có ảnh (không tính công trình, xây lắp, phần mềm)
     const l = ASSETS.filter(a => !AV.dv || a.unit === AV.dv);
-    return { co: l.filter(a => dsAnh(a).length), chua: l.filter(a => !a.hoso && !dsAnh(a).length), can: l.filter(a => !a.hoso).length };
+    return { co: l.filter(a => dsHien(a).length), chua: l.filter(a => !a.hoso && !dsHien(a).length), can: l.filter(a => !a.hoso).length };
   }
   function avLoc(p) {
     const q = fold(AV.q.trim());
@@ -202,7 +243,7 @@
     return sttTruoc(l, q);
   }
   const avThe = (a, tai) => {
-    const ds = dsAnh(a), m = moiNhat(a), x0 = ds[0], ten = a.short || a.ten;
+    const ds = dsHien(a), m = moiNhat(a), x0 = ds[0], ten = a.short || a.ten;
     return `<article class="at-the" data-stt="${a.stt}">
       <button type="button" class="at-anh" data-at="xem" aria-label="Xem ${ds.length} ảnh của ${esc(ten)}"><img data-p="${esc(x0.n || x0.p)}"${urlCo(x0.n || x0.p) ? ` src="${esc(urlCo(x0.n || x0.p))}"` : ''} alt="" loading="lazy"><span class="at-dem">${ic('Images')}${ds.length}</span></button>
       <div class="at-tt"><small class="mono">${esc(a.ma || 'không mã')} · STT ${a.stt}</small><b>${esc(ten)}</b><small>${esc(phongCua(a))} · ${esc(UNIT[a.unit].sheet)}</small>
@@ -218,7 +259,7 @@
   function avKetQua() {
     const p = avPham(), l = avLoc(p), tai = duocTai(), show = l.slice(0, AV.lim), con = l.length - show.length;
     const dem = AV.loc === 'co'
-      ? `<b class="num">${nf.format(l.length)}</b> tài sản có ảnh · <b class="num">${nf.format(l.reduce((s, a) => s + dsAnh(a).length, 0))}</b> ảnh`
+      ? `<b class="num">${nf.format(l.length)}</b> tài sản có ảnh · <b class="num">${nf.format(l.reduce((s, a) => s + dsHien(a).length, 0))}</b> ảnh`
       : `<b class="num">${nf.format(l.length)}</b> tài sản chưa có ảnh · xếp theo phòng để đi chụp lần lượt`;
     let than;
     if (!l.length) than = `<div class="empty">${AV.q.trim() ? 'Không có tài sản nào khớp ô tìm.' : AV.loc === 'co' ? 'Chưa có tài sản nào có ảnh.' + (tai ? ' Chọn “Chưa có ảnh” rồi bấm “Thêm ảnh”, hoặc bấm nút ⋯ trên dòng tài sản.' : '') : 'Mọi tài sản ở đây đều đã có ảnh.'}</div>`;
@@ -299,7 +340,7 @@
     else if (s.loi) than = `<div class="ch-note warn">${ic('TriangleAlert')}<div>${esc(s.loi)}</div></div>`;
     else {
       const d = s.d, dung = +d.byte_moi_kho || 0, anh = +d.byte || 0, khac = Math.max(0, dung - anh), con = Math.max(0, KHO_GOI - dung);
-      const soAnh = Object.values(S.anh || {}).reduce((t, x) => t + ((x && x.ds) || []).length, 0), tb = soAnh ? anh / soAnh : ANH_UOC;
+      const soAnh = Object.values(S.anh || {}).reduce((t, x) => t + ((x && x.ds) || []).length, 0) + Object.values(S.moi || {}).reduce((t, m) => t + ((m && m.anh) || []).length, 0), tb = soAnh ? anh / soAnh : ANH_UOC;
       const pct = dung / KHO_GOI * 100, pctC = pct > 0 && pct < 0.1 ? 'dưới 0,1' : pct.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
       than = `<div class="at-dl-so"><b class="num">${bytes(dung)}</b><span>đã dùng / ${bytes(KHO_GOI)} (gói miễn phí) · ${pctC}%</span></div>
         <div class="at-dl-thanh${pct >= 80 ? ' day' : ''}" role="meter" aria-label="Dung lượng kho đã dùng" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, pct).toFixed(1)}" aria-valuetext="Đã dùng ${pctC}%"><span style="width:${Math.min(100, pct).toFixed(2)}%"></span></div>
@@ -323,10 +364,11 @@
       app.innerHTML = `${demoBanner()}${ban}<div class="ch-note warn">${ic('Lock')}<div><b>Ảnh tài sản cần đăng nhập.</b> Ảnh lưu ở kho riêng, chỉ thành viên đã đăng nhập mới xem được. Đăng nhập chưa được bật nên chưa dùng được ảnh. Xem cách bật ở <a href="#quan-ly">Chung › Quản lý</a>.</div></div>`;
       return;
     }
-    const p = avPham(), tai = duocTai(), soAnh = p.co.reduce((s, a) => s + dsAnh(a).length, 0), pct0 = p.can ? p.co.length / p.can * 100 : 0, pct = pct0 > 0 && pct0 < 1 ? 'dưới 1' : Math.min(100, Math.round(pct0));
+    const p = avPham(), tai = duocTai(), soAnh = p.co.reduce((s, a) => s + dsHien(a).length, 0), pct0 = p.can ? p.co.length / p.can * 100 : 0, pct = pct0 > 0 && pct0 < 1 ? 'dưới 1' : Math.min(100, Math.round(pct0));
     const r = avKetQua();
     app.innerHTML = `${demoBanner()}${ban}
-    <div class="ch-note">${ic('Lock')}<div>Ảnh lưu ở <b>kho riêng</b>, chỉ thành viên đã đăng nhập xem được${tai ? '; bạn được thêm, xoá ảnh' : ' (quyền Tra cứu chỉ xem, không thêm, xoá)'}. Mỗi tài sản tối đa ${ANH_TOI_DA} ảnh, ảnh được thu nhỏ trước khi tải lên. Ảnh <b>không</b> đưa vào file “Xuất cho kế toán”.</div></div>
+    <div class="ch-note">${ic('Lock')}<div>Ảnh lưu ở <b>kho riêng</b>, chỉ thành viên đã đăng nhập xem được${tai ? '; bạn được thêm, xoá ảnh' : DN.toi && DN.toi.quyen === 'moi' ? ' (ở đây bạn chỉ xem; ảnh tài sản mới do bạn tạo thì thêm ở <a href="#tai-san-moi">Chung › Tài sản mới</a>)' : ' (quyền Tra cứu chỉ xem, không thêm, xoá)'}. Mỗi tài sản tối đa ${ANH_TOI_DA} ảnh, ảnh được thu nhỏ trước khi tải lên. Ảnh <b>không</b> đưa vào file “Xuất cho kế toán”.</div></div>
+    ${(() => { const l = Object.values(S.moi || {}).filter(m => !(g.moiNoi && g.moiNoi(m))), n = l.reduce((t, m) => t + (m.anh || []).length, 0); return l.length ? `<p class="note at-moi">${ic('PackagePlus')} Ngoài ra có ${nf.format(l.length)} tài sản mới chưa vào sổ (${nf.format(n)} ảnh) — xem ở <a href="#tai-san-moi">Chung › Tài sản mới</a>. Khi đã vào sổ, ảnh tự hiện ở tài sản trong sổ.</p>` : ''; })()}
     <div class="ns-sum at-sum">
       <div><small>Tài sản có ảnh</small><b class="num">${nf.format(p.co.length)}</b><span>trên ${nf.format(p.can)} tài sản · ${pct}%</span></div>
       <div><small>Tổng số ảnh</small><b class="num">${nf.format(soAnh)}</b><span>tối đa ${ANH_TOI_DA} ảnh mỗi tài sản</span></div>

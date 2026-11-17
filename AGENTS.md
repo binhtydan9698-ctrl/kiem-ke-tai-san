@@ -53,7 +53,8 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
   `danh_ba`; số điện thoại tự hiện kèm đầu mối khi cùng email / họ tên) · `#quan-ly` Quản lý ứng dụng (`web/dang-nhap.js`: tài
   khoản của tôi, đổi mật khẩu, đăng xuất; quản trị: thêm / khoá thành viên, đặt quyền, đặt lại mật khẩu — nơi phát triển tiếp phần
   quản lý ứng dụng) · `#anh-tai-san` **Ảnh tài sản** (mục thứ 5, người dùng thêm 17/11/2026, mã trong `web/anh.js`: nơi quản lý toàn bộ
-  ảnh tài sản, cần đăng nhập).
+  ảnh tài sản, cần đăng nhập) · `#tai-san-moi` **Tài sản mới** (người dùng thêm 17/11/2026, mã trong `web/tai-san-moi.js`: cán bộ mua
+  sắm, giảng viên… tạo tài sản vừa mua kèm ảnh; mục "Quyết định khác").
 - Cả app phải **đăng nhập** (quy tắc 4); mỗi dòng tài sản có **nút ⋯** (mã QR + ảnh tài sản, mục "Quyết định khác").
 - Đầu trang 2 tầng: logo FPT University (`web/img/logo-fpt-university.png`, về trang chủ) · 4 phần chính [Kiểm kê | Mã QR |
   Lịch sử | Chung] (mỗi phần nhớ trang đang xem dở) · Quét mã · người dùng; tầng dưới là menu con của phần đang mở. Điện thoại:
@@ -94,7 +95,7 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
    sổ, ai mua): trang xếp vào 3 nhóm riêng (id `XLPB`, `XL`, `CBG`), luôn để "Chưa có vị trí" (bỏ qua cột Vị trí Excel,
    chỉ hiện làm gợi ý) cho tới khi cán bộ kiểm trực tiếp rồi phân bổ vào các sheet đơn vị GD … FSC3.
    `phong` = danh mục phòng bổ sung (quy tắc 11).
-3. `web/index.html` dựng `ASSETS` từ `KIEMKE_DATA.rows`. Trạng thái kiểm kê trong `S = {rows, xm, units, ps, dm, anh}`:
+3. `web/index.html` dựng `ASSETS` từ `KIEMKE_DATA.rows`. Trạng thái kiểm kê trong `S = {rows, xm, units, ps, dm, anh, moi}`:
    - `S.rows[stt]`: kết quả từng tài sản `{tt, nf, hs, phong, dv, cond, sd, note, at, by}` — `cond` = Tình trạng (hư hỏng ra sao,
      `COND`), `sd` = Trạng thái sử dụng (`SUDUNG`: '' Đang sử dụng, kho, sua, muon, cho_tl, da_tl, bg), hai mục TÁCH RIÊNG.
      `dv` = **phòng ban hiện tại** khi cán bộ đổi ở ô "Phòng ban" (mục "Quyết định khác"): `a.unit0` = phòng ban theo Excel,
@@ -103,6 +104,8 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
    - `S.units[id]`: buổi kiểm của đơn vị · `S.ps[key]`: tài sản phát sinh
    - `S.anh[stt]`: danh sách ảnh của tài sản `{ds: [{p: đường dẫn ảnh, n: ảnh nhỏ, at, by}]}` (col `anh`, khoá Mã TSCĐ như `rows`);
      tệp ảnh nằm ở kho `anh-tai-san` (`ts/<khoá>/…jpg`), không vào file cho kế toán, `npm run sao-luu` chỉ lưu danh sách, không lưu tệp ảnh.
+   - `S.moi[mã tài sản mới]`: tài sản mới tạo trên app (col `moi`, mỗi tài sản một tài liệu) `{ten, sl, phong, dv, ma, ngay, gia,
+     ghi_chu, anh:[…], uid, tao_boi, by, at, noi?}`; ảnh ở `moi/<mã>/…jpg`. Vào sổ khi `ma` (hoặc `noi` quản trị nối tay) có trong file BBKK.
 4. Đồng bộ: `save()` so `S` với `LAST` rồi ghi từng tài liệu qua `DB.doc(path).set()`; `listen(col)` nhận thay đổi.
    `web/supabase-db.js` cung cấp `DB` (giả lập API `db` của Claude artifact) trên bảng `kiemke_docs(col, id, data)`.
 5. "Xuất cho kế toán" (`web/export.js`) chèn 3 cột kết quả vào cuối mọi sheet danh sách của `data/goc.xlsx` (cột Thực tế để trống) + sheet
@@ -158,7 +161,8 @@ nhưng chỉ làm gợi ý nào người dùng đồng ý. Lỗi nhỏ thì tự
   `supabase/dang-nhap.sql` (người dùng tự chạy trong Supabase SQL Editor + tắt "Confirm email"). Chưa chạy thì trang chạy như cũ
   (`DN.cai=false`). Đã chạy: màn hình đăng nhập trước mọi thứ; lần đầu "Tạo tài khoản quản trị"; RLS chỉ cho thành viên
   (`thanh_vien`, không khoá) đọc `kiemke_docs`, `danh_ba`. Quyền (người dùng chốt 15/11/2026): `xem` **Tra cứu** (chỉ xem, trang
-  ở chế độ chỉ xem, vẫn ghi lịch sử) · `kiem` **Kiểm kê** (thêm ghi kết quả kiểm kê, phát sinh, thất lạc) · `admin` **Quản trị**
+  ở chế độ chỉ xem, vẫn ghi lịch sử) · `moi` **Tạo tài sản mới** (thêm 17/11/2026: tài sản BBKK chỉ xem; tạo, sửa, thêm ảnh tài sản
+  mới do chính mình tạo — máy chủ chặn) · `kiem` **Kiểm kê** (thêm ghi kết quả kiểm kê, phát sinh, thất lạc) · `admin` **Quản trị**
   (toàn quyền: danh bạ, đầu mối, thành viên, khoá dữ liệu; **bắt buộc xác thực 2 bước** — chưa bật thì phải bật ngay sau mật khẩu,
   máy chủ chỉ cho toàn quyền khi phiên đã qua bước 2). Người dùng khác chỉ cần mật khẩu. Máy chủ chặn ghi theo quyền
   (`duoc_ghi(col)`). Tên người kiểm (`ME`) lấy từ tài khoản.
@@ -188,7 +192,8 @@ nhưng chỉ làm gợi ý nào người dùng đồng ý. Lỗi nhỏ thì tự
 **File "Xuất cho kế toán" GIỮ NGUYÊN file BBKK gốc (người dùng chốt 16/11/2026):** mọi sheet, ô, công thức, định dạng, ô gộp, độ
 rộng cột, chiều cao dòng, vùng lọc, thiết lập in — kể cả cột "Thực tế" có sẵn (để TRỐNG như gốc; số đếm được nằm trong Kết quả
 kiểm kê). Mọi thay đổi chỉ gói trong **3 cột cuối** ở mỗi sheet danh sách (Kết quả kiểm kê · Vị trí thực tế · Ghi chú kiểm kê) +
-**sheet riêng "Tài sản phát sinh"** ở cuối (giống 3 sheet lẻ: chưa rõ phòng ban, để riêng cho dễ xử lý). `web/export.js` KHÔNG mở
+**sheet riêng "Tài sản phát sinh"** ở cuối (giống 3 sheet lẻ: chưa rõ phòng ban, để riêng cho dễ xử lý; từ 17/11/2026 gộp cả tài
+sản mới tạo trên app chưa vào sổ, cột "Nguồn": "Phát hiện khi kiểm kê" / "Tạo bởi …" — người dùng chọn). `web/export.js` KHÔNG mở
 rồi ghi lại cả file bằng thư viện (ExcelJS làm mất độ rộng cột kiểu "D:E", đổi thiết lập in): chỉ đọc file gốc để biết dòng, rồi
 chèn ô 3 cột mới thẳng vào XML của sheet. Giữ bằng: `npm test` bước 3 (so từng ô + từng byte, `scripts/so-sanh-excel.js`), thử
 giao diện kịch bản `xuat-goc` (bấm đúng nút trên trang sau nhiều thao tác thật). Sửa phần xuất thì mở thử bằng Excel thật.
@@ -315,3 +320,14 @@ thấy". Thêm thông số mới thì thêm bước thử: quyền thường kh�
   phiên, tăng thêm 1% thì báo lại) và trang Ảnh tài sản hiện **phương án KHÔNG TỐN KINH PHÍ** theo thứ tự: bớt ảnh thừa (giữ 1–2 ảnh
   rõ nhất mỗi tài sản) → tải lưu trữ về máy / Drive rồi xoá ảnh tài sản đã thanh lý, bàn giao → thu nhỏ ảnh mới (1280 điểm ảnh) →
   chuyển kho sang Cloudflare R2 (miễn phí 10 GB). Không đề xuất gói trả phí trừ khi người dùng hỏi. Giữ bằng thử giao diện `anh`.
+- **Chung › Tài sản mới `#tai-san-moi`** (người dùng chốt 17/11/2026; mã trong `web/tai-san-moi.js`): tài sản vừa mua, chưa có trong
+  file BBKK, do cán bộ mua sắm (sau này cả cán bộ khác, giảng viên) tạo trên app **kèm ảnh**. Người dùng chọn:
+  - **Quyền mới "Tạo tài sản mới"** (`moi`): xem mọi thứ; tạo tài sản mới, sửa / xoá / thêm ảnh **chỉ tài sản do chính mình tạo**;
+    **không đụng tài sản trong file BBKK** (trang ở chế độ chỉ xem với tài sản trong sổ; máy chủ chặn). Có lịch sử để kiểm tra thao tác.
+  - **Tag "Tạo bởi" theo tài khoản**: quản trị đặt nhóm cho từng tài khoản ở bảng Thành viên (Cán bộ mua sắm, Giảng viên, Cán bộ khác…
+    gõ thêm tuỳ ý); máy chủ tự gắn tag khi tạo, người tạo không sửa được; quản trị sửa được tag từng tài sản.
+  - **Tự nối khi trùng Mã TSCĐ**: điền Mã TSCĐ (nếu đã có); khi file BBKK có mã đó → "Đã vào sổ", ảnh tự hiện ở tài sản trong sổ (hộp ⋯,
+    Ảnh tài sản), thôi xuất ở sheet phát sinh; chưa có mã thì quản trị nối tay.
+  - **Xuất cho kế toán**: tài sản mới chưa vào sổ **gộp chung sheet "Tài sản phát sinh"**, cột "Nguồn" (quy tắc 6; file BBKK gốc giữ
+    nguyên). Lịch sử › Nhập sổ có nguồn "Tài sản mới (tạo trên app)".
+  Giữ bằng: thử giao diện `tai-san-moi`; `npm test` bước 3 (sheet phát sinh 13 cột), bước 6 (quyền, trigger, ảnh trong `dang-nhap.sql`).

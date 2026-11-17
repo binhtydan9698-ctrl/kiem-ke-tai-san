@@ -18,7 +18,9 @@
 -- đã qua 2 bước mới bật / tắt được); khoá giải mã dữ liệu tài sản (bảng bi_mat); thu hồi mọi quyền của người không đăng nhập.
 
 -- ===== bảng =====
--- quyen: 'xem' Tra cứu (chỉ xem) · 'kiem' Kiểm kê (xem + ghi kết quả kiểm kê) · 'admin' Quản trị (toàn quyền, bắt buộc 2 lớp)
+-- quyen: 'xem' Tra cứu (chỉ xem) · 'moi' Tạo tài sản mới (xem + tạo / sửa tài sản mới DO MÌNH TẠO, không đụng tài sản BBKK)
+--        · 'kiem' Kiểm kê (xem + ghi kết quả kiểm kê) · 'admin' Quản trị (toàn quyền, bắt buộc 2 lớp)
+-- nhom: nhóm người dùng = tag "Tạo bởi" gắn vào tài sản mới họ tạo (vd. Cán bộ mua sắm, Giảng viên…; quản trị đặt)
 create table if not exists public.thanh_vien (
   user_id       uuid primary key references auth.users(id) on delete cascade,
   ten_dang_nhap text not null unique check (ten_dang_nhap ~ '^[a-z0-9._-]{3,40}$'),
@@ -30,7 +32,9 @@ create table if not exists public.thanh_vien (
 -- (bản trước có quyền 'sua' = sửa danh bạ → đổi thành 'kiem')
 alter table public.thanh_vien drop constraint if exists thanh_vien_quyen_check;
 update public.thanh_vien set quyen = 'kiem' where quyen = 'sua';
-alter table public.thanh_vien add constraint thanh_vien_quyen_check check (quyen in ('admin', 'kiem', 'xem'));
+alter table public.thanh_vien add constraint thanh_vien_quyen_check check (quyen in ('admin', 'kiem', 'moi', 'xem'));
+-- TÀI SẢN MỚI (người dùng chốt 17/11/2026): nhóm của tài khoản = tag "Tạo bởi" (máy chủ tự gắn vào tài sản mới, người tạo không sửa được)
+alter table public.thanh_vien add column if not exists nhom text not null default '';
 -- MIỄN MÃ 6 SỐ (người dùng chốt 17/11/2026): tài khoản quản trị được chọn "Miễn" thì đăng nhập chỉ cần mật khẩu, vẫn toàn quyền.
 -- Chỉ đổi qua hàm quan_tri_dat_mien_2_lop (quản trị ĐÃ qua 2 bước), không sửa thẳng được cột này.
 alter table public.thanh_vien add column if not exists mien_2_lop boolean not null default false;
@@ -125,12 +129,28 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- được ghi loại dữ liệu kiểm kê nào: lịch sử (log) — mọi thành viên (để biết ai làm gì, kể cả người chỉ tra cứu);
--- đầu mối (dm) — chỉ quản trị; kết quả kiểm kê, buổi kiểm, phát sinh, thất lạc (rows, units, ps, xm) — Kiểm kê và Quản trị
+-- đầu mối (dm) — chỉ quản trị; tài sản mới (moi) — Tạo tài sản mới, Kiểm kê, Quản trị (từng tài sản: xem chu_moi);
+-- kết quả kiểm kê, buổi kiểm, phát sinh, thất lạc, ảnh tài sản trong sổ (rows, units, ps, xm, anh) — Kiểm kê và Quản trị
 create or replace function public.duoc_ghi(p_col text) returns boolean
 language sql stable security definer set search_path = public as $$
   select case when p_col = 'log' then public.la_thanh_vien()
               when p_col = 'dm' then public.la_quan_tri()
+              when p_col = 'moi' then coalesce(public.quyen_cua_toi() in ('admin', 'kiem', 'moi'), false)
               else coalesce(public.quyen_cua_toi() in ('admin', 'kiem'), false) end
+$$;
+
+-- tài sản mới: chỉ người tạo (uid trong dữ liệu) hoặc quản trị được sửa / xoá
+create or replace function public.chu_moi(p_data jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.la_quan_tri() or coalesce(p_data ->> 'uid', '') = coalesce(auth.uid()::text, '-')
+$$;
+
+-- tệp ảnh: ảnh tài sản trong sổ (ts/…) — Kiểm kê, Quản trị; ảnh tài sản mới (moi/<mã tài sản mới>/…) — thêm cả người tạo tài sản đó
+create or replace function public.duoc_ghi_anh(p_ten text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.duoc_ghi('anh')
+      or (split_part(p_ten, '/', 1) = 'moi' and public.duoc_ghi('moi')
+          and exists (select 1 from public.kiemke_docs d where d.col = 'moi' and d.id = split_part(p_ten, '/', 2) and public.chu_moi(d.data)))
 $$;
 
 -- trước khi đăng nhập: đã bật đăng nhập chưa, đã có quản trị chưa (không lộ dữ liệu)
@@ -150,7 +170,7 @@ $$;
 create or replace function public.toi_la_ai() returns json
 language sql stable security definer set search_path = public, auth as $$
   select json_build_object('uid', t.user_id, 'ten', t.ten_dang_nhap, 'ho_ten', t.ho_ten, 'quyen', t.quyen, 'email', u.email::text,
-    'doi_mk', public.con_mk_ban_dau(), 'mien_2_lop', t.mien_2_lop)
+    'doi_mk', public.con_mk_ban_dau(), 'mien_2_lop', t.mien_2_lop, 'nhom', t.nhom)
   from public.thanh_vien t join auth.users u on u.id = t.user_id
   where t.user_id = auth.uid() and not t.khoa
 $$;
@@ -169,9 +189,9 @@ end $$;
 -- quản trị: danh sách thành viên (kèm email, lần đăng nhập cuối, có được miễn mã 6 số không)
 drop function if exists public.ds_thanh_vien();   -- bản trước trả ít cột hơn (đổi kiểu trả về phải xoá rồi tạo lại)
 create or replace function public.ds_thanh_vien()
-returns table (user_id uuid, ten_dang_nhap text, ho_ten text, quyen text, khoa boolean, tao_luc timestamptz, email text, dang_nhap_cuoi timestamptz, mien_2_lop boolean)
+returns table (user_id uuid, ten_dang_nhap text, ho_ten text, quyen text, khoa boolean, tao_luc timestamptz, email text, dang_nhap_cuoi timestamptz, mien_2_lop boolean, nhom text)
 language sql stable security definer set search_path = public, auth as $$
-  select t.user_id, t.ten_dang_nhap, t.ho_ten, t.quyen, t.khoa, t.tao_luc, u.email::text, u.last_sign_in_at, t.mien_2_lop
+  select t.user_id, t.ten_dang_nhap, t.ho_ten, t.quyen, t.khoa, t.tao_luc, u.email::text, u.last_sign_in_at, t.mien_2_lop, t.nhom
   from public.thanh_vien t join auth.users u on u.id = t.user_id
   where public.la_quan_tri()
   order by t.tao_luc
@@ -190,17 +210,19 @@ end $$;
 
 -- quản trị: cấp quyền cho tài khoản (email) vừa tạo bằng đăng ký. p_mk_moi = quản trị vừa đặt mật khẩu ban đầu cho tài khoản này
 -- (tài khoản mới) → lần đăng nhập đầu phải đổi; email đã có tài khoản từ trước thì giữ mật khẩu cũ, không bắt đổi.
+-- p_nhom: nhóm (tag "Tạo bởi" của tài sản mới người này tạo), vd. Cán bộ mua sắm, Giảng viên.
 drop function if exists public.quan_tri_them_thanh_vien(text, text, text, text);
-create or replace function public.quan_tri_them_thanh_vien(p_email text, p_ten text, p_ho_ten text, p_quyen text, p_mk_moi boolean default true) returns void
+drop function if exists public.quan_tri_them_thanh_vien(text, text, text, text, boolean);
+create or replace function public.quan_tri_them_thanh_vien(p_email text, p_ten text, p_ho_ten text, p_quyen text, p_mk_moi boolean default true, p_nhom text default '') returns void
 language plpgsql security definer set search_path = public, auth as $$
 declare v_uid uuid;
 begin
   if not public.la_quan_tri() then raise exception 'Chỉ quản trị mới thêm được thành viên'; end if;
-  if p_quyen not in ('admin', 'kiem', 'xem') then raise exception 'Quyền không hợp lệ'; end if;
+  if p_quyen not in ('admin', 'kiem', 'moi', 'xem') then raise exception 'Quyền không hợp lệ'; end if;
   select id into v_uid from auth.users where lower(email) = lower(trim(p_email));
   if v_uid is null then raise exception 'Chưa có tài khoản với email này'; end if;
-  insert into public.thanh_vien (user_id, ten_dang_nhap, ho_ten, quyen)
-  values (v_uid, lower(trim(p_ten)), coalesce(p_ho_ten, ''), p_quyen);
+  insert into public.thanh_vien (user_id, ten_dang_nhap, ho_ten, quyen, nhom)
+  values (v_uid, lower(trim(p_ten)), coalesce(p_ho_ten, ''), p_quyen, left(trim(coalesce(p_nhom, '')), 60));
   if p_mk_moi then perform public.ghi_mk_ban_dau(v_uid); end if;
 end $$;
 
@@ -219,12 +241,12 @@ end $$;
 -- ===== ai được gọi hàm nào =====
 revoke all on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
-  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
-  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean) from public, anon;
+  public.quan_tri_them_thanh_vien(text, text, text, text, boolean, text), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
+  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean), public.chu_moi(jsonb), public.duoc_ghi_anh(text) from public, anon;
 grant execute on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
-  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
-  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean) to authenticated;
+  public.quan_tri_them_thanh_vien(text, text, text, text, boolean, text), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
+  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean), public.chu_moi(jsonb), public.duoc_ghi_anh(text) to authenticated;
 -- dấu vết mật khẩu, ghi dấu vết: chỉ dùng bên trong các hàm trên, không ai gọi thẳng được
 revoke all on function public.dau_vet_mk(uuid), public.ghi_mk_ban_dau(uuid) from public, anon, authenticated;
 grant execute on function public.trang_thai_dang_nhap(), public.email_dang_nhap(text) to anon, authenticated;
@@ -234,10 +256,10 @@ revoke all on public.thanh_vien, public.danh_ba, public.bi_mat, public.kiemke_do
 revoke all on public.bi_mat from authenticated;
 revoke all on public.mk_ban_dau from anon, authenticated;
 grant select, insert, update, delete on public.kiemke_docs, public.danh_ba to authenticated;
--- thanh_vien: quản trị chỉ sửa thẳng được họ tên, quyền, khoá; cột "miễn mã 6 số" chỉ đổi qua hàm quan_tri_dat_mien_2_lop
+-- thanh_vien: quản trị chỉ sửa thẳng được họ tên, quyền, khoá, nhóm; cột "miễn mã 6 số" chỉ đổi qua hàm quan_tri_dat_mien_2_lop
 revoke update on public.thanh_vien from authenticated;
 grant select, delete on public.thanh_vien to authenticated;
-grant update (ho_ten, quyen, khoa) on public.thanh_vien to authenticated;
+grant update (ho_ten, quyen, khoa, nhom) on public.thanh_vien to authenticated;
 
 -- ===== quyền trên bảng (RLS) =====
 alter table public.thanh_vien enable row level security;
@@ -268,9 +290,30 @@ drop policy if exists "kiemke them" on public.kiemke_docs;
 drop policy if exists "kiemke sua" on public.kiemke_docs;
 drop policy if exists "kiemke xoa" on public.kiemke_docs;
 create policy "kiemke doc"  on public.kiemke_docs for select to authenticated using (public.la_thanh_vien());
-create policy "kiemke them" on public.kiemke_docs for insert to authenticated with check (public.duoc_ghi(col));
-create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.duoc_ghi(col)) with check (public.duoc_ghi(col));
-create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.duoc_ghi(col) and (col <> 'log' or public.la_quan_tri()));
+create policy "kiemke them" on public.kiemke_docs for insert to authenticated with check (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)));
+create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)))
+  with check (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)));
+create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.duoc_ghi(col) and (col <> 'log' or public.la_quan_tri()) and (col <> 'moi' or public.chu_moi(data)));
+
+-- Tài sản mới (col 'moi'): máy chủ tự gắn người tạo (uid) và tag "Tạo bởi" (nhóm của tài khoản) khi tạo; người không phải quản trị
+-- không đổi được người tạo, tag, hay chỗ nối với tài sản trong sổ (noi) khi sửa. Quản trị sửa được tất cả.
+create or replace function public.giu_tai_san_moi() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.col <> 'moi' then return new; end if;
+  if public.la_quan_tri() then return new; end if;
+  if tg_op = 'INSERT' then
+    new.data := new.data || jsonb_build_object('uid', auth.uid()::text,
+      'tao_boi', coalesce((select t.nhom from public.thanh_vien t where t.user_id = auth.uid()), ''));
+  else
+    new.data := (new.data - 'uid' - 'tao_boi' - 'noi')
+      || jsonb_strip_nulls(jsonb_build_object('uid', old.data -> 'uid', 'tao_boi', old.data -> 'tao_boi', 'noi', old.data -> 'noi'));
+  end if;
+  return new;
+end $$;
+revoke all on function public.giu_tai_san_moi() from public, anon, authenticated;
+drop trigger if exists giu_tai_san_moi on public.kiemke_docs;
+create trigger giu_tai_san_moi before insert or update on public.kiemke_docs for each row execute function public.giu_tai_san_moi();
 
 -- ===== Kho ảnh tài sản (nút ⋯ trên dòng tài sản, web/anh.js) =====
 -- Kho RIÊNG TƯ (public = false): chỉ thành viên đã đăng nhập xem được (qua đường dẫn có hạn); Kiểm kê, Quản trị tải lên / xoá.
@@ -284,9 +327,9 @@ drop policy if exists "anh tai san them" on storage.objects;
 drop policy if exists "anh tai san sua" on storage.objects;
 drop policy if exists "anh tai san xoa" on storage.objects;
 create policy "anh tai san xem"  on storage.objects for select to authenticated using (bucket_id = 'anh-tai-san' and public.la_thanh_vien());
-create policy "anh tai san them" on storage.objects for insert to authenticated with check (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
-create policy "anh tai san sua"  on storage.objects for update to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh')) with check (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
-create policy "anh tai san xoa"  on storage.objects for delete to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
+create policy "anh tai san them" on storage.objects for insert to authenticated with check (bucket_id = 'anh-tai-san' and public.duoc_ghi_anh(name));
+create policy "anh tai san sua"  on storage.objects for update to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi_anh(name)) with check (bucket_id = 'anh-tai-san' and public.duoc_ghi_anh(name));
+create policy "anh tai san xoa"  on storage.objects for delete to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi_anh(name));
 
 -- Dung lượng kho ảnh (Chung › Ảnh tài sản) — THÔNG SỐ QUẢN LÝ, CHỈ QUẢN TRỊ (người dùng chốt 17/11/2026): người khác gọi được hàm
 -- nhưng chỉ nhận null. Chỉ trả số tệp, tổng dung lượng (không trả tên tệp, đường dẫn). row_security = off: đếm đủ mọi tệp; nếu

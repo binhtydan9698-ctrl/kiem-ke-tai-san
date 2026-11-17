@@ -60,8 +60,12 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
 8. **Phiên đăng nhập**: không dùng trang quá 8 giờ thì tự đăng xuất; máy dùng chung thì bỏ chọn "Ghi nhớ đăng nhập trên máy này";
    mất máy hay lộ mật khẩu thì bấm "Đăng xuất trên mọi thiết bị".
 9. **Quyền tối thiểu** (máy chủ chặn theo quyền): *Tra cứu* — chỉ xem mọi thông tin, kể cả danh bạ; trang ở chế độ chỉ xem ·
+   *Tạo tài sản mới* (người dùng chốt 17/11/2026, cho cán bộ mua sắm, giảng viên, cán bộ khác) — xem mọi thông tin; tạo tài sản vừa
+   mua ở Chung › Tài sản mới, sửa / xoá / thêm ảnh **chỉ tài sản do chính mình tạo**; không ghi được gì vào tài sản trong file BBKK
+   (máy chủ: `duoc_ghi`, `chu_moi`, `duoc_ghi_anh`; người tạo và tag "Tạo bởi" do máy chủ gắn — trigger `giu_tai_san_moi`) ·
    *Kiểm kê* — thêm ghi kết quả kiểm kê, tài sản phát sinh, thất lạc · *Quản trị* — toàn quyền (danh bạ, đầu mối, thành viên, khoá
-   dữ liệu). Mọi thành viên đều ghi lịch sử theo tên. Khoá tài khoản có hiệu lực ngay, kể cả máy đang mở trang.
+   dữ liệu, sửa mọi tài sản mới). Mọi thành viên đều ghi lịch sử theo tên. Khoá tài khoản có hiệu lực ngay, kể cả máy đang mở trang.
+   (Máy soát: `npm test` bước 6; thử giao diện `tai-san-moi`.)
 10. Lịch sử ghi lại: đăng nhập (thiết bị, trình duyệt), đăng xuất, thêm / khoá / đổi quyền / đặt lại mật khẩu thành viên, bật / tắt xác
     thực 2 bước, sao chép khoá dữ liệu.
 11. Màn hình đăng nhập cho dán mật khẩu, dùng trình quản lý mật khẩu, có nút hiện mật khẩu (ui-ux-pro-max #107, #60, #58).

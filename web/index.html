@@ -24,6 +24,7 @@
 <script src="chung.js"></script>
 <script src="dang-nhap.js"></script>
 <script src="anh.js"></script>
+<script src="tai-san-moi.js"></script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1206,6 +1207,20 @@ dialog.lb::backdrop{background:#000}
 /* dung lượng kho ảnh: chỉ quản trị thấy */
 .kho-bao{margin:0 0 14px}
 .at-pa ol{margin:6px 0 0;padding-left:20px;display:grid;gap:6px}
+.at-moi{display:flex;align-items:center;gap:6px;margin:0 0 12px}
+/* Chung › Tài sản mới (tai-san-moi.js) */
+.tsm-sum{margin-bottom:14px}
+.tsm-tools{flex-wrap:wrap;align-items:center}.tsm-tools select.in{width:auto;max-width:240px}
+.tsm-trong{display:grid;place-items:center;align-content:center;gap:6px;height:100%;color:var(--muted);font-size:13px}.tsm-trong svg{width:28px;height:28px}
+.tsm-tag{white-space:normal}
+.tsm-noi{color:var(--ok)}.tsm-noi a{color:inherit;font-weight:600}.tsm-noi svg{width:15px;height:15px;vertical-align:-3px;margin-right:3px}
+.tsm-cho{color:var(--warn)}
+.tsm-form{margin:0 0 16px}.tsm-form h2{font-size:18px;margin:0 0 4px}
+.tsm-f{grid-template-columns:repeat(4,minmax(0,1fr))}.tsm-ten,.tsm-ghi{grid-column:span 2}
+.ql-nhom{min-width:150px}
+@media (max-width:900px){.tsm-f{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.tsm-f{grid-template-columns:1fr}.tsm-ten,.tsm-ghi{grid-column:auto}}
+@media (max-width:860px){.tsm-the .at-b .btn{min-height:44px}.tsm-tools select.in{max-width:none;flex:1 1 160px}}
 .at-dl{margin-top:14px}
 .at-dl-so{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}.at-dl-so b{font-size:24px}.at-dl-so span{color:var(--muted);font-size:14px}
 .at-dl-thanh{height:12px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
@@ -1213,7 +1228,7 @@ dialog.lb::backdrop{background:#000}
 .at-dl-thanh.day span{background:var(--bad)}
 .at-dl .note{margin:0}
 @media (max-width:860px){.at-b .btn,.at-chua .btn{min-height:44px}.at-tools select.in{max-width:none;flex:1 1 140px}}
-@media (max-width:640px){.ns-sum.at-sum{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.ns-sum.at-sum>div{padding:10px 12px}.ns-sum.at-sum b{font-size:20px}.ns-sum.at-sum span{display:none}}
+@media (max-width:640px){.ns-sum.at-sum,.ns-sum.tsm-sum{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.ns-sum.at-sum>div,.ns-sum.tsm-sum>div{padding:10px 12px}.ns-sum.at-sum b,.ns-sum.tsm-sum b{font-size:20px}.ns-sum.at-sum span,.ns-sum.tsm-sum span{display:none}}
 @media (max-width:480px){.at-luoi{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.at-tt{padding:8px 10px 6px}.at-b{padding:0 10px 10px}.at-b .btn{flex:1 1 100%;justify-content:center}}
 .ql-mfa{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
 .ql-mfa img{background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;max-width:100%;height:auto}
@@ -1233,7 +1248,7 @@ dialog.lb::backdrop{background:#000}
 .ns-dot li{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 12px;font-size:14px}
 .ns-dot time{font-weight:600;min-width:118px}
 .ns-chip{display:inline-block;font-size:13px;font-weight:700;padding:2px 8px;border-radius:999px;white-space:nowrap}
-.ns-chip.kt{background:var(--info-soft);color:var(--info)} .ns-chip.hc{background:var(--accent-soft);color:var(--accent)} .ns-chip.xoa{background:var(--warn-soft);color:var(--warn)}
+.ns-chip.kt{background:var(--info-soft);color:var(--info)} .ns-chip.hc{background:var(--accent-soft);color:var(--accent)} .ns-chip.xoa{background:var(--warn-soft);color:var(--warn)} .ns-chip.moi{background:var(--ok-soft);color:var(--ok)}
 .ns-tools{flex-wrap:wrap}.ns-tools select.in{width:auto;max-width:240px}
 .ns-tbl{max-height:none}
 .ns-tbl td small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
@@ -1310,6 +1325,7 @@ dialog.scan.cont .cam{min-height:170px}
       <a href="#danh-ba" data-r="danh-ba"><span data-ic="BookUser"></span>Danh bạ</a>
       <a href="#quan-ly" data-r="quan-ly"><span data-ic="UserCog"></span>Quản lý</a>
       <a href="#anh-tai-san" data-r="anh-tai-san"><span data-ic="Images"></span>Ảnh tài sản</a>
+      <a href="#tai-san-moi" data-r="tai-san-moi"><span data-ic="PackagePlus"></span>Tài sản mới</a>
     </nav>
   </div></div>
   <button type="button" class="dinh" id="dinh" hidden></button>
@@ -1417,13 +1433,13 @@ function xong(c){ return c.chua===0&&c.lech===0&&c.nf===0; }
 
 /* ---------- state ---------- */
 const KEY='kiemke2026.v1';
-function blank(){return {rows:{},units:{},xm:{},ps:{},dm:{},anh:{},demo:false};}   // dm = Chung › đầu mối theo sheet (chung.js); anh = ảnh từng tài sản (anh.js)
+function blank(){return {rows:{},units:{},xm:{},ps:{},dm:{},anh:{},moi:{},demo:false};}   // dm = Chung › đầu mối theo sheet (chung.js); anh = ảnh từng tài sản (anh.js); moi = tài sản mới tạo trên app (tai-san-moi.js)
 let S = blank();
 rebuildUnits();
 /* Chế độ lưu: 'connecting' → 'shared' (dữ liệu chung trên artifact, mọi tổ thấy nhau) hoặc 'local' (chỉ trình duyệt này) */
 let MODE='connecting', DB=null, USER=null, ME=null, READONLY=false, READY=false, SLOW=false, SYNCERR=false, MIGRATE=null;
 let NAMES={};
-const COLS=['rows','xm','units','ps','dm','anh'];
+const COLS=['rows','xm','units','ps','dm','anh','moi'];
 const LAST={};                                   // đường dẫn tài liệu → JSON đã đồng bộ
 const WR={busy:new Set(),next:new Map()};        // hàng đợi ghi: mỗi tài liệu một lần ghi tại một thời điểm
 const LOADED=new Set();
@@ -1508,6 +1524,8 @@ function logDescribe(sk,e){
     return {kind:R.length||P.length?'kiem':'hoi',key:a.key,ma:a.ma?String(a.ma):'',stt:a.stt,u:a.unit,title:a.short,lines:[...R,...X,...P]}; }
   if(sk[0]==='u'){ const L=e.units?logUnitLines(e.units[0],e.units[1]):[]; if(!L.length) return null;
     return {kind:'buoi',u:UNIT[e.id]?e.id:'',title:'Buổi kiểm: '+(UNIT[e.id]?.ten||e.id),lines:L}; }
+  if(sk[0]==='m'){ const L=e.moi?logMoiLines(e.moi[0],e.moi[1]):[]; if(!L.length) return null;   // Chung › Tài sản mới (tai-san-moi.js)
+    const m=e.moi[1]||e.moi[0]||{}, k=moiNoi(m); return {kind:'moi',key:k||'',u:m.dv&&UNIT[m.dv]?m.dv:'',title:'Tài sản mới: '+cut(m.ten,60),lines:L}; }
   if(sk[0]==='d'){ const L=e.dm?logDmLines(e.dm[0],e.dm[1]):[]; if(!L.length) return null;   // Chung › đầu mối của một sheet
     return {kind:'chung',u:UNIT[e.id]?e.id:'',title:'Đầu mối: '+(UNIT[e.id]?.ten||e.id),lines:L}; }
   const L=e.ps?logPsLines(e.ps[0],e.ps[1]):[]; if(!L.length) return null;
@@ -1520,7 +1538,7 @@ function logChanges(ch){
   const ctx=LOGCTX; LOGCTX=null;
   const subj=new Map();
   ch.forEach(([p,o,n])=>{ const i=p.indexOf('/'), col=p.slice(0,i), id=p.slice(i+1); if(!COLS.includes(col)) return;
-    const sk=(KEYED[col]?'a:':col==='units'?'u:':col==='dm'?'d:':'p:')+id, e=subj.get(sk)||{id};
+    const sk=(KEYED[col]?'a:':col==='units'?'u:':col==='dm'?'d:':col==='moi'?'m:':'p:')+id, e=subj.get(sk)||{id};
     const P=j=>j==null?null:fromBody(col,JSON.parse(j)); e[col]=[P(o),P(n)]; subj.set(sk,e); });
   const out=[]; for(const [sk,e] of subj){ const d=logDescribe(sk,e); if(d) out.push({sk,e,d}); }
   if(!out.length) return;
@@ -1565,6 +1583,15 @@ function save(){
     LOGPREV=want; logChanges(ch); saveLocal(); return;
   }
   if(MODE!=='shared'||!READY) return;
+  if(READONLY&&window.DN&&DN.duocTaoMoi&&DN.duocTaoMoi()){
+    // quyền "Tạo tài sản mới" (người dùng chốt 17/11/2026): chỉ ghi tài sản mới (col 'moi', máy chủ còn kiểm đúng người tạo);
+    // mọi thay đổi khác (tài sản trong file BBKK) trả lại như cũ
+    const want=desired(), ch=[], laMoi=p=>p.startsWith('moi/');
+    for(const p in want) if(laMoi(p)&&want[p]!==LAST[p]){ ch.push([p,LAST[p],want[p]]); LAST[p]=want[p]; WR.next.set(p,want[p]); }
+    for(const p in LAST) if(laMoi(p)&&!(p in want)){ ch.push([p,LAST[p],null]); delete LAST[p]; WR.next.set(p,null); }
+    if(Object.keys(want).some(p=>!laMoi(p)&&want[p]!==LAST[p])||Object.keys(LAST).some(p=>!laMoi(p)&&!(p in want))){ restoreFromLast(); toast('Tài sản trong sổ bạn chỉ được xem, thay đổi không được lưu'); }
+    logChanges(ch); kick(); return;
+  }
   if(READONLY){ LOGCTX=null; restoreFromLast(); toast('Bạn chỉ có quyền xem, thay đổi không được lưu'); return; }
   const want=desired(), ch=[];
   for(const p in want) if(want[p]!==LAST[p]){ ch.push([p,LAST[p],want[p]]); LAST[p]=want[p]; WR.next.set(p,want[p]); }
@@ -1894,17 +1921,22 @@ let ui={filter:'all',q:'',group:true,open:{}};
 let OV={sel:'',bld:'all',rq:'',hideDone:false,gq:'',uq:'',ust:'all'};
 let pendingQ='', pendingU='';
 
+// thông báo tài khoản chỉ xem tài sản trong sổ: Tra cứu, hoặc Tạo tài sản mới (chỉ tạo / sửa tài sản mới của mình ở Chung › Tài sản mới)
+function roBanner(){
+  return DN.toi&&DN.toi.quyen==='moi'?`<div class="demo ro"><b>Tài khoản Tạo tài sản mới.</b> Tài sản trong file BBKK bạn chỉ xem. Tài sản vừa mua thì tạo, sửa và thêm ảnh ở <a href="#tai-san-moi">Chung › Tài sản mới</a>.</div>`
+    :`<div class="demo ro"><b>Tài khoản Tra cứu: chỉ xem.</b> Bạn xem được mọi thông tin nhưng không ghi kết quả kiểm kê. Cần ghi kết quả thì nhờ quản trị cấp quyền Kiểm kê.</div>`;
+}
 function demoBanner(){
   if(MODE==='shared'){
     let h='';
-    if(READONLY) h+=DN.toi?`<div class="demo ro"><b>Tài khoản Tra cứu: chỉ xem.</b> Bạn xem được mọi thông tin nhưng không ghi kết quả kiểm kê. Cần ghi kết quả thì nhờ quản trị cấp quyền Kiểm kê.</div>`
+    if(READONLY) h+=DN.toi?roBanner()
       :`<div class="demo ro"><b>Chế độ chỉ xem.</b> Bạn xem được tiến độ kiểm kê chung nhưng không ghi kết quả. Cần quyền Contributor trở lên để kiểm.</div>`;
     if(SLOW) h+=`<div class="demo"><b>Chưa kết nối được dữ liệu chung.</b> Số liệu đang hiện có thể chưa mới, trang sẽ tự cập nhật khi có mạng.</div>`;
     if(NEWDATA) h+=`<div class="demo"><span><b>Dữ liệu tài sản vừa được cập nhật</b> (file Excel hoặc danh mục phòng). Tải lại trang để thấy dữ liệu mới; kết quả đã kiểm vẫn giữ nguyên.</span><button class="btn sm pri" data-act="reload">Tải lại trang</button></div>`;
     if(MIGRATE) h+=`<div class="demo"><span>Máy này còn <b>${Object.keys(MIGRATE.rows||{}).length} kết quả kiểm</b> lưu riêng từ trước khi dùng dữ liệu chung.</span><button class="btn sm pri" data-act="migrate">Đưa lên dữ liệu chung</button><button class="btn sm" data-act="nomigrate" style="margin-left:0">Bỏ qua</button></div>`;
     return h;
   }
-  if(READONLY&&DN.toi) return `<div class="demo ro"><b>Tài khoản Tra cứu: chỉ xem.</b> Bạn xem được mọi thông tin nhưng không ghi kết quả kiểm kê. Cần ghi kết quả thì nhờ quản trị cấp quyền Kiểm kê.</div>`;
+  if(READONLY&&DN.toi) return roBanner();
   return S.demo?`<div class="demo"><b>Đang xem dữ liệu kiểm mẫu.</b> Một phần sheet GD đã được điền sẵn để bạn thấy giao diện khi đang kiểm. Danh sách tài sản là dữ liệu thật từ file kế toán.<button class="btn sm" data-act="reset">Xoá dữ liệu mẫu, bắt đầu từ đầu</button></div>`:'';
 }
 
@@ -2511,7 +2543,7 @@ function viewXuat(){
 }
 
 /* ---------- trang Lịch sử thao tác (#lich-su) ---------- */
-const LOG_KIND={kiem:['Kiểm tài sản','ClipboardCheck'],hoi:['Xác minh thất lạc','MessageCircleQuestion'],buoi:['Buổi kiểm','CalendarCheck'],ps:['Tài sản phát sinh','PackagePlus'],xuat:['Xuất file','FileSpreadsheet'],chung:['Đầu mối (Chung)','Contact'],khac:['Khác','UserPen']};
+const LOG_KIND={kiem:['Kiểm tài sản','ClipboardCheck'],hoi:['Xác minh thất lạc','MessageCircleQuestion'],buoi:['Buổi kiểm','CalendarCheck'],ps:['Tài sản phát sinh','PackagePlus'],moi:['Tài sản mới (tạo trên app)','PackageOpen'],xuat:['Xuất file','FileSpreadsheet'],chung:['Đầu mối (Chung)','Contact'],khac:['Khác','UserPen']};
 const LV={who:'me',kind:'',q:'',srv:[],more:false,last:'',loading:false,err:'',tok:0,need:true};
 const LOG_PAGE=200;
 const fold=s=>String(s??'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[đĐ]/g,'d').toLowerCase();
@@ -2613,6 +2645,8 @@ function nsRows(){
   ASSETS.forEach(a=>{ if(!a.ma||String(a.ma)!==String(a.key)) return; const so=soCua(a.key); r.push({loai:'kt',key:a.key,ma:String(a.ma),ten:a.ten,ghiSo:a.ngay,tu:so.tu,file:so.file,trang:'dang',cu:maCuCua(a.key)}); });
   Object.entries(SOQR.xoa||{}).forEach(([k,e])=>r.push({loai:'kt',key:k,ma:k,ten:e.ten,ghiSo:e.ngay,tu:e.tu,file:e.file||'',trang:'xoa',xoa:e.xoa,sang:e.sang?String(e.sang.ma):''}));
   Object.entries(S.ps||{}).forEach(([pk,l])=>(l||[]).forEach((p,i)=>r.push({loai:'hc',key:'',ma:'',ten:p.mo_ta||'',sl:p.sl,ghiSo:'',tu:p.at?isoMin(p.at):'',by:p.by||'',noi:psPlace(pk),phong:p.phong||'',trang:'ps'})));
+  // tài sản mới tạo trên app (Chung › Tài sản mới): cán bộ mua sắm, giảng viên… tạo; đã vào sổ thì trỏ tới tài sản trong sổ
+  Object.values(S.moi||{}).forEach(m=>{ const k=window.moiNoi?moiNoi(m):''; r.push({loai:'moi',key:k||'',ma:m.ma||'',ten:m.ten||'',sl:m.sl,ghiSo:m.ngay||'',tu:m.at?isoMin(m.at):'',by:m.by||'',noi:m.tao_boi?'Tạo bởi '+m.tao_boi:'Tạo trên app',phong:m.phong||'',trang:k?'moi-noi':'moi',noiMa:k?String((BY_KEY[k]||{}).ma||k):''}); });
   return r;
 }
 function nsList(){
@@ -2624,9 +2658,10 @@ function nsList(){
   return l.sort((a,b)=>{ const x=k(a),y=k(b); if(x===y) return String(a.ma).localeCompare(String(b.ma)); if(!x) return 1; if(!y) return -1; return (x<y?-1:1)*(asc?1:-1); });
 }
 function nsNguon(x){ return x.loai==='kt'?`<span class="ns-chip kt">Kế toán</span><small>Sổ kế toán (file BBKK)</small>`
+  :x.loai==='moi'?`<span class="ns-chip moi">Tài sản mới</span><small>${esc(x.noi)} · ${esc(x.by||'Chưa nhập tên')}${x.phong?' · '+esc(x.phong):''}</small>`
   :`<span class="ns-chip hc">Cán bộ Hành chính</span><small>${esc(x.by||'Chưa nhập tên')} · ghi nhận tại ${esc(x.noi)}${x.phong?' · '+esc(x.phong):''}</small>`; }
-const nsTrangTxt=x=>x.trang==='xoa'?(x.sang?'Kế toán đổi sang Mã TSCĐ '+x.sang+' (cùng tài sản)':'Đã xoá khỏi BBKK '+dmy(x.xoa)):x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ'+(x.cu&&x.cu.length?' · đổi từ mã '+x.cu.join(', '):'');
-function nsTrang(x){ return x.trang==='xoa'?(x.sang?`<span class="tag">Đổi sang mã ${esc(x.sang)}</span><small>cùng tài sản, tem cũ vẫn dùng được</small>`:`<span class="tag warn">Đã xoá khỏi BBKK ${dmy(x.xoa)}</span>`)
+const nsTrangTxt=x=>x.trang==='moi'?'Tạo trên app, chờ kế toán ghi sổ':x.trang==='moi-noi'?'Đã vào sổ: Mã TSCĐ '+x.noiMa:x.trang==='xoa'?(x.sang?'Kế toán đổi sang Mã TSCĐ '+x.sang+' (cùng tài sản)':'Đã xoá khỏi BBKK '+dmy(x.xoa)):x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ'+(x.cu&&x.cu.length?' · đổi từ mã '+x.cu.join(', '):'');
+function nsTrang(x){ if(x.trang==='moi'||x.trang==='moi-noi') return esc(nsTrangTxt(x)); return x.trang==='xoa'?(x.sang?`<span class="tag">Đổi sang mã ${esc(x.sang)}</span><small>cùng tài sản, tem cũ vẫn dùng được</small>`:`<span class="tag warn">Đã xoá khỏi BBKK ${dmy(x.xoa)}</span>`)
   :x.trang==='ps'?'Phát sinh, chờ kế toán ghi sổ':'Đang trong sổ'+(x.cu&&x.cu.length?`<small>đổi từ mã ${esc(x.cu.join(', '))}</small>`:''); }
 function viewNhapSo(){
   const all=nsRows(), kt=all.filter(x=>x.loai==='kt'), hc=all.filter(x=>x.loai==='hc'), xoa=kt.filter(x=>x.trang==='xoa'&&!x.sang), nDoi=kt.filter(x=>x.sang).length;
@@ -2635,6 +2670,7 @@ function viewNhapSo(){
   const m=new Map(), add=(k,o)=>{ const v=m.get(k)||Object.assign({n:0},o); v.n++; m.set(k,v); };
   kt.forEach(x=>{ const d=(x.tu||'').slice(0,10); add('kt|'+d+'|'+x.file,{loai:'kt',d,file:x.file,gio:(x.tu||'').slice(11)}); if(x.xoa) add((x.sang?'doi|':'xoa|')+x.xoa,{loai:x.sang?'doi':'xoa',d:x.xoa}); });
   hc.forEach(x=>add('hc|'+(x.tu||'').slice(0,10),{loai:'hc',d:(x.tu||'').slice(0,10)}));
+  all.filter(x=>x.loai==='moi').forEach(x=>add('moi|'+(x.tu||'').slice(0,10),{loai:'moi',d:(x.tu||'').slice(0,10)}));
   const dots=[...m.values()].sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:0);
   app.innerHTML=`${demoBanner()}
   ${banner('thu-vien','Lịch sử','Nhập sổ tài sản','Tài sản vào sổ khi nào và từ đâu: kế toán ghi sổ (file BBKK) rồi cán bộ Hành chính đưa lên app, hay cán bộ Hành chính ghi nhận tài sản phát sinh khi đi kiểm.')}
@@ -2647,11 +2683,12 @@ function viewNhapSo(){
   <ol class="ns-dot">${dots.map(o=>`<li><time class="num">${o.d?dmy(o.d):'Chưa rõ ngày'}${o.gio?' '+o.gio:''}</time>${
       o.loai==='kt'?`<span class="ns-chip kt">Kế toán</span><span><b class="num">${nf.format(o.n)}</b> tài sản vào sổ từ file <span class="mono">${esc(o.file||'BBKK')}</span>, cán bộ Hành chính đưa lên app</span>`
       :o.loai==='hc'?`<span class="ns-chip hc">Cán bộ Hành chính</span><span><b class="num">${nf.format(o.n)}</b> tài sản phát sinh được ghi nhận khi đi kiểm</span>`
+      :o.loai==='moi'?`<span class="ns-chip moi">Tài sản mới</span><span><b class="num">${nf.format(o.n)}</b> tài sản vừa mua được tạo trên app (cán bộ mua sắm, giảng viên…)</span>`
       :o.loai==='doi'?`<span class="ns-chip kt">Đổi Mã TSCĐ</span><span><b class="num">${nf.format(o.n)}</b> mã cũ được kế toán đổi sang mã mới (cùng tài sản, tem cũ vẫn dùng được)</span>`
       :`<span class="ns-chip xoa">Xoá khỏi sổ</span><span><b class="num">${nf.format(o.n)}</b> tài sản không còn trong file BBKK (mã QR vẫn giữ)</span>`}</li>`).join('')||'<li>Chưa có đợt nào.</li>'}</ol>
   <div class="stitle"><h2>Danh sách <strong>tài sản</strong></h2></div>
   <div class="tools ns-tools">
-    <select class="in" id="nsn" aria-label="Nguồn"><option value="">Mọi nguồn</option><option value="kt" ${NS.nguon==='kt'?'selected':''}>Kế toán (file BBKK)</option><option value="hc" ${NS.nguon==='hc'?'selected':''}>Cán bộ Hành chính</option></select>
+    <select class="in" id="nsn" aria-label="Nguồn"><option value="">Mọi nguồn</option><option value="kt" ${NS.nguon==='kt'?'selected':''}>Kế toán (file BBKK)</option><option value="hc" ${NS.nguon==='hc'?'selected':''}>Cán bộ Hành chính</option><option value="moi" ${NS.nguon==='moi'?'selected':''}>Tài sản mới (tạo trên app)</option></select>
     <select class="in" id="nsy" aria-label="Năm bắt đầu sử dụng"><option value="">Mọi năm bắt đầu sử dụng</option>${nams.map(y=>`<option value="${y}" ${NS.nam===y?'selected':''}>Bắt đầu sử dụng năm ${y}</option>`).join('')}</select>
     <select class="in" id="nss" aria-label="Sắp xếp"><option value="ghiso" ${NS.sap==='ghiso'?'selected':''}>Bắt đầu sử dụng mới nhất trước</option><option value="ghiso-cu" ${NS.sap==='ghiso-cu'?'selected':''}>Bắt đầu sử dụng cũ nhất trước</option><option value="vao" ${NS.sap==='vao'?'selected':''}>Vào app mới nhất trước</option></select>
     <label class="sbox search">${ic('Search')}<input class="in" id="nsq" type="search" placeholder="Tìm mã, tên tài sản, người ghi…" value="${esc(NS.q)}" aria-label="Tìm tài sản"></label>
@@ -2675,7 +2712,7 @@ async function nsXlsx(b){
   const l=nsList(); if(!l.length){ toast('Không có tài sản nào để tải'); return; }
   const old=b.innerHTML; b.disabled=true; b.textContent='Đang tạo file…';
   const cot=[['Mã TSCĐ',12],['Tên tài sản',55],['Bắt đầu sử dụng',14],['Vào sổ trên app',17],['File BBKK',34],['Nguồn',20],['Người ghi nhận',20],['Nơi ghi nhận',26],['Hiện trạng',28]];
-  const dong=l.map(x=>[x.ma,x.ten,x.ghiSo?dmy(x.ghiSo):'',x.tu?tuText(x.tu):'',x.file||'',x.loai==='kt'?'Kế toán (file BBKK)':'Cán bộ Hành chính',x.by||'',x.noi?(x.noi+(x.phong?' · '+x.phong:'')):'',nsTrangTxt(x)]);
+  const dong=l.map(x=>[x.ma,x.ten,x.ghiSo?dmy(x.ghiSo):'',x.tu?tuText(x.tu):'',x.file||'',x.loai==='kt'?'Kế toán (file BBKK)':x.loai==='moi'?'Tài sản mới (tạo trên app)':'Cán bộ Hành chính',x.by||'',x.noi?(x.noi+(x.phong?' · '+x.phong:'')):'',nsTrangTxt(x)]);
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   try{ await window.xuatBangExcel('Nhập sổ tài sản',cot,dong,`Nhap so tai san ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`); toast(`Đã tải ${nf.format(dong.length)} tài sản`); }
   catch(e){ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); }
@@ -2889,7 +2926,7 @@ function viewHub(){
   </div>
   <div class="mbig mrow2">
     ${tile('#lich-su','vuon','Lịch sử','Thao tác trên app · nhập sổ · lý lịch từng tài sản (có từ khi nào, đã làm gì, lúc nào)','big')}
-    ${tile('#khau-hao','sanh-giai-tri','Chung','Khấu hao · đầu mối, danh bạ · ảnh tài sản (xem, thêm ảnh mọi tài sản) · quản lý ứng dụng','big')}
+    ${tile('#khau-hao','sanh-giai-tri','Chung','Khấu hao · đầu mối, danh bạ · ảnh tài sản · tài sản mới (cán bộ mua sắm, giảng viên tạo kèm ảnh) · quản lý ứng dụng','big')}
   </div>`;
 }
 /* phần đang mở: hub = trang chủ, kk = Kiểm kê tài sản, qr = Mã QR tài sản, ls = Lịch sử (chung cho cả app), ch = Chung (chung.js) */
@@ -2906,7 +2943,7 @@ function setMod(m){
 
 /* ---------- router ---------- */
 function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):V.type==='kq'?ASSETS.filter(a=>res(a)!=='chua'):null; }
-function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='anh') viewAnhTS(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); dinhGan(); if(typeof khoAnhBao==='function') khoAnhBao(); }
+function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='anh') viewAnhTS(); else if(V.type==='tsm') viewTaiSanMoi(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); dinhGan(); if(typeof khoAnhBao==='function') khoAnhBao(); }
 /* Thanh tiến độ dính (người dùng chọn 17/11/2026): trang phòng / phòng ban — khi khung "Tiến độ kiểm" (#prog) đã cuộn khuất dưới đầu
    trang, thanh mảnh #dinh (nằm trong <header>, đặt tuyệt đối nên không làm giật nội dung) hiện "tên · x/y · % · còn N"; bấm để lên đầu. */
 const DINH={io:null,ten:''};
@@ -2930,11 +2967,11 @@ function dinhGan(){
 document.getElementById('dinh').addEventListener('click',()=>window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}));
 function route(){
   const h=(location.hash||'#trang-chu').slice(1);
-  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='anh-tai-san'?{type:'anh'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:h==='tong-hop'?{type:'th'}:{type:'ov'};
+  const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='anh-tai-san'?{type:'anh'}:h==='tai-san-moi'?{type:'tsm'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:h==='tong-hop'?{type:'th'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(TSCU&&!(nv.type==='ts'&&(nv.id===TSCU.moi||nv.id===TSCU.cu))) TSCU=null;   // rời trang tài sản vừa mở bằng tem mã cũ
   if(nv.type!==V.type||nv.id!==V.id){ ui={filter:nv.type==='kq'&&nv.id==='lech'?'lech':'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
-  V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':['khauhao','daumoi','danhba','anh','quanly'].includes(V.type)?'ch':'kk');
+  V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':['khauhao','daumoi','danhba','anh','tsm','quanly'].includes(V.type)?'ch':'kk');
   document.querySelectorAll('.top2 a[data-r]').forEach(a=>a.removeAttribute('aria-current'));
   const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':(V.type==='ov'||V.type==='kq'||V.type==='th')?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
   const nav=document.querySelector(`.top2 a[data-r="${cur}"]`); if(nav){ nav.setAttribute('aria-current','page'); menuThay(nav); }
@@ -3035,7 +3072,9 @@ app.addEventListener('click',e=>{
   if(act==='xlsx'){
     if(!window.xuatExcelKeToan){ toast('Chưa tải được chức năng xuất Excel'); return; }
     const kq={}; ASSETS.forEach(a=>kq[a.key]=ketQuaKeToan(a));
-    const ps=[]; Object.entries(S.ps).forEach(([k,l])=>(l||[]).forEach(p=>ps.push({...p, noi:k.startsWith('p:')?(ROOMNAME[k.slice(2)]||k.slice(2)):(UNIT[k]?.ten||k), cond:(COND.find(c=>c[0]===p.cond)||[])[1]||''})));
+    const ps=[]; Object.entries(S.ps).forEach(([k,l])=>(l||[]).forEach(p=>ps.push({...p, noi:k.startsWith('p:')?(ROOMNAME[k.slice(2)]||k.slice(2)):(UNIT[k]?.ten||k), cond:(COND.find(c=>c[0]===p.cond)||[])[1]||'', nguon:'Phát hiện khi kiểm kê', nguoi:p.by||'', luc:p.at?ddmmyy(p.at):''})));
+    // tài sản mới tạo trên app (Chung › Tài sản mới) chưa vào sổ: gộp chung sheet "Tài sản phát sinh" (người dùng chốt 17/11/2026)
+    if(window.moiChoKeToan) moiChoKeToan().forEach(m=>ps.push(m));
     b.disabled=true; const old=b.innerHTML; b.textContent='Đang tạo file…';
     window.xuatExcelKeToan({ketQua:kq, phatSinh:ps, tenFile:(DATA.file||'Kiem ke.xlsx').replace(/\.xlsx$/i,'')})
       .then(n=>{ toast(`Đã tạo file: ${n} dòng có kết quả`); logEvent({kind:'xuat',title:'Xuất file Excel cho kế toán',lines:[`${nf.format(n)} dòng có kết quả`,`File gốc: ${DATA.file||''}`]}); },e=>{ console.error(e); toast('Không tạo được file Excel: '+(e&&e.message||e)); })

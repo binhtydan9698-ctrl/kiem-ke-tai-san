@@ -19,7 +19,7 @@
   // đường link #… làm trang, menu con cuộn ngang trên điện thoại đẩy mục đầu ra khỏi màn hình và axe đoán nhầm đó là "link nhảy tới
   // nội dung". Thay bằng kiểm tra chặt hơn linkHong(): mọi link #… trên trang phải mở một trang có thật hoặc trỏ tới phần tử có thật.
   const AXE = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice'] }, rules: { 'skip-link': { enabled: false } }, resultTypes: ['violations'], preload: false };
-  const TRANG_CO = /^(trang-chu|tong-quan|don-vi|vi-tri|xac-minh|xuat|ket-qua|ket-qua-lech|tong-hop|ma-qr|so-ma-qr|lich-su|nhap-so|ly-lich|khau-hao|dau-moi|danh-ba|quan-ly|anh-tai-san|(ts|ly-lich|phong)-.+)$/;
+  const TRANG_CO = /^(trang-chu|tong-quan|don-vi|vi-tri|xac-minh|xuat|ket-qua|ket-qua-lech|tong-hop|ma-qr|so-ma-qr|lich-su|nhap-so|ly-lich|khau-hao|dau-moi|danh-ba|quan-ly|anh-tai-san|tai-san-moi|(ts|ly-lich|phong)-.+)$/;
   const linkHong = () => [...new Set([...document.querySelectorAll('a[href^="#"]')].map(a => decodeURIComponent(a.getAttribute('href').slice(1))))]
     .filter(h => h && !document.getElementById(h) && !(h.startsWith('dv-') ? UNIT[h.slice(3)] : TRANG_CO.test(h)));
   const KB = {};
@@ -31,7 +31,7 @@
     { const t = document.querySelector('.top1').getBoundingClientRect(); ok(t.height < 80, `đầu trang 1366px: 4 phần chính nằm gọn một hàng (cao ${Math.round(t.height)}px)`); }
     ok(document.querySelector('.lgo img') && document.querySelector('.lgo img').naturalWidth === 960, 'logo FPT University tải được (960×375)');
     for (const [hash, mod, sec, sub] of [['tong-quan', 'kk', 'swKK', 'tong-quan'], ['vi-tri', 'kk', 'swKK', 'vi-tri'], ['xac-minh', 'kk', 'swKK', 'xac-minh'], ['xuat', 'kk', 'swKK', 'xuat'],
-      ['ma-qr', 'qr', 'swQR', 'ma-qr'], ['so-ma-qr', 'qr', 'swQR', 'so-ma-qr'], ['lich-su', 'ls', 'swLS', 'lich-su'], ['nhap-so', 'ls', 'swLS', 'nhap-so'], ['ly-lich', 'ls', 'swLS', 'ly-lich'], ['khau-hao', 'ch', 'swCH', 'khau-hao'], ['dau-moi', 'ch', 'swCH', 'dau-moi'], ['anh-tai-san', 'ch', 'swCH', 'anh-tai-san']]) {
+      ['ma-qr', 'qr', 'swQR', 'ma-qr'], ['so-ma-qr', 'qr', 'swQR', 'so-ma-qr'], ['lich-su', 'ls', 'swLS', 'lich-su'], ['nhap-so', 'ls', 'swLS', 'nhap-so'], ['ly-lich', 'ls', 'swLS', 'ly-lich'], ['khau-hao', 'ch', 'swCH', 'khau-hao'], ['dau-moi', 'ch', 'swCH', 'dau-moi'], ['anh-tai-san', 'ch', 'swCH', 'anh-tai-san'], ['tai-san-moi', 'ch', 'swCH', 'tai-san-moi']]) {
       await go(hash); h = hd();
       ok(h.mod === mod && h.sec === sec && h.sub === sub && h.top2 !== 'none', `#${hash}: tô đúng phần và mục con`);
     }
@@ -380,8 +380,8 @@
     };
     const so = () => [...document.querySelectorAll('.kh-sum b')].map(b => +b.textContent.replace(/\D/g, ''));
     await go('anh-tai-san');
-    ok([...document.querySelectorAll('#navCH a[data-r]')].map(x => x.textContent.trim()).join('|') === 'Khấu hao|Đầu mối|Danh bạ|Quản lý|Ảnh tài sản' && document.querySelector('#navCH a[data-r="anh-tai-san"]').getAttribute('aria-current') === 'page' && document.body.dataset.mod === 'ch',
-      'phần Chung có mục thứ 5 “Ảnh tài sản” (#anh-tai-san), sau Khấu hao, Đầu mối, Danh bạ, Quản lý');
+    ok([...document.querySelectorAll('#navCH a[data-r]')].map(x => x.textContent.trim()).join('|') === 'Khấu hao|Đầu mối|Danh bạ|Quản lý|Ảnh tài sản|Tài sản mới' && document.querySelector('#navCH a[data-r="anh-tai-san"]').getAttribute('aria-current') === 'page' && document.body.dataset.mod === 'ch',
+      'phần Chung có “Ảnh tài sản” (mục thứ 5, sau Khấu hao, Đầu mối, Danh bạ, Quản lý) và “Tài sản mới”');
     ok(/Ảnh tài sản cần đăng nhập/.test(app.textContent) && !app.querySelector('.at-luoi') && !!app.querySelector('#app a[href="#quan-ly"]'), 'Ảnh tài sản khi chưa bật đăng nhập: báo rõ cần đăng nhập (chỉ chỗ xem cách bật), không hiện ảnh');
     await go('khau-hao');
     let s = so(); const t5 = tinh(5);
@@ -494,7 +494,7 @@
     await them('thanhvien1', 'Thành Viên Một', 'tv1@vd.vn', '111111111111', 'xem');
     await until(() => document.querySelectorAll('.ql-tbl tbody tr').length === 2);
     ok(A.tk.length === 2 && A.tk[1].quyen === 'xem' && A.tk[1].mk === '111111111111', 'thêm thành viên quyền "Tra cứu", mật khẩu ban đầu lặp một chữ số (111111111111) được nhận');
-    ok([...document.querySelectorAll('#qtQuyen option')].map(o => o.value).join() === 'xem,kiem,admin', 'có đủ 3 mức quyền: Tra cứu, Kiểm kê, Quản trị');
+    ok([...document.querySelectorAll('#qtQuyen option')].map(o => o.value).join() === 'xem,moi,kiem,admin', 'có đủ 4 mức quyền: Tra cứu, Tạo tài sản mới, Kiểm kê, Quản trị');
     await them('thanhvien2', 'Thành Viên Hai', 'tv2@vd.vn', '202611170002', 'kiem');
     await until(() => document.querySelectorAll('.ql-tbl tbody tr').length === 3);
     ok(A.tk.length === 3 && A.tk[2].quyen === 'kiem' && A.tk[2].mk === '202611170002', 'thêm thành viên quyền "Kiểm kê", mật khẩu ban đầu toàn chữ số được nhận');
@@ -751,6 +751,112 @@
       && !!app.querySelector('#atDl .at-dl-thanh.day'), `trang Ảnh tài sản: thanh dung lượng đỏ, 4 bước xử lý không tốn kinh phí (có ${vuotThat} ảnh vượt mức 2 ảnh / tài sản), không khuyên nâng gói trả tiền`);
     A.dungLuongAnh = gocDl; AV.dl = null; try { sessionStorage.removeItem('kiemke-kho-anh-an'); } catch (e) { }
     render(); window.scrollTo(0, 0); await until(() => app.querySelector('.at-the .at-anh img[src]'));
+  };
+
+  // Tài sản mới (người dùng chốt 17/11/2026): cán bộ mua sắm, giảng viên… (quyền "Tạo tài sản mới") tạo tài sản vừa mua kèm ảnh;
+  // tag "Tạo bởi" theo nhóm tài khoản; chỉ sửa của mình, không đụng tài sản BBKK; tự nối khi trùng Mã TSCĐ; xuất chung sheet phát sinh
+  KB['tai-san-moi'] = async () => {
+    const A = KIEMKE_AUTH_GIA;
+    const dangNhap = async (ten, mk) => { await until(() => document.getElementById('dnTen')); dien('dnTen', ten); dien('dnMk', mk); document.getElementById('dnNut').click(); await W(400); };
+    const dangXuat = async () => { await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500); };
+    const taoAnh = (mau, ten) => new Promise(ok => { const c = document.createElement('canvas'); c.width = 1200; c.height = 900; const x = c.getContext('2d'); x.fillStyle = mau; x.fillRect(0, 0, 1200, 900); x.fillStyle = '#fff'; x.font = '160px sans-serif'; x.fillText(ten, 200, 500); c.toBlob(b => ok(new File([b], ten + '.jpg', { type: 'image/jpeg' })), 'image/jpeg', 0.9); });
+    const chonAnh = files => { const inp = document.querySelector('#xtDlg input[data-xt="them"]'); const dt = new DataTransfer(); files.forEach(f => dt.items.add(f)); inp.files = dt.files; inp.dispatchEvent(new Event('change', { bubbles: true })); };
+    const dienF = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+    const nop = async () => { document.getElementById('tsmForm').requestSubmit(); await W(400); };
+    const the = () => [...app.querySelectorAll('.tsm-the')], theCua = id => app.querySelector(`.tsm-the[data-moi="${id}"]`);
+    const d = () => document.getElementById('xtDlg');
+
+    await dangNhap('muasam', 'Mua-sam-thu-01'); await until(() => DN.toi && READY);
+    ok(DN.toi.quyen === 'moi' && DN.toi.nhom === 'Cán bộ mua sắm' && READONLY && DN.duocTaoMoi() && !DN.duocKiemKe(), 'tài khoản quyền “Tạo tài sản mới”: vào thẳng (không cần 2 lớp), tài sản trong sổ chỉ xem');
+    const aGD = BY_UNIT.GD.find(x => x.ma && String(x.ma) === String(x.key) && !(S.anh[x.stt] || {}).ds);
+    await go('ts-' + aGD.key);
+    ok(/Tài khoản Tạo tài sản mới/.test(app.textContent) && !!app.querySelector('.demo.ro a[href="#tai-san-moi"]') && document.body.classList.contains('ro'), 'trang tài sản trong sổ: báo chỉ xem, chỉ đường sang Chung › Tài sản mới');
+    app.querySelector('.row [data-act="xt"]').click(); await until(() => d() && d().open);
+    ok(!d().querySelector('input[data-xt="them"]'), 'nút ⋯ của tài sản trong sổ: không có nút thêm ảnh (không đụng tài sản BBKK)');
+    d().close(); await W(200);
+
+    await go('tai-san-moi');
+    ok(/Bạn có quyền Tạo tài sản mới/.test(app.textContent) && /Cán bộ mua sắm/.test(app.textContent) && !!app.querySelector('[data-tsm="tao"]'), 'Chung › Tài sản mới: nói rõ quyền, tag “Tạo bởi” theo nhóm tài khoản, có nút Tạo tài sản mới');
+    app.querySelector('[data-tsm="tao"]').click(); await until(() => document.getElementById('tsmForm'));
+    ok(!document.getElementById('tsmTag') && !document.getElementById('tsmNoiIn') && /Tag “Tạo bởi”: Cán bộ mua sắm/.test(document.getElementById('tsmForm').textContent), 'form tạo: tag “Tạo bởi” tự theo tài khoản, người tạo không sửa được tag, không nối tay được');
+    await nop();
+    ok(/Nhập tên tài sản/.test(txt('tsmLoi')) && !Object.keys(S.moi).length, 'chưa nhập tên: không tạo, báo rõ');
+    dienF('tsmTen', 'Máy chiếu thử Epson EB-X51'); dienF('tsmSl', '2'); dienF('tsmPhong', '202 Gamma'); document.getElementById('tsmDv').value = 'GD';
+    dienF('tsmNgay', '2026-11-17'); dienF('tsmGia', '15000000'); dienF('tsmGhi', 'NCC thử, bảo hành 24 tháng');
+    await nop(); await until(() => d() && d().open);
+    const id1 = Object.keys(S.moi)[0], m1 = S.moi[id1];
+    ok(m1 && m1.ten === 'Máy chiếu thử Epson EB-X51' && m1.sl === 2 && m1.dv === 'GD' && m1.gia === 15000000 && m1.uid === 'u7' && m1.tao_boi === 'Cán bộ mua sắm' && m1.by === 'Mua Sắm Thử',
+      'tạo tài sản mới: lưu đủ thông tin, gắn người tạo và tag “Tạo bởi: Cán bộ mua sắm”');
+    ok(/Tài sản mới · Tạo bởi Cán bộ mua sắm/.test(d().textContent) && !d().querySelector('.xt-qr') && d().querySelectorAll('input[data-xt="them"]').length === 2, 'tạo xong mở ngay hộp thêm ảnh (chưa có Mã TSCĐ nên chưa có mã QR)');
+    chonAnh([await taoAnh('#7c3aed', 'M1')]);
+    await until(() => (S.moi[id1].anh || []).length === 1 && !d().querySelector('.xt-cho'), 30000);
+    ok(S.moi[id1].anh.length === 1 && [...A.kho.keys()].filter(k => k.startsWith('moi/' + id1 + '/')).length === 2, 'người tạo tải được ảnh cho tài sản mới của mình (ảnh lớn + ảnh nhỏ vào thư mục moi/<mã>)');
+    d().close(); await W(300); await until(() => theCua(id1) && theCua(id1).querySelector('.at-anh img[src]'));
+    ok(the().length === 1 && /Tạo bởi: Cán bộ mua sắm/.test(theCua(id1).textContent) && /Chưa vào sổ/.test(theCua(id1).textContent) && !!theCua(id1).querySelector('[data-tsm="sua"]'),
+      'thẻ tài sản mới: ảnh bìa, tag Tạo bởi, “Chưa vào sổ”, người tạo có nút Sửa');
+    ok(LOGMINE.some(e => e.kind === 'moi' && (e.lines || []).some(l => /Tạo tài sản mới: Máy chiếu thử/.test(l))) && LOGMINE.some(e => e.kind === 'moi' && (e.lines || []).some(l => /Thêm 1 ảnh/.test(l))), 'lịch sử ghi lần tạo tài sản mới và lần thêm ảnh');
+    theCua(id1).querySelector('[data-tsm="sua"]').click(); await until(() => document.getElementById('tsmForm'));
+    dienF('tsmPhong', '203 Gamma'); await nop();
+    ok(S.moi[id1].phong === '203 Gamma' && S.moi[id1].tao_boi === 'Cán bộ mua sắm' && LOGMINE.some(e => (e.lines || []).some(l => /Phòng: 202 Gamma → 203 Gamma/.test(l))), 'người tạo sửa được tài sản của mình (lịch sử ghi trước → sau)');
+    await dangXuat();
+
+    // giảng viên: không sửa được tài sản người khác tạo; tạo tài sản có Mã TSCĐ đã có trong file BBKK → tự nối, ảnh hiện ở tài sản trong sổ
+    await dangNhap('giangvien', 'Giang-vien-thu-1'); await until(() => DN.toi && READY);
+    await go('tai-san-moi'); await until(() => theCua(id1));
+    ok(!theCua(id1).querySelector('[data-tsm="sua"]') && !theCua(id1).querySelector('[data-tsm="xoa"]') && !!theCua(id1).querySelector('[data-tsm="anh"]') && !moiDuocSua(S.moi[id1]),
+      'tài sản do người khác tạo: chỉ xem ảnh, không có nút Sửa, Xoá');
+    app.querySelector('[data-tsm="tao"]').click(); await until(() => document.getElementById('tsmForm'));
+    dienF('tsmTen', 'Bàn giảng viên thử'); dienF('tsmMa', String(aGD.ma)); await nop(); await until(() => d() && d().open);
+    const id2 = Object.keys(S.moi).find(k => k !== id1);
+    chonAnh([await taoAnh('#0e7490', 'G1')]); await until(() => (S.moi[id2].anh || []).length === 1 && !d().querySelector('.xt-cho'), 30000);
+    d().close(); await W(300);
+    ok(S.moi[id2].tao_boi === 'Giảng viên' && moiNoi(S.moi[id2]) === aGD.key, 'giảng viên tạo tài sản (tag “Tạo bởi: Giảng viên”); Mã TSCĐ trùng file BBKK → tự nối');
+    app.querySelector('[data-tsm="loc"][data-v="noi"]').click(); await W(300);
+    ok(the().length === 1 && /Đã vào sổ/.test(theCua(id2).textContent) && !!theCua(id2).querySelector(`a[href="#ts-${encodeURIComponent(aGD.key)}"]`), 'lọc “Đã vào sổ”: thẻ dẫn tới tài sản trong sổ');
+    await go('ts-' + aGD.key);
+    ok((app.querySelector('.row .xt-n') || {}).textContent === '1', 'tài sản trong sổ: nút ⋯ đếm cả ảnh từ tài sản mới đã nối');
+    app.querySelector('.row [data-act="xt"]').click(); await until(() => d().open && d().querySelector('#xtNoi img[src]'));
+    ok(d().querySelectorAll('#xtNoi .xt-thumb').length === 1 && !d().querySelector('#xtNoi .xt-xoa'), 'hộp ⋯ của tài sản trong sổ: có mục “Ảnh từ tài sản mới đã vào sổ” (chỉ xem)');
+    d().close(); await W(200);
+    await dangXuat();
+
+    // quản trị: đặt nhóm cho tài khoản, sửa tag, nối tay; xuất cho kế toán gộp tài sản chưa vào sổ vào sheet phát sinh
+    await dangNhap('quantri', 'MatKhauThu#1'); await until(() => document.getElementById('dnMa'));
+    dien('dnMa', '246810'); document.getElementById('dnNut').click(); await until(() => DN.toi && DN.laQuanTri());
+    await go('quan-ly'); await until(() => document.querySelector('.ql-tbl'));
+    const oNhom = document.querySelector('.ql-tbl tr[data-uid="u6"] input[data-ql="nhom"]');
+    ok(!!oNhom && oNhom.value === 'Giảng viên' && !!document.getElementById('qtNhom'), 'bảng Thành viên: ô “Nhóm (Tạo bởi)” cho từng tài khoản; form thêm thành viên có ô nhóm');
+    oNhom.value = 'Giảng viên khoa CNTT'; oNhom.dispatchEvent(new Event('change', { bubbles: true }));
+    await until(() => A.tk.find(x => x.uid === 'u6').nhom === 'Giảng viên khoa CNTT');
+    ok(A.tk.find(x => x.uid === 'u6').nhom === 'Giảng viên khoa CNTT' && LOGMINE.some(e => /Đổi nhóm tài khoản giangvien/.test(e.title)), 'quản trị đổi nhóm của tài khoản (có lịch sử)');
+    TSM.loc = ''; await go('tai-san-moi');
+    theCua(id1).querySelector('[data-tsm="sua"]').click(); await until(() => document.getElementById('tsmTag'));
+    ok(!!document.getElementById('tsmNoiIn'), 'quản trị sửa được mọi tài sản mới: có ô tag “Tạo bởi” và ô nối tay');
+    dienF('tsmNoiIn', 'KHONG-CO-MA'); await nop();
+    ok(/không có trong file BBKK/.test(txt('tsmLoi')) && !S.moi[id1].noi, 'nối tay với mã không có trong file BBKK: không lưu, báo rõ');
+    dienF('tsmNoiIn', ''); dienF('tsmTag', 'Cán bộ mua sắm (phòng HC)'); await nop();
+    ok(S.moi[id1].tao_boi === 'Cán bộ mua sắm (phòng HC)', 'quản trị đổi tag “Tạo bởi” của một tài sản');
+    const pk = moiChoKeToan();
+    ok(pk.length === 1 && pk[0].mo_ta === 'Máy chiếu thử Epson EB-X51' && pk[0].nguon === 'Tạo bởi: Cán bộ mua sắm (phòng HC)' && pk[0].sl === 2 && pk[0].gia === 15000000,
+      'xuất cho kế toán: chỉ tài sản mới chưa vào sổ, cột Nguồn “Tạo bởi …”; tài sản đã vào sổ không xuất lại');
+    let cap = null; const gocX = window.xuatExcelKeToan; window.xuatExcelKeToan = async o => { cap = o; return 0; };
+    await go('xuat'); app.querySelector('[data-act="xlsx"]').click(); await W(400); window.xuatExcelKeToan = gocX;
+    ok(cap && cap.phatSinh.some(p => p.nguon === 'Tạo bởi: Cán bộ mua sắm (phòng HC)') && cap.phatSinh.filter(p => p.nguon === 'Phát hiện khi kiểm kê').length === Object.values(S.ps).reduce((t, l) => t + (l || []).length, 0),
+      'nút Xuất cho kế toán: tài sản mới vào sheet “Tài sản phát sinh” cạnh tài sản phát hiện khi kiểm (file BBKK gốc vẫn giữ nguyên)');
+    await go('nhap-so'); const nsn = document.getElementById('nsn'); nsn.value = 'moi'; nsn.dispatchEvent(new Event('change', { bubbles: true })); await W(300);
+    ok(document.querySelectorAll('.ns-tbl tbody tr').length === 2 && /Tài sản mới/.test(app.textContent), 'Lịch sử › Nhập sổ: có nguồn “Tài sản mới (tạo trên app)”');
+    await go('tai-san-moi'); app.querySelector('[data-tsm="tao"]').click(); await until(() => document.getElementById('tsmForm'));
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+    const kqAxe = await axe.run(document, AXE);
+    ok(!kqAxe.violations.length && !linkHong().length, 'trang Tài sản mới (có thẻ, form) đạt trợ năng WCAG 2.2 AA' + (kqAxe.violations.length ? ': ' + kqAxe.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : ''));
+    app.querySelector('[data-tsm="huy"]').click(); await W(200);
+    const bx = theCua(id1).querySelector('[data-tsm="xoa"]'); bx.click(); await W(100);
+    ok(/Bấm lần nữa/.test(bx.textContent) && !!S.moi[id1], 'xoá: bấm lần đầu chỉ hỏi lại');
+    bx.click(); await until(() => !S.moi[id1]);
+    ok(!S.moi[id1] && ![...A.kho.keys()].some(k => k.startsWith('moi/' + id1 + '/')), 'bấm lần nữa: xoá tài sản mới và cả tệp ảnh của nó');
+    TSM.loc = 'chua'; render();
+    ok(/Mọi tài sản mới đều đã vào sổ/.test(app.textContent), 'lọc “Chưa vào sổ” khi mọi tài sản mới đã vào sổ: nói đúng như vậy');
+    TSM.loc = ''; render(); window.scrollTo(0, 0); await until(() => app.querySelector('.tsm-the .at-anh img[src]'));
   };
 
   // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,

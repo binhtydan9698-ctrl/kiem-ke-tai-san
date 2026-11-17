@@ -18,7 +18,9 @@ Bộ quy tắc đầy đủ: **`BAO-MAT.md`** (gốc repo, người dùng duyệ
    thẳng trong HTML, không `onclick=`, không `eval`. Thêm CDN / dịch vụ mới → sửa `cspTrang()` trong `scripts/ma-hoa.mjs`.
 5. Dữ liệu tài sản: build có khoá → chỉ `data/*.enc`; trang nạp qua `napVaChay()`; file gốc lấy bằng `kiemkeTepGoc()`.
    Không thêm chỗ nào `fetch('data/assets.js'|'data/goc.xlsx')` trực tiếp.
-6. Quyền: `xem` Tra cứu (READONLY + body.ro, vẫn ghi log) · `kiem` Kiểm kê · `admin` Quản trị (bắt buộc 2 lớp: `hoanTat()` →
+6. Quyền: `xem` Tra cứu (READONLY + body.ro, vẫn ghi log) · `moi` Tạo tài sản mới (READONLY cho tài sản BBKK; `save()` chỉ ghi
+   col `moi`; máy chủ chỉ cho sửa tài sản mới của chính mình: `chu_moi`, trigger `giu_tai_san_moi` gắn người tạo + tag nhóm) ·
+   `kiem` Kiểm kê · `admin` Quản trị (bắt buộc 2 lớp: `hoanTat()` →
    `hienBatMfa()`; SQL `quyen_cua_toi()` hạ admin chưa aal2 xuống `xem`, `duoc_ghi(col)` chặn ghi theo quyền). Người khác không bật 2 lớp.
 7. Chính sách mật khẩu `DN.kiemTraMatKhau()` (12–72 ký tự…) dùng ở mọi chỗ đặt mật khẩu (mật khẩu ban đầu quản trị đặt cho thành
    viên gọi kèm `banDau: true`: được toàn chữ số, lặp ký tự, nhưng lần đăng nhập đầu bắt buộc đổi — `hienDoiMkDau`, máy chủ chặn qua

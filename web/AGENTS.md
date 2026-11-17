@@ -32,7 +32,8 @@
   (tòa `BLD_ORDER` → tầng `thTang` → số phòng), bộ môn theo `UNITS`, tên `thSapTen`; ô tìm `#thq`, nút nhóm `data-act="thdi"`), **Mã QR** (`#ma-qr`, `#so-ma-qr`, `viewQR`
   trong `ma-qr.js`), **Lịch sử** (`#lich-su` = `viewLog`, `#nhap-so` = `viewNhapSo`, `#ly-lich[-khoá]` = `viewLyLich`) và
   **Chung** (`#khau-hao` = `viewKhauHao`, `#dau-moi` = `viewDauMoi`, `#danh-ba` = `viewDanhBa` trong `chung.js`; `#quan-ly` =
-  `viewQuanLy` trong `dang-nhap.js`; `#anh-tai-san` = `viewAnhTS` trong `anh.js`, `V.type='anh'`).
+  `viewQuanLy` trong `dang-nhap.js`; `#anh-tai-san` = `viewAnhTS` trong `anh.js`, `V.type='anh'`; `#tai-san-moi` = `viewTaiSanMoi`
+  trong `tai-san-moi.js`, `V.type='tsm'`).
   Đầu trang 2 tầng (khối CSS "Đầu trang 2 tầng" cuối `<style>`): `.top1` = logo `.lgo` + tên `.app` + 4 phần `.sec`
   (`#swKK`, `#swQR`, `#swLS`, `#swCH`; `#swHub` luôn ẩn — về trang chủ bằng logo) + Quét mã + người dùng; `.top2` = menu con
   (`#nav` Kiểm kê, `#navQR`, `#navLS`, `#navCH`, mục `a[data-r]`). `setMod()` đặt `body[data-mod=hub|kk|qr|ls|ch]`, đánh dấu
@@ -60,6 +61,14 @@
   khi đóng hộp ⋯ và khi quá 1 phút; thanh `role="meter"` có nhãn; ≥ 80% (`NGUONG`) thì hiện `phuongAnHTML()` (4 bước không tốn
   kinh phí, kèm số ảnh vượt mức 2 ảnh / tài sản và số ảnh của tài sản đã thanh lý, bàn giao). `render()` gọi `khoAnhBao()` sau mỗi
   lần vẽ: quản trị + kho ≥ 80% → chèn thanh `#khoAnhBao` ở đầu `#app` (mọi trang trừ trang Ảnh tài sản); đếm lại khi quá 1 giờ.
+- **Tài sản mới** (`tai-san-moi.js`, người dùng chốt 17/11/2026): `S.moi[mã]` (col `moi` trong `COLS`, không KEYED: id là mã tài sản
+  mới `m…`). Quyền `DN.duocTaoMoi()` (admin, kiem, moi); `moiDuocSua(m)` = người tạo (`m.uid`) hoặc quản trị. Quyền `moi` có
+  `READONLY=true` (tài sản BBKK chỉ xem) nhưng `save()` vẫn ghi đường dẫn `moi/…` (đoạn "quyền Tạo tài sản mới" trong `save()`), thay
+  đổi khác trả lại như cũ. Tag `tao_boi` = `DN.toi.nhom` (máy chủ ghi đè cho người không phải quản trị). Vào sổ: `moiNoi(m)` (Mã TSCĐ /
+  `noi`, qua `maMoi()`), `moiCuaTS(a)`; anh.js: `dsNoi(a)` / `dsHien(a)` = ảnh của tài sản + ảnh tài sản mới đã nối (đếm ở nút ⋯, trang
+  Ảnh tài sản, xem ảnh); hộp ⋯ dùng chung qua `muc()` (`moMoRong(a)` cho tài sản trong sổ, `moAnhMoi(id)` cho tài sản mới; ảnh tài sản
+  mới vào `moi/<mã>/`, đợi tài liệu ghi xong — `choGhi` — rồi mới tải ảnh). Xuất: `moiChoKeToan()` → `phatSinh` (cột Nguồn). Lịch sử
+  khoá `m:` → `logMoiLines`, loại `moi`. Nhập sổ: nguồn `moi`. Bảng Thành viên: ô `data-ql="nhom"` + `#qtNhom` (gợi ý `NHOM_GOI_Y`).
 - Menu con cuộn ngang trên màn hẹp: `route()` gọi `menuThay(a)` kéo mục đang mở vào giữa (không để cắt chữ).
 - Bộ thử khi đang sửa: `THU_CHI=anh,chung` chỉ chạy các kịch bản đó, `THU_DT=1` chạy cỡ điện thoại, `THU_CHUP=<thư mục>` chụp cả
   trang cuối mỗi kịch bản (để trong thư mục tạm, không đưa vào repo).
