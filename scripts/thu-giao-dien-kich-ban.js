@@ -498,6 +498,16 @@
     await them('thanhvien2', 'Thành Viên Hai', 'tv2@vd.vn', '202611170002', 'kiem');
     await until(() => document.querySelectorAll('.ql-tbl tbody tr').length === 3);
     ok(A.tk.length === 3 && A.tk[2].quyen === 'kiem' && A.tk[2].mk === '202611170002', 'thêm thành viên quyền "Kiểm kê", mật khẩu ban đầu toàn chữ số được nhận');
+    // "Miễn mã 6 số" cho một tài khoản quản trị (người dùng chốt 17/11/2026): ô chọn ở bảng Thành viên, chỉ quản trị đã qua 2 bước đổi được
+    await them('quantriphu', 'Quản Trị Phụ', 'qtp@vd.vn', '333333333333', 'admin');
+    await until(() => document.querySelectorAll('.ql-tbl tbody tr').length === 4);
+    const qtp = () => A.tk.find(x => x.ten === 'quantriphu'), hangQtp = () => document.querySelector(`.ql-tbl tr[data-uid="${qtp().uid}"]`);
+    ok(!!hangQtp().querySelector('select[data-ql="mien"]') && hangQtp().querySelector('select[data-ql="mien"]').value === '0'
+      && !document.querySelector(`.ql-tbl tr[data-uid="${A.tk[1].uid}"] select[data-ql="mien"]`), 'bảng Thành viên: tài khoản quản trị có ô chọn “Mã 6 số” (mặc định Bắt buộc); tài khoản Tra cứu / Kiểm kê không cần');
+    const sMien = hangQtp().querySelector('select[data-ql="mien"]'); sMien.value = '1'; sMien.dispatchEvent(new Event('change', { bubbles: true }));
+    await until(() => qtp().mien && hangQtp() && /Miễn mã 6 số/.test(hangQtp().textContent));
+    ok(qtp().mien === true && hangQtp().querySelector('select[data-ql="mien"]').value === '1' && LOGMINE.some(e => /Miễn mã 6 số cho tài khoản quantriphu/.test(e.title)),
+      'chọn “Miễn (chỉ mật khẩu)”: lưu, bảng hiện nhãn Miễn mã 6 số, lịch sử ghi lại');
     ok(LOGMINE.some(e => e.kind === 'chung' && /Thêm thành viên thanhvien1/.test(e.title)) && !JSON.stringify(LOGMINE).includes('111111111111') && !JSON.stringify(LOGMINE).includes('202611170002'), 'lịch sử ghi lần thêm thành viên, không ghi mật khẩu');
     const tr = () => document.querySelector(`.ql-tbl tr[data-uid="${A.tk[1].uid}"]`);
     tr().querySelector('[data-ql="mk"]').click(); await W(200);
@@ -576,6 +586,21 @@
     ok(!app.querySelector('[data-db="moi"]') && !app.querySelector('[data-db="sua"]'), 'quyền "Kiểm kê": không sửa được danh bạ');
     await go('dau-moi');
     ok(!app.querySelector('[data-ch="dmsua"]'), 'quyền "Kiểm kê": không sửa được đầu mối');
+    // quản trị được miễn: đúng mật khẩu là vào (không hỏi mã, không bắt bật 2 lớp), vẫn toàn quyền, nhưng không tự đổi ô “Mã 6 số” được
+    await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500);
+    await dangNhap('quantriphu', '333333333333'); await until(() => document.getElementById('dnMkMoi'));
+    await doiDau('Phu-ta-kiem-ke-01'); await until(() => !document.getElementById('dnMan'));
+    ok(DN.toi && DN.toi.ten === 'quantriphu' && DN.laQuanTri() && DN.toi.mien && !document.getElementById('dnMa'), 'quản trị được miễn: đổi mật khẩu ban đầu xong là vào thẳng, không hỏi mã 6 số, vẫn quyền Quản trị');
+    await go('quan-ly'); await until(() => document.querySelector('.ql-tbl select[data-ql="mien"]'));
+    ok([...document.querySelectorAll('.ql-tbl select[data-ql="mien"]')].every(s => s.disabled) && /đang được miễn mã 6 số/.test(app.textContent), 'tài khoản đang được miễn: không đổi được ô “Mã 6 số” của ai (cần quản trị đã qua mã 6 số), có nhắc đang được miễn');
+    let tuMien = ''; try { await A.datMien2Lop(A.tk[0].uid, true); } catch (e) { tuMien = e.message; }
+    ok(tuMien === 'CAN_2_LOP' && !A.tk[0].mien, 'máy chủ (giả) cũng chặn: phiên chưa qua mã 6 số không miễn được cho ai');
+    app.querySelector('[data-ql="ra"]').click(); await W(500);
+    qtp().mien = false;   // quản trị chính chọn lại “Bắt buộc”
+    await dangNhap('quantriphu', 'Phu-ta-kiem-ke-01'); await until(() => document.getElementById('dnMa'));
+    ok(/bắt buộc với quản trị/.test(txt('dnMan')) && !DN.toi, 'chọn lại “Bắt buộc”: lần đăng nhập sau phải bật / nhập mã 6 số như cũ');
+    document.getElementById('dnHuy').click(); await W(300);
+    await dangNhap('thanhvien2', 'Kiem-vien-hai-rieng'); await until(() => !document.getElementById('dnMan'));
     // tự đăng xuất khi để máy không dùng quá 8 giờ
     try { localStorage.setItem('kiemke-hoat-dong', String(Date.now() - 9 * 3600e3)); } catch (e) { }
     ok(DN.kiemTraNhanRoi() === true, 'không dùng trang quá 8 giờ: tự đăng xuất');

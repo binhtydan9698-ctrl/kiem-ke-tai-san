@@ -74,10 +74,11 @@ try {
     ok(!an.length, an.length ? `người KHÔNG đăng nhập vẫn đọc được ${an.length} bản ghi — kiểm tra lại quyền (chạy lại supabase/dang-nhap.sql)` : 'người không đăng nhập không đọc được dữ liệu');
     // máy chủ đã chạy dang-nhap.sql bản mới (có hàm mật khẩu ban đầu, 17/11/2026): hàm có thật nhưng người lạ không gọi được.
     // Chỉ gọi một hàm chỉ-đọc, bị từ chối ngay → không đọc, không ghi gì.
+    // (duoc_mien_2_lop: bản có "Miễn mã 6 số", cũng 17/11/2026 — hàm mới nhất của file)
     const { url, key } = supabaseConfig();
-    const r = await fetch(`${url}/rest/v1/rpc/con_mk_ban_dau`, { method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' }, body: '{}' }), t = await r.text();
-    ok(/42501|permission denied/.test(t), /PGRST202/.test(t) ? 'máy chủ CHƯA chạy supabase/dang-nhap.sql bản mới (thiếu phần mật khẩu ban đầu): chạy lại trong Supabase → SQL Editor'
-      : /42501|permission denied/.test(t) ? 'máy chủ đã chạy dang-nhap.sql bản mới (mật khẩu ban đầu phải đổi; người lạ không gọi được hàm)' : `hàm mật khẩu ban đầu trả lạ: ${r.status} ${t.slice(0, 120)}`);
+    const r = await fetch(`${url}/rest/v1/rpc/duoc_mien_2_lop`, { method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' }, body: '{}' }), t = await r.text();
+    ok(/42501|permission denied/.test(t), /PGRST202/.test(t) ? 'máy chủ CHƯA chạy supabase/dang-nhap.sql bản mới nhất (thiếu phần Miễn mã 6 số): chạy lại trong Supabase → SQL Editor'
+      : /42501|permission denied/.test(t) ? 'máy chủ đã chạy dang-nhap.sql bản mới nhất (mật khẩu ban đầu, Miễn mã 6 số; người lạ không gọi được hàm)' : `hàm duoc_mien_2_lop trả lạ: ${r.status} ${t.slice(0, 120)}`);
     const token = await dangNhapToken().catch(e => { ok(false, e.message); return null; });
     if (token) ok(true, `đọc bằng tài khoản thành viên (KIEMKE_TEN): ${dem(await docTatCa(token))}`);
   }

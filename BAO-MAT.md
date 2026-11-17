@@ -50,6 +50,11 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
    dùng chốt 15/11/2026): quản trị chưa bật thì phải bật ngay sau mật khẩu mới vào được trang; máy chủ chỉ cho toàn quyền khi phiên
    đã qua bước 2 (chưa qua thì chỉ có quyền tra cứu). Người dùng khác chỉ cần mật khẩu riêng (để biết ai đang dùng). OTP qua SMS
    không dùng: cần gói Supabase trả phí + nhà mạng gửi SMS, đăng ký tên thương hiệu, kém an toàn hơn (chiếm SIM).
+   **Ngoại lệ "Miễn mã 6 số"** (người dùng chốt 17/11/2026, dùng tạm cho tài khoản quản trị phụ): ở Chung › Quản lý, bảng Thành viên,
+   cột "Mã 6 số" của tài khoản quản trị chọn **Bắt buộc** / **Miễn (chỉ mật khẩu)**. Được miễn thì đúng mật khẩu là vào, vẫn toàn
+   quyền. Chỉ quản trị mà phiên **đã qua mã 6 số** mới đổi được ô này (máy chủ chặn: `quan_tri_dat_mien_2_lop`, cột `mien_2_lop`
+   không sửa thẳng được); mỗi lần đổi ghi lịch sử; bảng hiện nhãn "Miễn mã 6 số". Không ghi tên tài khoản được miễn vào repo.
+   Xong việc thì chọn lại "Bắt buộc". (Máy soát: `npm test` bước 6; thử giao diện `dang-nhap`.)
 6. Nhập sai 5 lần → ô đăng nhập khoá 60 giây trên máy đó (Supabase còn giới hạn tần suất ở máy chủ).
 7. Báo lỗi chung "Sai tên đăng nhập hoặc mật khẩu", không cho biết tài khoản nào có thật.
 8. **Phiên đăng nhập**: không dùng trang quá 8 giờ thì tự đăng xuất; máy dùng chung thì bỏ chọn "Ghi nhớ đăng nhập trên máy này";
@@ -120,3 +125,5 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
 - Mã nguồn trang (không phải dữ liệu) ai cũng tải được; trong đó không có bí mật.
 - Ai đoán đúng một tên đăng nhập thì biết email công việc của tài khoản đó (hàm `email_dang_nhap`, cần để đăng nhập bằng tên).
 - Gói Supabase miễn phí chưa có hạn phiên phía máy chủ → dùng tự đăng xuất 8 giờ ở trình duyệt.
+- Tài khoản quản trị đang được "Miễn mã 6 số": lộ mật khẩu là lộ toàn quyền (danh bạ, thành viên, khoá dữ liệu). Chỉ dùng tạm, mật khẩu
+  mạnh, xong việc chọn lại "Bắt buộc"; tài khoản đó không tự miễn cho người khác được.

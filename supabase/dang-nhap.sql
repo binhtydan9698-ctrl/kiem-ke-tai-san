@@ -14,8 +14,8 @@
 --     đọc được gì vì không có trong thanh_vien. Không thêm thành viên thì có thể TẮT để chặn đăng ký rác.
 --   * "Minimum password length": 12 (trang cũng kiểm tra; hàm đặt lại mật khẩu của quản trị bắt 12–72 ký tự)
 -- Bảo mật thêm trong file này: 3 mức quyền (Tra cứu / Kiểm kê / Quản trị, máy chủ chặn ghi theo quyền); quản trị BẮT BUỘC
--- xác thực 2 bước (chưa qua bước 2 thì chỉ có quyền tra cứu); khoá giải mã dữ liệu tài sản (bảng bi_mat); thu hồi mọi quyền
--- của người không đăng nhập trên các bảng.
+-- xác thực 2 bước (chưa qua bước 2 thì chỉ có quyền tra cứu) — trừ tài khoản được "Miễn mã 6 số" (cột mien_2_lop, chỉ quản trị
+-- đã qua 2 bước mới bật / tắt được); khoá giải mã dữ liệu tài sản (bảng bi_mat); thu hồi mọi quyền của người không đăng nhập.
 
 -- ===== bảng =====
 -- quyen: 'xem' Tra cứu (chỉ xem) · 'kiem' Kiểm kê (xem + ghi kết quả kiểm kê) · 'admin' Quản trị (toàn quyền, bắt buộc 2 lớp)
@@ -31,6 +31,9 @@ create table if not exists public.thanh_vien (
 alter table public.thanh_vien drop constraint if exists thanh_vien_quyen_check;
 update public.thanh_vien set quyen = 'kiem' where quyen = 'sua';
 alter table public.thanh_vien add constraint thanh_vien_quyen_check check (quyen in ('admin', 'kiem', 'xem'));
+-- MIỄN MÃ 6 SỐ (người dùng chốt 17/11/2026): tài khoản quản trị được chọn "Miễn" thì đăng nhập chỉ cần mật khẩu, vẫn toàn quyền.
+-- Chỉ đổi qua hàm quan_tri_dat_mien_2_lop (quản trị ĐÃ qua 2 bước), không sửa thẳng được cột này.
+alter table public.thanh_vien add column if not exists mien_2_lop boolean not null default false;
 
 create table if not exists public.danh_ba (
   id           uuid primary key default gen_random_uuid(),
@@ -82,19 +85,26 @@ language sql security definer set search_path = public as $$
   on conflict (user_id) do update set dau_vet = excluded.dau_vet, dat_luc = now()
 $$;
 
--- đủ điều kiện được tính là thành viên: tài khoản đã bật xác thực 2 bước thì phiên phải qua bước 2 (aal2); và đã tự đổi mật khẩu
--- ban đầu (nếu quản trị đặt)
+-- tài khoản đang đăng nhập được "Miễn mã 6 số" (quản trị đã qua 2 bước chọn ở Chung › Quản lý)
+create or replace function public.duoc_mien_2_lop() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.thanh_vien t where t.user_id = auth.uid() and t.mien_2_lop and not t.khoa)
+$$;
+
+-- đủ điều kiện được tính là thành viên: tài khoản đã bật xác thực 2 bước thì phiên phải qua bước 2 (aal2), trừ khi được miễn;
+-- và đã tự đổi mật khẩu ban đầu (nếu quản trị đặt)
 create or replace function public.du_cap_xac_thuc() returns boolean
 language sql stable security definer set search_path = public, auth as $$
   select (coalesce(auth.jwt() ->> 'aal', 'aal1') = 'aal2'
-      or not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status = 'verified'))
+      or not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status = 'verified')
+      or public.duoc_mien_2_lop())
      and not public.con_mk_ban_dau()
 $$;
 
--- quyền đang có hiệu lực: quản trị chỉ có toàn quyền khi phiên đã qua xác thực 2 bước (aal2); chưa qua → coi như tra cứu
+-- quyền đang có hiệu lực: quản trị chỉ có toàn quyền khi phiên đã qua xác thực 2 bước (aal2) hoặc được miễn; chưa → coi như tra cứu
 create or replace function public.quyen_cua_toi() returns text
 language sql stable security definer set search_path = public as $$
-  select case when quyen = 'admin' and coalesce(auth.jwt() ->> 'aal', 'aal1') <> 'aal2' then 'xem' else quyen end
+  select case when quyen = 'admin' and coalesce(auth.jwt() ->> 'aal', 'aal1') <> 'aal2' and not mien_2_lop then 'xem' else quyen end
   from public.thanh_vien where user_id = auth.uid() and not khoa and public.du_cap_xac_thuc()
 $$;
 
@@ -140,7 +150,7 @@ $$;
 create or replace function public.toi_la_ai() returns json
 language sql stable security definer set search_path = public, auth as $$
   select json_build_object('uid', t.user_id, 'ten', t.ten_dang_nhap, 'ho_ten', t.ho_ten, 'quyen', t.quyen, 'email', u.email::text,
-    'doi_mk', public.con_mk_ban_dau())
+    'doi_mk', public.con_mk_ban_dau(), 'mien_2_lop', t.mien_2_lop)
   from public.thanh_vien t join auth.users u on u.id = t.user_id
   where t.user_id = auth.uid() and not t.khoa
 $$;
@@ -156,15 +166,27 @@ begin
   values (auth.uid(), lower(trim(p_ten)), coalesce(p_ho_ten, ''), 'admin');
 end $$;
 
--- quản trị: danh sách thành viên (kèm email, lần đăng nhập cuối)
+-- quản trị: danh sách thành viên (kèm email, lần đăng nhập cuối, có được miễn mã 6 số không)
+drop function if exists public.ds_thanh_vien();   -- bản trước trả ít cột hơn (đổi kiểu trả về phải xoá rồi tạo lại)
 create or replace function public.ds_thanh_vien()
-returns table (user_id uuid, ten_dang_nhap text, ho_ten text, quyen text, khoa boolean, tao_luc timestamptz, email text, dang_nhap_cuoi timestamptz)
+returns table (user_id uuid, ten_dang_nhap text, ho_ten text, quyen text, khoa boolean, tao_luc timestamptz, email text, dang_nhap_cuoi timestamptz, mien_2_lop boolean)
 language sql stable security definer set search_path = public, auth as $$
-  select t.user_id, t.ten_dang_nhap, t.ho_ten, t.quyen, t.khoa, t.tao_luc, u.email::text, u.last_sign_in_at
+  select t.user_id, t.ten_dang_nhap, t.ho_ten, t.quyen, t.khoa, t.tao_luc, u.email::text, u.last_sign_in_at, t.mien_2_lop
   from public.thanh_vien t join auth.users u on u.id = t.user_id
   where public.la_quan_tri()
   order by t.tao_luc
 $$;
+
+-- quản trị bật / tắt "Miễn mã 6 số" cho một tài khoản. Chỉ quản trị mà phiên ĐÃ qua 2 bước (aal2) mới đổi được — tài khoản đang
+-- được miễn (chỉ mật khẩu) không tự miễn cho người khác được, kể cả khi lộ mật khẩu.
+create or replace function public.quan_tri_dat_mien_2_lop(p_uid uuid, p_mien boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.la_quan_tri() then raise exception 'Chỉ quản trị mới đổi được mục này'; end if;
+  if coalesce(auth.jwt() ->> 'aal', 'aal1') <> 'aal2' then raise exception 'CAN_2_LOP'; end if;
+  update public.thanh_vien set mien_2_lop = coalesce(p_mien, false) where user_id = p_uid;
+  if not found then raise exception 'Không có thành viên này'; end if;
+end $$;
 
 -- quản trị: cấp quyền cho tài khoản (email) vừa tạo bằng đăng ký. p_mk_moi = quản trị vừa đặt mật khẩu ban đầu cho tài khoản này
 -- (tài khoản mới) → lần đăng nhập đầu phải đổi; email đã có tài khoản từ trước thì giữ mật khẩu cũ, không bắt đổi.
@@ -197,10 +219,12 @@ end $$;
 -- ===== ai được gọi hàm nào =====
 revoke all on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
-  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau() from public, anon;
+  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
+  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean) from public, anon;
 grant execute on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
-  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau() to authenticated;
+  public.quan_tri_them_thanh_vien(text, text, text, text, boolean), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
+  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean) to authenticated;
 -- dấu vết mật khẩu, ghi dấu vết: chỉ dùng bên trong các hàm trên, không ai gọi thẳng được
 revoke all on function public.dau_vet_mk(uuid), public.ghi_mk_ban_dau(uuid) from public, anon, authenticated;
 grant execute on function public.trang_thai_dang_nhap(), public.email_dang_nhap(text) to anon, authenticated;
@@ -210,7 +234,10 @@ revoke all on public.thanh_vien, public.danh_ba, public.bi_mat, public.kiemke_do
 revoke all on public.bi_mat from authenticated;
 revoke all on public.mk_ban_dau from anon, authenticated;
 grant select, insert, update, delete on public.kiemke_docs, public.danh_ba to authenticated;
-grant select, update, delete on public.thanh_vien to authenticated;
+-- thanh_vien: quản trị chỉ sửa thẳng được họ tên, quyền, khoá; cột "miễn mã 6 số" chỉ đổi qua hàm quan_tri_dat_mien_2_lop
+revoke update on public.thanh_vien from authenticated;
+grant select, delete on public.thanh_vien to authenticated;
+grant update (ho_ten, quyen, khoa) on public.thanh_vien to authenticated;
 
 -- ===== quyền trên bảng (RLS) =====
 alter table public.thanh_vien enable row level security;

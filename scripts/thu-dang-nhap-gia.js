@@ -21,7 +21,7 @@ if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa', '?anh'].includes(location.search
     async emailCua(ten) { const x = tk.find(x => x.ten === ten && !x.khoa); return x ? x.email : null; },
     async dangNhap(email, mk) { const x = tk.find(x => x.email === email); if (!x || x.mk !== mk) loi('Invalid login credentials'); phien = x.uid; aal2 = false; },
     async coPhien() { return !!phien; },
-    async toiLaAi() { const x = phien && tim(phien); return x && !x.khoa ? { uid: x.uid, ten: x.ten, ho_ten: x.ho_ten, quyen: x.quyen, email: x.email, doi_mk: !!x.doi } : null; },
+    async toiLaAi() { const x = phien && tim(phien); return x && !x.khoa ? { uid: x.uid, ten: x.ten, ho_ten: x.ho_ten, quyen: x.quyen, email: x.email, doi_mk: !!x.doi, mien_2_lop: !!x.mien } : null; },
     async dangXuat() { phien = null; aal2 = false; },
     async taoQuanTri(o) {
       if (tk.length) loi('Đã có tài khoản quản trị');
@@ -30,14 +30,16 @@ if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa', '?anh'].includes(location.search
     async doiMatKhau(email, cu, moi) { const x = tim(phien); if (!x || x.mk !== cu) loi('MK_CU'); x.mk = moi; x.doi = false; },
     // giống Supabase: mật khẩu mới trùng mật khẩu cũ thì báo lỗi; đổi xong thì hết "mật khẩu ban đầu" (dang-nhap.sql: con_mk_ban_dau)
     async doiMkDau(moi) { const x = tim(phien); if (!x) loi('Chưa đăng nhập'); if (x.mk === moi) loi('New password should be different from the old password.'); x.mk = moi; x.doi = false; },
-    async dsThanhVien() { return tk.map(x => ({ user_id: x.uid, ten_dang_nhap: x.ten, ho_ten: x.ho_ten, quyen: x.quyen, khoa: x.khoa, email: x.email, tao_luc: new Date().toISOString(), dang_nhap_cuoi: null })); },
+    async dsThanhVien() { return tk.map(x => ({ user_id: x.uid, ten_dang_nhap: x.ten, ho_ten: x.ho_ten, quyen: x.quyen, khoa: x.khoa, email: x.email, tao_luc: new Date().toISOString(), dang_nhap_cuoi: null, mien_2_lop: !!x.mien })); },
+    // giống quan_tri_dat_mien_2_lop: chỉ quản trị mà phiên đã qua 2 bước mới đổi được
+    async datMien2Lop(uid, mien) { const x = phien && tim(phien); if (!x || x.quyen !== 'admin' || x.khoa) loi('Chỉ quản trị mới đổi được mục này'); if (!(x.mfa && aal2)) loi('CAN_2_LOP'); tim(uid).mien = !!mien; },
     async themThanhVien(o) {
       if (tk.some(x => x.ten === o.ten)) loi('duplicate key value violates unique constraint');
       tk.push({ uid: 'u' + (++so), ten: o.ten, ho_ten: o.hoTen, email: o.email, mk: o.mk, quyen: o.quyen, khoa: false, mfa: false, doi: true }); return { daCo: false };
     },
     async suaThanhVien(uid, o) { Object.assign(tim(uid), o); },
     async datMatKhau(uid, mk) { if (mk.length < 12) loi('Mật khẩu cần 12–72 ký tự'); tim(uid).mk = mk; tim(uid).doi = true; },
-    async khoaDuLieu() { const x = phien && tim(phien); return x && !x.khoa && (!x.mfa || aal2) ? (window.__KHOA_THU || null) : null; },
+    async khoaDuLieu() { const x = phien && tim(phien); return x && !x.khoa && (!x.mfa || aal2 || x.mien) ? (window.__KHOA_THU || null) : null; },
     async canMa2() { const x = phien && tim(phien); return !!(x && x.mfa && !aal2); },
     async xacThuc2(code) { if (code !== MA) loi('Invalid TOTP code entered'); aal2 = true; },
     async dsYeuTo() { const x = phien && tim(phien); return x && x.mfa ? [{ id: 'f-' + x.uid, status: 'verified' }] : []; },

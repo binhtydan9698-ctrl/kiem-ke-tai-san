@@ -347,6 +347,12 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
     && (sql.match(/perform public\.ghi_mk_ban_dau\(/g) || []).length === 2 && /'doi_mk', public\.con_mk_ban_dau\(\)/.test(sql)
     && /revoke all on function public\.dau_vet_mk\(uuid\), public\.ghi_mk_ban_dau\(uuid\) from public, anon, authenticated/.test(sql),
     'dang-nhap.sql: mật khẩu ban đầu quản trị đặt (thêm thành viên, đặt lại) phải đổi ở lần đăng nhập đầu, chưa đổi thì máy chủ không cho đọc / ghi; bảng dấu vết không ai đọc thẳng được');
+  // "Miễn mã 6 số" (người dùng chốt 17/11/2026): chỉ đổi qua hàm (phiên đã qua 2 bước), quản trị không sửa thẳng được cột mien_2_lop
+  ok(/add column if not exists mien_2_lop boolean not null default false/.test(sql) && /revoke update on public\.thanh_vien from authenticated/.test(sql)
+    && /grant update \(ho_ten, quyen, khoa\) on public\.thanh_vien to authenticated/.test(sql) && !/grant [^;]*update on public\.thanh_vien/.test(sql)
+    && /function public\.quan_tri_dat_mien_2_lop[\s\S]*?coalesce\(auth\.jwt\(\) ->> 'aal', 'aal1'\) <> 'aal2' then raise exception 'CAN_2_LOP'/.test(sql)
+    && /or public\.duoc_mien_2_lop\(\)\)/.test(sql),
+    'dang-nhap.sql: "Miễn mã 6 số" chỉ đổi được qua hàm, bởi quản trị đã qua mã 6 số; cột không sửa thẳng được');
   {
     const pol = sql.match(/create policy "anh tai san[^;]*;/g) || [];
     ok(/values \('anh-tai-san', 'anh-tai-san', false,/.test(sql) && /set public = false/.test(sql) && pol.length === 4

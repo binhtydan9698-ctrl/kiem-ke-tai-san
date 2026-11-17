@@ -165,6 +165,9 @@ nhưng chỉ làm gợi ý nào người dùng đồng ý. Lỗi nhỏ thì tự
   dùng chốt 17/11/2026; vẫn ≥ 12 ký tự, vẫn chặn mật khẩu phổ biến) và **lần đăng nhập đầu bắt buộc đổi** sang mật khẩu riêng theo đủ
   quy tắc (máy chủ chặn đọc / ghi tới khi đổi: `mk_ban_dau`, `con_mk_ban_dau()`). Chỉ thay đổi duy nhất chỗ mật khẩu ban đầu; mọi mật
   khẩu sau đó theo chính sách như cũ (BAO-MAT.md mục C.2).
+- **Miễn mã 6 số** (người dùng chốt 17/11/2026, tạm cho tài khoản quản trị phụ; muốn tự đổi qua lại không cần nhờ trợ lý): ô chọn
+  "Mã 6 số" (Bắt buộc / Miễn) cho từng tài khoản quản trị ở bảng Thành viên; được miễn thì chỉ cần mật khẩu, vẫn toàn quyền. Chỉ quản
+  trị đã qua mã 6 số mới đổi được (máy chủ chặn), có lịch sử. KHÔNG ghi tên tài khoản được miễn vào repo (BAO-MAT.md mục C.5).
 
 ### 5. File Excel BBKK là nguồn duy nhất
 

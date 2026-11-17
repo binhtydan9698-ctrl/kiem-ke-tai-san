@@ -34,6 +34,7 @@
     if (/Signups not allowed|signup.*disabled/i.test(m)) return 'Supabase đang tắt đăng ký tài khoản mới. Người quản trị bật “Allow new users to sign up” trong Supabase (tắt lại sau khi thêm xong).';
     if (/rate limit|only request this after|too many/i.test(m)) return 'Thao tác quá nhiều lần, thử lại sau ít phút.';
     if (/different from the old password|same_password/i.test(m)) return 'Mật khẩu mới phải khác mật khẩu ban đầu.';
+    if (/CAN_2_LOP/.test(m)) return 'Chỉ quản trị đã đăng nhập bằng mã 6 số mới đổi được mục này.';
     if (/Could not find the function|PGRST202/i.test(m)) return 'Máy chủ chưa cập nhật: người quản trị cần chạy lại file supabase/dang-nhap.sql (bản mới nhất) trong Supabase → SQL Editor.';
     if (/reauthenticat/i.test(m)) return 'Cần đăng nhập lại rồi mới đổi được mật khẩu: bấm “Đăng xuất”, đăng nhập lại rồi đổi ngay.';
     if (/Password should|weak password|pwned|leaked/i.test(m)) return 'Mật khẩu chưa đủ mạnh hoặc đã từng bị lộ trên mạng. Chọn mật khẩu khác (ít nhất 12 ký tự).';
@@ -110,6 +111,7 @@
       // lần đăng nhập đầu bằng mật khẩu ban đầu: tự đặt mật khẩu riêng (vừa đăng nhập xong nên không hỏi lại mật khẩu cũ)
       async doiMkDau(moi) { const { error } = await sb.auth.updateUser({ password: moi }); if (error) throw error; },
       async suaThanhVien(uid, o) { const { error } = await sb.from('thanh_vien').update(o).eq('user_id', uid); if (error) throw error; },
+      datMien2Lop: (uid, mien) => rpc('quan_tri_dat_mien_2_lop', { p_uid: uid, p_mien: !!mien }),
       datMatKhau: (uid, mk) => rpc('quan_tri_dat_mat_khau', { p_uid: uid, p_mat_khau: mk }),
       khoaDuLieu: () => rpc('khoa_du_lieu'),
       // xác thực 2 bước (TOTP: Google Authenticator, Microsoft Authenticator…)
@@ -207,7 +209,7 @@
   };
   const phienSan = async () => DN.api.coPhien ? DN.api.coPhien() : !!(await DN.api.toiLaAi());
   function vao(t, moi) {
-    DN.toi = { uid: t.uid, ten: t.ten, hoTen: t.ho_ten || '', quyen: t.quyen, email: t.email || '' };
+    DN.toi = { uid: t.uid, ten: t.ten, hoTen: t.ho_ten || '', quyen: t.quyen, email: t.email || '', mien: !!t.mien_2_lop };
     DN.coQuanTri = true; DN.tv = null; DN.tvLoi = ''; DN.mfa = null;
     if (moi) DN.vuaDangNhap = thietBi();
     ghiHoatDong(true); theoDoiNhanRoi();
@@ -324,11 +326,13 @@
   }
   // sau mật khẩu: còn bước 2 thì hỏi mã; còn dùng mật khẩu ban đầu quản trị đặt thì bắt đổi; quản trị chưa bật 2 bước thì bắt bật
   // ngay; xong thì vào trang. false = không có quyền
+  // Tài khoản được "Miễn mã 6 số" (quản trị chọn ở Chung › Quản lý, người dùng chốt 17/11/2026): đúng mật khẩu là vào, bỏ qua cả
+  // bước nhập mã lẫn bắt bật 2 lớp (máy chủ cũng cho đủ quyền: duoc_mien_2_lop trong dang-nhap.sql).
   async function hoanTat(moi) {
-    if (await DN.api.canMa2()) { hienMa2(); return true; }
     const t = await DN.api.toiLaAi(); if (!t) return false;
+    if (!t.mien_2_lop && await DN.api.canMa2()) { hienMa2(); return true; }
     if (t.doi_mk) { hienDoiMkDau(t, moi); return true; }
-    if (t.quyen === 'admin' && !((await DN.api.dsYeuTo()) || []).some(f => f.status === 'verified')) { hienBatMfa(t, moi); return true; }
+    if (t.quyen === 'admin' && !t.mien_2_lop && !((await DN.api.dsYeuTo()) || []).some(f => f.status === 'verified')) { hienBatMfa(t, moi); return true; }
     vao(t, moi); return true;
   }
   // lần đăng nhập đầu bằng mật khẩu ban đầu (người dùng chốt 17/11/2026): bắt đổi sang mật khẩu riêng theo đủ quy tắc mới vào trang.
@@ -429,6 +433,7 @@
     return `<section class="ql-the">
       <h2>${ic('ShieldCheck')}Xác thực 2 bước</h2>
       <p class="note">Bắt buộc với tài khoản quản trị: đăng nhập cần thêm mã 6 số từ ứng dụng trên điện thoại (Google Authenticator, Microsoft Authenticator…). Người biết mật khẩu của bạn cũng không vào được nếu không có điện thoại. Đổi điện thoại thì bấm “Chuyển sang điện thoại mới” khi còn giữ điện thoại cũ.</p>
+      ${DN.toi.mien ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>Tài khoản của bạn đang được <b>miễn mã 6 số</b>: đăng nhập chỉ cần mật khẩu. Khi xong việc, nhờ quản trị (đã đăng nhập bằng mã 6 số) chọn lại “Bắt buộc” ở bảng Thành viên.</div></div>` : ''}
       ${!f || !f.tai ? '<div class="empty">Đang kiểm tra…</div>' : f.loi ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>${E(f.loi)}</div></div>`
         : moi ? `<div class="ql-mfa"><img src="${E(moi.qr)}" alt="Mã QR để thêm vào ứng dụng xác thực" width="180" height="180"><div>
             <p>1. Mở ứng dụng xác thực, chọn thêm tài khoản, quét mã QR bên cạnh (hoặc nhập mã: <span class="mono">${E(moi.secret)}</span>).</p>
@@ -455,13 +460,18 @@
     const l = DN.tv;
     return `<section class="ql-the">
       <h2>${ic('Users')}Thành viên</h2>
-      <p class="note">Chỉ người có tài khoản mới mở được trang; ai làm gì đều ghi lịch sử theo tên. <b>Tra cứu</b>: chỉ xem mọi thông tin (kể cả danh bạ), không ghi được gì. <b>Kiểm kê</b>: thêm ghi kết quả kiểm kê, tài sản phát sinh, thất lạc. <b>Quản trị</b>: toàn quyền (danh bạ, đầu mối, thành viên), bắt buộc xác thực 2 bước. Khoá tài khoản có hiệu lực ngay, kể cả máy đang đăng nhập.</p>
+      <p class="note">Chỉ người có tài khoản mới mở được trang; ai làm gì đều ghi lịch sử theo tên. <b>Tra cứu</b>: chỉ xem mọi thông tin (kể cả danh bạ), không ghi được gì. <b>Kiểm kê</b>: thêm ghi kết quả kiểm kê, tài sản phát sinh, thất lạc. <b>Quản trị</b>: toàn quyền (danh bạ, đầu mối, thành viên), bắt buộc xác thực 2 bước — trừ khi chọn <b>Miễn</b> ở cột “Mã 6 số” (đăng nhập chỉ cần mật khẩu; chỉ nên dùng tạm, xong việc chọn lại “Bắt buộc”). Khoá tài khoản có hiệu lực ngay, kể cả máy đang đăng nhập.</p>
+      ${DN.toi.mien ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>Bạn đang đăng nhập không qua mã 6 số nên không đổi được cột “Mã 6 số”. Việc này cần một quản trị đã đăng nhập bằng mã 6 số.</div></div>` : ''}
       ${DN.tvLoi ? `<div class="ch-note warn">${ic('TriangleAlert')}<div>${E(DN.tvLoi)}</div></div>` : ''}
-      ${!l ? '<div class="empty">Đang tải danh sách thành viên…</div>' : `<div class="tblwrap ql-tbl" tabindex="0" role="region" aria-label="Danh sách thành viên"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Quyền</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th></th></tr></thead><tbody>${l.map(x => {
-        const toi = x.user_id === DN.toi.uid, u = E(x.user_id);
+      ${!l ? '<div class="empty">Đang tải danh sách thành viên…</div>' : `<div class="tblwrap ql-tbl" tabindex="0" role="region" aria-label="Danh sách thành viên"><table><thead><tr><th>Tên đăng nhập</th><th>Họ tên</th><th>Email</th><th>Quyền</th><th>Mã 6 số</th><th>Trạng thái</th><th>Đăng nhập cuối</th><th></th></tr></thead><tbody>${l.map(x => {
+        const toi = x.user_id === DN.toi.uid, u = E(x.user_id), ad = x.quyen === 'admin';
+        // ô chọn "Mã 6 số khi đăng nhập" (chỉ tài khoản quản trị mới cần mã; người dùng chốt 17/11/2026 cho phép miễn tạm)
+        const mien = !ad ? '<span class="dm-no">Không cần</span>'
+          : `<select class="in" data-ql="mien" aria-label="Mã 6 số khi đăng nhập của ${E(x.ten_dang_nhap)}"${DN.toi.mien ? ' disabled' : ''}><option value="0"${x.mien_2_lop ? '' : ' selected'}>Bắt buộc</option><option value="1"${x.mien_2_lop ? ' selected' : ''}>Miễn (chỉ mật khẩu)</option></select>`;
         return `<tr data-uid="${u}"><td class="mono">${E(x.ten_dang_nhap)}${toi ? ' <small>(bạn)</small>' : ''}</td><td>${E(x.ho_ten || '')}</td><td>${E(x.email || '')}</td>
           <td>${toi ? E(lbl(QUYEN_TK, x.quyen)) : `<select class="in" data-ql="quyen" aria-label="Quyền của ${E(x.ten_dang_nhap)}">${QUYEN_TK.map(([k, n]) => `<option value="${k}" ${x.quyen === k ? 'selected' : ''}>${n}</option>`).join('')}</select>`}</td>
-          <td>${x.khoa ? '<span class="tag warn">Đã khoá</span>' : '<span class="tag info">Đang dùng</span>'}</td>
+          <td>${mien}</td>
+          <td>${x.khoa ? '<span class="tag warn">Đã khoá</span>' : '<span class="tag info">Đang dùng</span>'}${ad && x.mien_2_lop ? ' <span class="tag warn">Miễn mã 6 số</span>' : ''}</td>
           <td class="num">${x.dang_nhap_cuoi ? ddmmyy(x.dang_nhap_cuoi) : 'Chưa đăng nhập'}</td>
           <td class="ql-act">${toi ? '' : (QLV.mk === x.user_id
             ? `<input class="in" type="password" id="qlDat-${u}" placeholder="Mật khẩu mới (≥ 12 ký tự, được toàn số)" autocomplete="new-password" aria-label="Mật khẩu mới cho ${E(x.ten_dang_nhap)}"><button type="button" class="btn sm pri" data-ql="datmk">Lưu</button><button type="button" class="btn sm" data-ql="huymk">Huỷ</button>`
@@ -570,7 +580,19 @@
       }
     });
     app.addEventListener('change', async e => {
-      const s = e.target; if (s.dataset.ql !== 'quyen') return;
+      const s = e.target;
+      if (s.dataset.ql === 'mien') {   // Miễn / Bắt buộc mã 6 số cho một tài khoản quản trị
+        const x = tvCua(s); if (!x) return;
+        const mien = s.value === '1'; s.disabled = true;
+        try {
+          await DN.api.datMien2Lop(x.user_id, mien);
+          ghi((mien ? 'Miễn mã 6 số cho tài khoản ' : 'Bắt buộc lại mã 6 số cho tài khoản ') + x.ten_dang_nhap, [mien ? 'Đăng nhập chỉ cần mật khẩu' : 'Đăng nhập cần mật khẩu + mã 6 số']);
+          toast(mien ? `Đã miễn mã 6 số cho ${x.ten_dang_nhap}: đăng nhập chỉ cần mật khẩu. Xong việc nhớ chọn lại “Bắt buộc”.` : `Đã bắt buộc lại mã 6 số cho ${x.ten_dang_nhap}`);
+          await qlTaiTv(true);
+        } catch (er) { toast(viLoi(er)); s.value = x.mien_2_lop ? '1' : '0'; s.disabled = false; }
+        return;
+      }
+      if (s.dataset.ql !== 'quyen') return;
       const x = tvCua(s); if (!x) return;
       try { await DN.api.suaThanhVien(x.user_id, { quyen: s.value }); ghi('Đổi quyền tài khoản ' + x.ten_dang_nhap, [`Quyền: ${lbl(QUYEN_TK, x.quyen)} → ${lbl(QUYEN_TK, s.value)}`]); toast('Đã đổi quyền của ' + x.ten_dang_nhap); await qlTaiTv(true); }
       catch (er) { toast(viLoi(er)); s.value = x.quyen; }
