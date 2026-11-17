@@ -28,6 +28,7 @@ quy tắc nào cũng phải có mục chi tiết cùng số.
 | 13 | **Đầu mối, danh bạ không vào file "Xuất cho kế toán"**; số điện thoại chỉ ở Danh bạ (cần đăng nhập) | Máy: thử giao diện `chung`, `dang-nhap` |
 | 14 | Mọi thay đổi dữ liệu kiểm kê đi qua **`save()`** để có lịch sử; mỗi tài liệu ghi lần lượt; không ghi khi đang vẽ trang | Trợ lý · Máy (gián tiếp): thử giao diện soát lịch sử ghi đúng từng thao tác |
 | 15 | **Trước khi báo "xong"**: `npm test`, thử giao diện, đưa lên web, `npm run kiem-tra-web`; nói rõ điều đã làm và điều chưa kiểm được | Trợ lý |
+| 16 | **Thông số quản lý** (dung lượng, giới hạn gói, số liệu vận hành) **chỉ tài khoản Quản trị thấy**; tài khoản thường không thấy, máy chủ cũng không trả | Máy: thử giao diện `anh` · Trợ lý: chức năng mới |
 
 ## Dự án
 
@@ -268,6 +269,15 @@ chưa tìm thấy thì KHÔNG hiện xong (ghi rõ "N lệch", "N chưa thấy")
 5. Có quy tắc mới người dùng chốt: thêm vào đúng mục ở đây (kèm ngày); quan trọng thì thêm 1 dòng vào bảng Quy tắc vàng, ghi rõ
    máy kiểm tra ở đâu (thêm bước kiểm tra nếu làm được).
 
+### 16. Thông số quản lý chỉ Quản trị thấy
+
+**Người dùng chốt 17/11/2026** (khi thêm "Dung lượng kho ảnh" ở Chung › Ảnh tài sản, dặn lưu thành quy tắc cho việc tương tự): trang
+của quản trị hiện các **thông số để quản lý** — dung lượng đã dùng / còn trống, giới hạn của gói dịch vụ (Supabase miễn phí: 1 GB
+tệp), ước tính còn chứa được bao nhiêu, cảnh báo sắp đầy…; tài khoản thường (Tra cứu, Kiểm kê) **không cần, không thấy**.
+Làm đủ 2 lớp: (1) trang chỉ vẽ khi `DN.laQuanTri()`; (2) số liệu lấy qua hàm máy chủ chỉ trả cho `la_quan_tri()` (người khác nhận
+`null`), chỉ trả con số (không trả tên tệp, đường dẫn, dữ liệu cá nhân). Ghi rõ trên khung "Thông số quản lý — chỉ tài khoản Quản trị
+thấy". Thêm thông số mới thì thêm bước thử: quyền thường không thấy, quản trị thấy và số khớp (vd. thử giao diện `anh`).
+
 ### Quyết định khác của người dùng (giao diện, chức năng)
 
 - **Bảng tổng quan:** cả 5 ô số liệu đều có nút "Xem →" (người dùng chọn 16/11/2026): Tổng số dòng → `#tong-hop`; Đã kiểm →
@@ -294,4 +304,6 @@ chưa tìm thấy thì KHÔNG hiện xong (ghi rõ "N lệch", "N chưa thấy")
   Khấu hao, Đầu mối, Danh bạ, Quản lý — "chỗ quản lý toàn bộ ảnh tài sản"): số liệu (tài sản có ảnh, tổng số ảnh, chưa có ảnh — không
   tính công trình, xây lắp, phần mềm), lọc theo sheet, **Có ảnh** (ảnh mới nhất trước hoặc gom theo phòng) / **Chưa có ảnh** (xếp theo
   phòng để đi chụp lần lượt), tìm theo STT / mã / tên / phòng. Thêm, xoá ảnh mở **đúng hộp ⋯** (không viết đường tải lên thứ hai) nên
-  quyền, tối đa 5 ảnh, thu nhỏ ảnh, lịch sử giống hệt. Giữ bằng thử giao diện `anh`, `chung`.
+  quyền, tối đa 5 ảnh, thu nhỏ ảnh, lịch sử giống hệt. Giữ bằng thử giao diện `anh`, `chung`. Quản trị thấy thêm khung **Dung lượng kho
+  ảnh** (đã dùng / 1 GB, còn trống ≈ bao nhiêu ảnh, số ảnh / tệp, trung bình mỗi ảnh, giới hạn, cảnh báo ≥ 80%; hàm máy chủ
+  `dung_luong_anh()`) — quy tắc 16.

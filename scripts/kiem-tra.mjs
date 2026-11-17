@@ -353,6 +353,9 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
     && /function public\.quan_tri_dat_mien_2_lop[\s\S]*?coalesce\(auth\.jwt\(\) ->> 'aal', 'aal1'\) <> 'aal2' then raise exception 'CAN_2_LOP'/.test(sql)
     && /or public\.duoc_mien_2_lop\(\)\)/.test(sql),
     'dang-nhap.sql: "Miễn mã 6 số" chỉ đổi được qua hàm, bởi quản trị đã qua mã 6 số; cột không sửa thẳng được');
+  // quy tắc vàng 16: thông số quản lý (dung lượng kho ảnh) máy chủ chỉ trả cho quản trị, người lạ không gọi được
+  ok(/function public\.dung_luong_anh\(\)[\s\S]*?select case when public\.la_quan_tri\(\) then json_build_object/.test(sql) && /revoke all on function public\.dung_luong_anh\(\) from public, anon/.test(sql),
+    'dang-nhap.sql: dung lượng kho ảnh (thông số quản lý) chỉ trả cho quản trị, người không đăng nhập không gọi được (quy tắc vàng 16)');
   {
     const pol = sql.match(/create policy "anh tai san[^;]*;/g) || [];
     ok(/values \('anh-tai-san', 'anh-tai-san', false,/.test(sql) && /set public = false/.test(sql) && pol.length === 4

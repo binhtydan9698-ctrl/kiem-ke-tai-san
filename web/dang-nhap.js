@@ -112,6 +112,7 @@
       async doiMkDau(moi) { const { error } = await sb.auth.updateUser({ password: moi }); if (error) throw error; },
       async suaThanhVien(uid, o) { const { error } = await sb.from('thanh_vien').update(o).eq('user_id', uid); if (error) throw error; },
       datMien2Lop: (uid, mien) => rpc('quan_tri_dat_mien_2_lop', { p_uid: uid, p_mien: !!mien }),
+      dungLuongAnh: () => rpc('dung_luong_anh'),   // thông số quản lý: máy chủ chỉ trả cho quản trị (người khác nhận null)
       datMatKhau: (uid, mk) => rpc('quan_tri_dat_mat_khau', { p_uid: uid, p_mat_khau: mk }),
       khoaDuLieu: () => rpc('khoa_du_lieu'),
       // xác thực 2 bước (TOTP: Google Authenticator, Microsoft Authenticator…)

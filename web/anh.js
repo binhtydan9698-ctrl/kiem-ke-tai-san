@@ -240,6 +240,43 @@
     const k = document.getElementById('avKq'), d = document.getElementById('avDem'); if (!k) return;
     const r = avKetQua(); d.innerHTML = r.dem; k.innerHTML = r.than; avAnhNho();
   }
+  /* Dung lượng kho ảnh — THÔNG SỐ QUẢN LÝ, CHỈ TÀI KHOẢN QUẢN TRỊ THẤY (người dùng chốt 17/11/2026). Số liệu lấy từ máy chủ
+     (dung_luong_anh trong dang-nhap.sql, chỉ trả cho quản trị); trang cũng chỉ vẽ khi DN.laQuanTri(). */
+  const KHO_GOI = 1024 ** 3;          // gói miễn phí Supabase: 1 GB cho mọi tệp trong Storage
+  const ANH_UOC = 400 * 1024;         // chưa có ảnh nào: ước mỗi ảnh (ảnh lớn + ảnh nhỏ) khoảng 400 KB
+  const bytes = b => b >= 1024 ** 3 ? (b / 1024 ** 3).toLocaleString('vi-VN', { maximumFractionDigits: 2 }) + ' GB'
+    : b >= 1024 ** 2 ? (b / 1024 ** 2).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' MB' : Math.round(b / 1024).toLocaleString('vi-VN') + ' KB';
+  async function avTaiDungLuong() {
+    AV.dl = { tai: false, luc: Date.now() };
+    try { AV.dl.d = await DN.api.dungLuongAnh(); if (!AV.dl.d) AV.dl.loi = 'Chưa đọc được dung lượng (chỉ quản trị đã đăng nhập đủ bước mới xem được).'; }
+    catch (e) { AV.dl.loi = /dung_luong_anh|PGRST202|Could not find/i.test(String(e && e.message)) ? 'Máy chủ chưa cập nhật: chạy lại file supabase/dang-nhap.sql (bản mới nhất) trong Supabase → SQL Editor.' : dnLoi(e); }
+    AV.dl.tai = true;
+    const el = document.getElementById('atDl'); if (el && V.type === 'anh') el.outerHTML = avDungLuongHTML();
+  }
+  function avDungLuongHTML() {
+    if (!DN.laQuanTri()) return '';
+    const s = AV.dl; let than;
+    if (!s || !s.tai) than = '<div class="empty">Đang tính dung lượng…</div>';
+    else if (s.loi) than = `<div class="ch-note warn">${ic('TriangleAlert')}<div>${esc(s.loi)}</div></div>`;
+    else {
+      const d = s.d, dung = +d.byte_moi_kho || 0, anh = +d.byte || 0, khac = Math.max(0, dung - anh), con = Math.max(0, KHO_GOI - dung);
+      const soAnh = Object.values(S.anh || {}).reduce((t, x) => t + ((x && x.ds) || []).length, 0), tb = soAnh ? anh / soAnh : ANH_UOC;
+      const pct = dung / KHO_GOI * 100, pctC = pct > 0 && pct < 0.1 ? 'dưới 0,1' : pct.toLocaleString('vi-VN', { maximumFractionDigits: 1 });
+      than = `<div class="at-dl-so"><b class="num">${bytes(dung)}</b><span>đã dùng / ${bytes(KHO_GOI)} (gói miễn phí) · ${pctC}%</span></div>
+        <div class="at-dl-thanh${pct >= 80 ? ' day' : ''}" role="meter" aria-label="Dung lượng kho đã dùng" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100, pct).toFixed(1)}" aria-valuetext="Đã dùng ${pctC}%"><span style="width:${Math.min(100, pct).toFixed(2)}%"></span></div>
+        <dl class="ql-dl at-dl-dl">
+          <div><dt>Còn trống</dt><dd><b>${bytes(con)}</b> ≈ ${nf.format(Math.floor(con / tb))} ảnh nữa</dd></div>
+          <div><dt>Ảnh tài sản</dt><dd>${bytes(anh)} · ${nf.format(soAnh)} ảnh (${nf.format(+d.so_tep || 0)} tệp, mỗi ảnh kèm 1 ảnh nhỏ)</dd></div>
+          <div><dt>Trung bình mỗi ảnh</dt><dd>${bytes(tb)}${soAnh ? '' : ' (ước tính, chưa có ảnh)'}</dd></div>
+          <div><dt>Giới hạn</dt><dd>mỗi tệp ≤ ${bytes(+d.gioi_han_tep || 3145728)} · mỗi tài sản ≤ ${ANH_TOI_DA} ảnh</dd></div>
+          ${khac ? `<div><dt>Tệp khác trong kho</dt><dd>${bytes(khac)}</dd></div>` : ''}
+        </dl>
+        ${pct >= 80 ? `<div class="ch-note warn">${ic('TriangleAlert')}<div><b>Kho sắp đầy.</b> Xoá ảnh thừa, ảnh trùng, hoặc nâng gói Supabase trước khi chụp thêm.</div></div>` : ''}
+        <p class="note">Cập nhật ${hh(s.luc)} · <button type="button" class="lnk" data-at="dl">Tính lại</button></p>`;
+    }
+    return `<section class="ql-the at-dl" id="atDl" aria-labelledby="atDlTd"><h2 id="atDlTd">${ic('HardDrive')}Dung lượng kho ảnh</h2>
+      <p class="note">Thông số quản lý — chỉ tài khoản Quản trị thấy. Gói miễn phí Supabase có 1 GB cho mọi tệp trong kho.</p>${than}</section>`;
+  }
   g.viewAnhTS = function () {
     avBind();
     const ban = banner('can-tin', 'Chung', 'Ảnh tài sản', 'Toàn bộ ảnh chụp tài sản ở một chỗ: xem, tìm theo STT, mã, tên, phòng; thêm hoặc xoá ảnh của từng tài sản. Ảnh cũng xem được ở nút ⋯ trên mỗi dòng tài sản.');
@@ -256,6 +293,7 @@
       <div><small>Tổng số ảnh</small><b class="num">${nf.format(soAnh)}</b><span>tối đa ${ANH_TOI_DA} ảnh mỗi tài sản</span></div>
       <div><small>Chưa có ảnh</small><b class="num">${nf.format(p.chua.length)}</b><span>tài sản (không tính công trình, xây lắp, phần mềm)</span></div>
     </div>
+    ${avDungLuongHTML()}
     <div class="tools at-tools">
       <select class="in" id="avdv" aria-label="Sheet"><option value="">Mọi sheet</option>${UNITS.map(u => `<option value="${u.id}" ${AV.dv === u.id ? 'selected' : ''}>${esc(u.sheet)}</option>`).join('')}</select>
       <div class="seg" role="group" aria-label="Lọc theo ảnh"><button type="button" data-at="loc" data-v="co" aria-pressed="${AV.loc === 'co'}">Có ảnh <em class="num">${nf.format(p.co.length)}</em></button><button type="button" data-at="loc" data-v="chua" aria-pressed="${AV.loc === 'chua'}">Chưa có ảnh <em class="num">${nf.format(p.chua.length)}</em></button></div>
@@ -265,9 +303,11 @@
     <p class="dm-sum" id="avDem">${r.dem}</p>
     <div id="avKq">${r.than}</div>`;
     avAnhNho();
+    if (DN.laQuanTri() && (!AV.dl || (AV.dl.tai && Date.now() - AV.dl.luc > 60000))) avTaiDungLuong();   // quá 1 phút thì đếm lại
   };
   // đóng hộp ⋯ khi đang ở trang Ảnh tài sản: vẽ lại để số ảnh, ảnh bìa đúng; đưa con trỏ về lại nút vừa bấm
   function avSauDong(stt) {
+    AV.dl = null;   // ảnh vừa thêm / xoá: đếm lại dung lượng
     const y = window.scrollY; render(); window.scrollTo(0, y);
     app.querySelector(`[data-stt="${stt}"] [data-at="mo"]`)?.focus({ preventScroll: true });
   }
@@ -278,6 +318,7 @@
       const v = b.dataset.at, a = BY_STT[(b.closest('[data-stt]') || {}).dataset?.stt];
       if (v === 'loc') { AV.loc = b.dataset.v; AV.lim = AV_LIM[AV.loc]; render(); return; }
       if (v === 'them') { AV.lim += AV_LIM[AV.loc]; avVe(); return; }
+      if (v === 'dl') { avTaiDungLuong(); const el = document.getElementById('atDl'); if (el) el.outerHTML = avDungLuongHTML(); return; }
       if (!a) return;
       if (v === 'xem') { moXem(a, 0); return; }
       if (v === 'mo') { moMoRong(a); return; }

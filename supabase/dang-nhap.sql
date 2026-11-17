@@ -288,4 +288,19 @@ create policy "anh tai san them" on storage.objects for insert to authenticated 
 create policy "anh tai san sua"  on storage.objects for update to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh')) with check (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
 create policy "anh tai san xoa"  on storage.objects for delete to authenticated using (bucket_id = 'anh-tai-san' and public.duoc_ghi('anh'));
 
+-- Dung lượng kho ảnh (Chung › Ảnh tài sản) — THÔNG SỐ QUẢN LÝ, CHỈ QUẢN TRỊ (người dùng chốt 17/11/2026): người khác gọi được hàm
+-- nhưng chỉ nhận null. Chỉ trả số tệp, tổng dung lượng (không trả tên tệp, đường dẫn). row_security = off: đếm đủ mọi tệp; nếu
+-- máy chủ không cho bỏ qua RLS thì báo lỗi rõ ràng chứ không trả số thiếu.
+create or replace function public.dung_luong_anh() returns json
+language sql stable security definer set search_path = public, storage set row_security = off as $$
+  select case when public.la_quan_tri() then json_build_object(
+    'so_tep', (select count(*) from storage.objects o where o.bucket_id = 'anh-tai-san'),
+    'byte', (select coalesce(sum((o.metadata ->> 'size')::bigint), 0) from storage.objects o where o.bucket_id = 'anh-tai-san'),
+    'byte_moi_kho', (select coalesce(sum((o.metadata ->> 'size')::bigint), 0) from storage.objects o),
+    'gioi_han_tep', (select b.file_size_limit from storage.buckets b where b.id = 'anh-tai-san')
+  ) end
+$$;
+revoke all on function public.dung_luong_anh() from public, anon;
+grant execute on function public.dung_luong_anh() to authenticated;
+
 -- Muốn quay lại như cũ (ai có link đều dùng được): chạy lại supabase/schema.sql (nó cấp lại quyền cho anon).

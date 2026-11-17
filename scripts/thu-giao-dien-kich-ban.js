@@ -678,6 +678,8 @@
     await go('anh-tai-san'); await until(() => app.querySelector('.at-the .at-anh img[src]'));
     const the = () => [...app.querySelectorAll('.at-the')], soLieu = () => [...app.querySelectorAll('.at-sum b')].map(x => +x.textContent.replace(/\D/g, ''));
     ok(the().length === 1 && +the()[0].dataset.stt === a.stt && the()[0].querySelector('.at-dem').textContent.trim() === '4', 'Ảnh tài sản: có thẻ của tài sản vừa chụp, ảnh bìa hiện, đếm 4 ảnh');
+    // thông số quản lý (dung lượng kho) chỉ quản trị thấy — người dùng chốt 17/11/2026
+    ok(!document.getElementById('atDl') && !/Dung lượng kho ảnh/.test(app.textContent) && (await A.dungLuongAnh()) === null, 'quyền Kiểm kê: không thấy dung lượng kho ảnh (thông số quản lý), máy chủ cũng không trả số liệu');
     const chua0 = ASSETS.filter(x => !x.hoso && x.stt !== a.stt).length, sl = soLieu();
     ok(sl[0] === 1 && sl[1] === 4 && sl[2] === chua0, `số liệu: 1 tài sản có ảnh, 4 ảnh, ${nf.format(chua0)} tài sản chưa có ảnh (không tính công trình, xây lắp, phần mềm)`);
     the()[0].querySelector('[data-at="xem"]').click(); await until(() => lb.open && lb.querySelector('.lb-anh'));
@@ -714,7 +716,20 @@
     ok(the().length === 2 && !app.querySelector('[data-at="mo"].pri') && /quyền Tra cứu chỉ xem/.test(app.textContent), 'quyền Tra cứu ở trang Ảnh tài sản: xem được 2 tài sản có ảnh, không có nút thêm, xoá');
     app.querySelector('[data-at="loc"][data-v="chua"]').click(); await W(300);
     ok(app.querySelectorAll('.at-chua').length > 0 && !app.querySelector('.at-chua [data-at="mo"]'), 'quyền Tra cứu: danh sách “Chưa có ảnh” chỉ có link Trang tài sản, không có nút Thêm ảnh');
-    AV.loc = 'co'; AV.q = ''; render(); window.scrollTo(0, 0); await until(() => app.querySelector('.at-the .at-anh img[src]'));
+    ok(!document.getElementById('atDl') && (await A.dungLuongAnh()) === null, 'quyền Tra cứu: không thấy dung lượng kho ảnh');
+    // Quản trị: thấy ô "Dung lượng kho ảnh" (đã dùng / 1 GB, còn trống ≈ bao nhiêu ảnh nữa), số khớp với kho ảnh
+    AV.loc = 'co'; AV.q = '';
+    await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500);
+    await dangNhap('quantri', 'MatKhauThu#1'); await until(() => document.getElementById('dnMa'));
+    dien('dnMa', '246810'); document.getElementById('dnNut').click(); await until(() => DN.toi && DN.laQuanTri());
+    await go('anh-tai-san'); await until(() => document.querySelector('#atDl .at-dl-so'));
+    let tong = 0; A.kho.forEach(v => { tong += v.size; });
+    const dl = document.getElementById('atDl'), soAnhNay = Object.values(S.anh).reduce((t, x) => t + x.ds.length, 0);
+    ok(/Chỉ tài khoản Quản trị thấy/i.test(dl.textContent) && /1 GB/.test(dl.textContent) && dl.textContent.includes(`${nf.format(soAnhNay)} ảnh (${nf.format(A.kho.size)} tệp`)
+      && /≈ [\d.]+ ảnh nữa/.test(dl.textContent) && !!dl.querySelector('[role="meter"]'), `quản trị thấy dung lượng kho ảnh: ${nf.format(soAnhNay)} ảnh, ${nf.format(A.kho.size)} tệp, ${Math.round(tong / 1024)} KB đã dùng / 1 GB, còn trống ≈ số ảnh nữa`);
+    const kqAxe2 = await axe.run(document, AXE);
+    ok(!kqAxe2.violations.length, 'trang Ảnh tài sản có ô dung lượng (quản trị) đạt trợ năng WCAG 2.2 AA' + (kqAxe2.violations.length ? ': ' + kqAxe2.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : ''));
+    render(); window.scrollTo(0, 0); await until(() => app.querySelector('.at-the .at-anh img[src]'));
   };
 
   // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,

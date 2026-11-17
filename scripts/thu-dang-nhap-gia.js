@@ -32,6 +32,8 @@ if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa', '?anh'].includes(location.search
     async doiMkDau(moi) { const x = tim(phien); if (!x) loi('Chưa đăng nhập'); if (x.mk === moi) loi('New password should be different from the old password.'); x.mk = moi; x.doi = false; },
     async dsThanhVien() { return tk.map(x => ({ user_id: x.uid, ten_dang_nhap: x.ten, ho_ten: x.ho_ten, quyen: x.quyen, khoa: x.khoa, email: x.email, tao_luc: new Date().toISOString(), dang_nhap_cuoi: null, mien_2_lop: !!x.mien })); },
     // giống quan_tri_dat_mien_2_lop: chỉ quản trị mà phiên đã qua 2 bước mới đổi được
+    // giống dung_luong_anh: chỉ quản trị (đủ bước xác thực hoặc được miễn) nhận số liệu, người khác nhận null
+    async dungLuongAnh() { const x = phien && tim(phien); if (!x || x.quyen !== 'admin' || x.khoa || (x.mfa && !aal2 && !x.mien)) return null; let b = 0; kho.forEach(v => { b += v.size; }); return { so_tep: kho.size, byte: b, byte_moi_kho: b, gioi_han_tep: 3145728 }; },
     async datMien2Lop(uid, mien) { const x = phien && tim(phien); if (!x || x.quyen !== 'admin' || x.khoa) loi('Chỉ quản trị mới đổi được mục này'); if (!(x.mfa && aal2)) loi('CAN_2_LOP'); tim(uid).mien = !!mien; },
     async themThanhVien(o) {
       if (tk.some(x => x.ten === o.ten)) loi('duplicate key value violates unique constraint');

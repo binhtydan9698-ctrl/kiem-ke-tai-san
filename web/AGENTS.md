@@ -54,6 +54,10 @@
   nhỏ đầu tiên, lấy đường dẫn có hạn một lần cho mọi thẻ đang hiện — `avAnhNho`), dòng `.at-chua` cho tài sản chưa có ảnh; nút
   `data-at="mo"` gọi `moMoRong(a)` — KHÔNG viết đường tải lên / xoá thứ hai. Gõ tìm chỉ vẽ lại `#avKq` (`avVe`) để giữ con trỏ. Đóng
   hộp ⋯ khi đang ở trang này thì vẽ lại cả trang (`avSauDong`) và đưa con trỏ về nút vừa bấm.
+- **Thông số quản lý chỉ Quản trị thấy (quy tắc vàng 16)**: khung chỉ vẽ khi `DN.laQuanTri()`, số liệu qua hàm máy chủ chỉ trả cho
+  `la_quan_tri()` (người khác `null`), khung ghi "Thông số quản lý — chỉ tài khoản Quản trị thấy". Mẫu: `avDungLuongHTML()` /
+  `avTaiDungLuong()` trong `anh.js` (`DN.api.dungLuongAnh` → `dung_luong_anh()`; có ở cả `sbCong()` và đăng nhập giả), đếm lại sau
+  khi đóng hộp ⋯ và khi quá 1 phút; thanh `role="meter"` có nhãn; ≥ 80% thì cảnh báo.
 - Menu con cuộn ngang trên màn hẹp: `route()` gọi `menuThay(a)` kéo mục đang mở vào giữa (không để cắt chữ).
 - Bộ thử khi đang sửa: `THU_CHI=anh,chung` chỉ chạy các kịch bản đó, `THU_DT=1` chạy cỡ điện thoại, `THU_CHUP=<thư mục>` chụp cả
   trang cuối mỗi kịch bản (để trong thư mục tạm, không đưa vào repo).
