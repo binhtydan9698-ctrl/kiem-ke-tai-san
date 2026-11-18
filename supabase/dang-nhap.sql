@@ -71,6 +71,17 @@ create table if not exists public.mk_ban_dau (
   dat_luc  timestamptz not null default now()
 );
 
+-- GIÁM SÁT (người dùng chốt 18/11/2026): thiết bị (trình duyệt) từng dùng của mỗi tài khoản — để báo "thiết bị lạ" cho quản trị.
+-- Không có policy nào: chỉ trigger dong_dau_lich_su ghi.
+create table if not exists public.thiet_bi (
+  user_id  uuid not null references auth.users(id) on delete cascade,
+  dev      text not null,
+  tb       text not null default '',
+  lan_dau  timestamptz not null default now(),
+  lan_cuoi timestamptz not null default now(),
+  primary key (user_id, dev)
+);
+
 -- ===== hàm kiểm tra quyền (security definer: đọc thanh_vien không vướng RLS) =====
 -- dấu vết của mật khẩu hiện tại (so với mk_ban_dau)
 create or replace function public.dau_vet_mk(p_uid uuid) returns text
@@ -134,7 +145,7 @@ $$;
 create or replace function public.duoc_ghi(p_col text) returns boolean
 language sql stable security definer set search_path = public as $$
   select case when p_col = 'log' then public.la_thanh_vien()
-              when p_col = 'dm' then public.la_quan_tri()
+              when p_col in ('dm', 'cb') then public.la_quan_tri()   -- cb: cảnh báo hoạt động quản trị đã xem
               when p_col = 'moi' then coalesce(public.quyen_cua_toi() in ('admin', 'kiem', 'moi'), false)
               else coalesce(public.quyen_cua_toi() in ('admin', 'kiem'), false) end
 $$;
@@ -143,6 +154,27 @@ $$;
 create or replace function public.chu_moi(p_data jsonb) returns boolean
 language sql stable security definer set search_path = public as $$
   select public.la_quan_tri() or coalesce(p_data ->> 'uid', '') = coalesce(auth.uid()::text, '-')
+$$;
+
+-- LỊCH SỬ THAO TÁC = căn cứ giám sát (người dùng chốt 18/11/2026): quản trị xem của mọi người; người khác chỉ xem dòng của chính
+-- mình (dòng cũ trước khi có đóng dấu: khớp họ tên). Mỗi người chỉ sửa được dòng của mình (gộp lần gõ liên tiếp); không ai xoá.
+create or replace function public.cua_toi(p_data jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce(p_data ->> 'uid', '') = coalesce(auth.uid()::text, '-')
+$$;
+create or replace function public.xem_lich_su(p_data jsonb) returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.la_quan_tri() or public.cua_toi(p_data)
+      or (p_data ->> 'uid' is null and coalesce(p_data ->> 'by', '') <> ''
+          and p_data ->> 'by' in (select coalesce(nullif(t.ho_ten, ''), t.ten_dang_nhap) from public.thanh_vien t where t.user_id = auth.uid()))
+$$;
+-- Lý lịch một tài sản: mọi thành viên thấy ai đã làm gì trên tài sản đó (họ tên, chức danh) — bỏ thiết bị, IP, tên đăng nhập
+create or replace function public.ly_lich_tai_san(p_keys text[], p_limit int default 500) returns table (id text, data jsonb)
+language sql stable security definer set search_path = public as $$
+  select d.id, d.data - 'dev' - 'tb' - 'ip' - 'tbmoi' - 'uid' - 'tk' from public.kiemke_docs d
+  where public.la_thanh_vien() and d.col = 'log'
+    and (d.data ->> 'key' = any(p_keys) or coalesce(d.data -> 'keys', '[]'::jsonb) ?| p_keys)
+  order by d.id desc limit least(greatest(coalesce(p_limit, 500), 1), 1000)
 $$;
 
 -- tệp ảnh: ảnh tài sản trong sổ (ts/…) — Kiểm kê, Quản trị; ảnh tài sản mới (moi/<mã tài sản mới>/…) — thêm cả người tạo tài sản đó
@@ -242,11 +274,13 @@ end $$;
 revoke all on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
   public.quan_tri_them_thanh_vien(text, text, text, text, boolean, text), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
-  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean), public.chu_moi(jsonb), public.duoc_ghi_anh(text) from public, anon;
+  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean), public.chu_moi(jsonb), public.duoc_ghi_anh(text),
+  public.cua_toi(jsonb), public.xem_lich_su(jsonb), public.ly_lich_tai_san(text[], int) from public, anon;
 grant execute on function public.duoc_ghi(text), public.du_cap_xac_thuc(), public.quyen_cua_toi(), public.la_thanh_vien(), public.la_quan_tri(), public.toi_la_ai(),
   public.khoa_du_lieu(), public.nhan_quan_tri_dau_tien(text, text), public.ds_thanh_vien(),
   public.quan_tri_them_thanh_vien(text, text, text, text, boolean, text), public.quan_tri_dat_mat_khau(uuid, text), public.con_mk_ban_dau(),
-  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean), public.chu_moi(jsonb), public.duoc_ghi_anh(text) to authenticated;
+  public.duoc_mien_2_lop(), public.quan_tri_dat_mien_2_lop(uuid, boolean), public.chu_moi(jsonb), public.duoc_ghi_anh(text),
+  public.cua_toi(jsonb), public.xem_lich_su(jsonb), public.ly_lich_tai_san(text[], int) to authenticated;
 -- dấu vết mật khẩu, ghi dấu vết: chỉ dùng bên trong các hàm trên, không ai gọi thẳng được
 revoke all on function public.dau_vet_mk(uuid), public.ghi_mk_ban_dau(uuid) from public, anon, authenticated;
 grant execute on function public.trang_thai_dang_nhap(), public.email_dang_nhap(text) to anon, authenticated;
@@ -255,6 +289,7 @@ grant execute on function public.trang_thai_dang_nhap(), public.email_dang_nhap(
 revoke all on public.thanh_vien, public.danh_ba, public.bi_mat, public.kiemke_docs from anon;
 revoke all on public.bi_mat from authenticated;
 revoke all on public.mk_ban_dau from anon, authenticated;
+revoke all on public.thiet_bi from anon, authenticated;
 grant select, insert, update, delete on public.kiemke_docs, public.danh_ba to authenticated;
 -- thanh_vien: quản trị chỉ sửa thẳng được họ tên, quyền, khoá, nhóm; cột "miễn mã 6 số" chỉ đổi qua hàm quan_tri_dat_mien_2_lop
 revoke update on public.thanh_vien from authenticated;
@@ -266,6 +301,7 @@ alter table public.thanh_vien enable row level security;
 alter table public.danh_ba enable row level security;
 alter table public.bi_mat enable row level security;   -- không có policy nào: chỉ đọc qua khoa_du_lieu()
 alter table public.mk_ban_dau enable row level security;   -- không có policy nào: chỉ các hàm mật khẩu ban đầu đọc / ghi
+alter table public.thiet_bi enable row level security;     -- không có policy nào: chỉ trigger dong_dau_lich_su ghi
 
 drop policy if exists "tv xem" on public.thanh_vien;
 drop policy if exists "tv sua" on public.thanh_vien;
@@ -289,11 +325,46 @@ drop policy if exists "kiemke doc" on public.kiemke_docs;
 drop policy if exists "kiemke them" on public.kiemke_docs;
 drop policy if exists "kiemke sua" on public.kiemke_docs;
 drop policy if exists "kiemke xoa" on public.kiemke_docs;
-create policy "kiemke doc"  on public.kiemke_docs for select to authenticated using (public.la_thanh_vien());
+-- lịch sử (log): đọc theo xem_lich_su, sửa chỉ dòng của mình, KHÔNG ai xoá; cảnh báo đã xem (cb): chỉ quản trị
+create policy "kiemke doc"  on public.kiemke_docs for select to authenticated
+  using (public.la_thanh_vien() and (col <> 'log' or public.xem_lich_su(data)) and (col <> 'cb' or public.la_quan_tri()));
 create policy "kiemke them" on public.kiemke_docs for insert to authenticated with check (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)));
-create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)))
-  with check (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)));
-create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.duoc_ghi(col) and (col <> 'log' or public.la_quan_tri()) and (col <> 'moi' or public.chu_moi(data)));
+create policy "kiemke sua"  on public.kiemke_docs for update to authenticated using (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)) and (col <> 'log' or public.cua_toi(data)))
+  with check (public.duoc_ghi(col) and (col <> 'moi' or public.chu_moi(data)) and (col <> 'log' or public.cua_toi(data)));
+create policy "kiemke xoa"  on public.kiemke_docs for delete to authenticated using (public.duoc_ghi(col) and col <> 'log' and (col <> 'moi' or public.chu_moi(data)));
+
+-- Lịch sử thao tác (col 'log'): MÁY CHỦ ĐÓNG DẤU người làm — tài khoản (uid, tên đăng nhập, họ tên, chức danh / nhóm, quyền), giờ máy
+-- chủ, địa chỉ IP — nên không ai ghi giả tên người khác được; ghi nhớ thiết bị để đánh dấu "thiết bị lạ" (tbmoi). Sửa dòng của
+-- mình (gộp lần gõ liên tiếp) thì giữ nguyên dấu cũ.
+create or replace function public.dong_dau_lich_su() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare t public.thanh_vien; h json; v_ip text; v_dev text; v_moi boolean := false; v_co_cu boolean;
+begin
+  if new.col <> 'log' or auth.uid() is null then return new; end if;
+  if tg_op = 'UPDATE' then
+    new.data := new.data || jsonb_strip_nulls(jsonb_build_object('uid', old.data -> 'uid', 'tk', old.data -> 'tk', 'by', old.data -> 'by',
+      'cd', old.data -> 'cd', 'quyen', old.data -> 'quyen', 'ip', old.data -> 'ip', 'ts', old.data -> 'ts', 'tbmoi', old.data -> 'tbmoi'));
+    return new;
+  end if;
+  select * into t from public.thanh_vien where user_id = auth.uid();
+  begin h := nullif(current_setting('request.headers', true), '')::json; exception when others then h := null; end;
+  v_ip := trim(split_part(coalesce(h ->> 'cf-connecting-ip', h ->> 'x-forwarded-for', h ->> 'x-real-ip', ''), ',', 1));
+  new.data := new.data || jsonb_build_object('uid', auth.uid()::text, 'tk', coalesce(t.ten_dang_nhap, ''),
+    'by', coalesce(nullif(t.ho_ten, ''), t.ten_dang_nhap, new.data ->> 'by', ''), 'cd', coalesce(t.nhom, ''), 'quyen', coalesce(t.quyen, ''),
+    'ip', left(v_ip, 64), 'ts', floor(extract(epoch from clock_timestamp()) * 1000));
+  v_dev := left(coalesce(new.data ->> 'dev', ''), 40);
+  if v_dev <> '' then
+    select exists (select 1 from public.thiet_bi b where b.user_id = auth.uid()) into v_co_cu;
+    insert into public.thiet_bi (user_id, dev, tb) values (auth.uid(), v_dev, left(coalesce(new.data ->> 'tb', ''), 80))
+    on conflict (user_id, dev) do update set lan_cuoi = now(), tb = excluded.tb
+    returning (xmax = 0) into v_moi;
+    if v_moi and v_co_cu then new.data := new.data || '{"tbmoi": true}'::jsonb; end if;
+  end if;
+  return new;
+end $$;
+revoke all on function public.dong_dau_lich_su() from public, anon, authenticated;
+drop trigger if exists dong_dau_lich_su on public.kiemke_docs;
+create trigger dong_dau_lich_su before insert or update on public.kiemke_docs for each row execute function public.dong_dau_lich_su();
 
 -- Tài sản mới (col 'moi'): máy chủ tự gắn người tạo (uid) và tag "Tạo bởi" (nhóm của tài khoản) khi tạo; người không phải quản trị
 -- không đổi được người tạo, tag, hay chỗ nối với tài sản trong sổ (noi) khi sửa. Quản trị sửa được tất cả.

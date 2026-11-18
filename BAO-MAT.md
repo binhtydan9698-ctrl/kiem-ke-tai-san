@@ -67,7 +67,12 @@ Lấy từ các thư viện, kho mã đã được cấp phép dùng trong dự 
    dữ liệu, sửa mọi tài sản mới). Mọi thành viên đều ghi lịch sử theo tên. Khoá tài khoản có hiệu lực ngay, kể cả máy đang mở trang.
    (Máy soát: `npm test` bước 6; thử giao diện `tai-san-moi`.)
 10. Lịch sử ghi lại: đăng nhập (thiết bị, trình duyệt), đăng xuất, thêm / khoá / đổi quyền / đặt lại mật khẩu thành viên, bật / tắt xác
-    thực 2 bước, sao chép khoá dữ liệu.
+    thực 2 bước, sao chép khoá dữ liệu, tải Excel / tải ảnh về máy. **Lịch sử là căn cứ giám sát** (người dùng chốt 18/11/2026, quy tắc vàng
+    17): máy chủ đóng dấu mỗi dòng (tài khoản, tên đăng nhập, chức danh / nhóm, quyền, giờ máy chủ, **địa chỉ IP**; thiết bị từng dùng ở
+    bảng `thiet_bi` không ai đọc thẳng được); không ai sửa dòng của người khác, **không ai xoá** lịch sử (kể cả quản trị); quản trị xem
+    tất cả, người khác chỉ xem của mình; Lý lịch tài sản (mọi thành viên) bỏ thiết bị, IP, tên đăng nhập. IP, thiết bị chỉ quản trị
+    thấy, chỉ dùng để giám sát an toàn tài khoản. Cảnh báo hành động đáng ngờ chỉ báo quản trị, không chặn thao tác. (Máy soát: `npm
+    test` bước 6; thử giao diện `giam-sat`.)
 11. Màn hình đăng nhập cho dán mật khẩu, dùng trình quản lý mật khẩu, có nút hiện mật khẩu (ui-ux-pro-max #107, #60, #58).
 12. Chỉ quản trị tạo tài khoản. Khi không thêm thành viên, tắt "Allow new users to sign up" trong Supabase để chặn đăng ký rác.
 

@@ -69,6 +69,12 @@
   Ảnh tài sản, xem ảnh); hộp ⋯ dùng chung qua `muc()` (`moMoRong(a)` cho tài sản trong sổ, `moAnhMoi(id)` cho tài sản mới; ảnh tài sản
   mới vào `moi/<mã>/`, đợi tài liệu ghi xong — `choGhi` — rồi mới tải ảnh). Xuất: `moiChoKeToan()` → `phatSinh` (cột Nguồn). Lịch sử
   khoá `m:` → `logMoiLines`, loại `moi`. Nhập sổ: nguồn `moi`. Bảng Thành viên: ô `data-ql="nhom"` + `#qtNhom` (gợi ý `NHOM_GOI_Y`).
+- **Giám sát (quy tắc vàng 17, `giam-sat.js`)**: `logPut` ghi kèm mỗi dòng `uid, tk, cd, quyen, tb` (máy chủ đóng dấu lại + `ip, ts, tbmoi`)
+  và `hd, sx, nc` (`gsPhanLoai`: loại hành động, số mục bị xoá, nhạy cảm); `logDescribe` đánh dấu `de` khi sửa kết quả người khác đã ghi.
+  Trang Lịch sử: `lsQT()` quản trị (thẻ `LV.tab` ds / tk / cb, lọc `LV.tk, tkTen, cd, quyen, hd, tg, tu, den, chiCb, chiDong`), `lsTK()` người
+  thường (chỉ `logMine`). Cảnh báo `gsLuat()` (hàm thuần, ngưỡng `GS_NGUONG`) trên `GS.logs` 7 ngày (`gsTai()` 5 phút một lần), `gsChuaXem()`,
+  `gsXem()` (lưu `cb/xem-<uid>` + localStorage); `render()` gọi `gsBao()` (thanh `#gsBao`, số đỏ `.gs-n` ở `#swLS` và menu con). Lý lịch đọc
+  qua `DB.lyLich()` (hàm máy chủ `ly_lich_tai_san`). Tải Excel (`xuatBangExcel`) và tải ảnh ghi lịch sử loại `xuat`.
 - Menu con cuộn ngang trên màn hẹp: `route()` gọi `menuThay(a)` kéo mục đang mở vào giữa (không để cắt chữ).
 - Bộ thử khi đang sửa: `THU_CHI=anh,chung` chỉ chạy các kịch bản đó, `THU_DT=1` chạy cỡ điện thoại, `THU_CHUP=<thư mục>` chụp cả
   trang cuối mỗi kịch bản (để trong thư mục tạm, không đưa vào repo).

@@ -29,6 +29,7 @@ quy tắc nào cũng phải có mục chi tiết cùng số.
 | 14 | Mọi thay đổi dữ liệu kiểm kê đi qua **`save()`** để có lịch sử; mỗi tài liệu ghi lần lượt; không ghi khi đang vẽ trang | Trợ lý · Máy (gián tiếp): thử giao diện soát lịch sử ghi đúng từng thao tác |
 | 15 | **Trước khi báo "xong"**: `npm test`, thử giao diện, đưa lên web, `npm run kiem-tra-web`; nói rõ điều đã làm và điều chưa kiểm được | Trợ lý |
 | 16 | **Thông số quản lý** (dung lượng, giới hạn gói, số liệu vận hành) **chỉ tài khoản Quản trị thấy**; tài khoản thường không thấy, máy chủ cũng không trả | Máy: thử giao diện `anh` · Trợ lý: chức năng mới |
+| 17 | **Lịch sử là căn cứ giám sát**: máy chủ đóng dấu người làm (không giả được), không ai sửa / xoá lịch sử; quản trị xem mọi người, người khác chỉ xem của mình; cảnh báo **không chặn** thao tác | Máy: npm test bước 6; thử giao diện `giam-sat` · Trợ lý: thao tác mới phải có câu lịch sử |
 
 ## Dự án
 
@@ -44,7 +45,7 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
 - **Quản lý mã QR tài sản** (`#ma-qr`, mã trong `web/ma-qr.js`): in tem mã QR (chọn tài sản, chỉnh mẫu tem, xem trước,
   tải PDF / ảnh PNG / Excel, CSV / In ngay) và **Sổ mã QR**. Quét tem bằng nút Quét mã mở thẳng trang tài sản `#ts-<khoá>`
   trong phần Kiểm kê.
-- **Lịch sử** (chung cho cả app): `#lich-su` Thao tác trên app (ai làm gì, lúc nào) · `#nhap-so` Nhập sổ (tài sản vào sổ
+- **Lịch sử** (chung cho cả app): `#lich-su` Thao tác trên app — **giám sát hoạt động tài khoản** (quy tắc 17, `web/giam-sat.js`) · `#nhap-so` Nhập sổ (tài sản vào sổ
   khi nào, từ kế toán qua file BBKK hay cán bộ Hành chính ghi nhận phát sinh) · `#ly-lich` / `#ly-lich-<khoá>` Lý lịch tài sản
   (dòng thời gian: bắt đầu sử dụng → vào sổ trên app → mọi thao tác → xoá khỏi BBKK).
 - **Chung** (người dùng thêm 15/11/2026, mã trong `web/chung.js`): `#khau-hao` Khấu hao (tài sản đã hết và sắp hết khấu hao
@@ -282,6 +283,25 @@ tệp), ước tính còn chứa được bao nhiêu, cảnh báo sắp đầy�
 Làm đủ 2 lớp: (1) trang chỉ vẽ khi `DN.laQuanTri()`; (2) số liệu lấy qua hàm máy chủ chỉ trả cho `la_quan_tri()` (người khác nhận
 `null`), chỉ trả con số (không trả tên tệp, đường dẫn, dữ liệu cá nhân). Ghi rõ trên khung "Thông số quản lý — chỉ tài khoản Quản trị
 thấy". Thêm thông số mới thì thêm bước thử: quyền thường không thấy, quản trị thấy và số khớp (vd. thử giao diện `anh`).
+
+### 17. Lịch sử là căn cứ giám sát
+
+**Người dùng chốt 18/11/2026** ("phần lịch sử là một trong những phần quan trọng của app… giám sát hành động của các tài khoản khác";
+tham khảo Google Workspace — Audit and investigation, reporting rules — và Microsoft 365 — alert policy "xoá số lượng tệp bất thường"):
+- **Ai xem**: quản trị xem lịch sử của mọi tài khoản; người khác chỉ xem của chính mình (máy chủ chặn: `xem_lich_su`). **Lý lịch từng tài
+  sản** vẫn cho mọi thành viên thấy ai đã làm gì trên tài sản đó (hàm `ly_lich_tai_san`, bỏ thiết bị, IP, tên đăng nhập).
+- **Mỗi dòng đủ chi tiết**: họ tên, tên đăng nhập, **chức danh / nhóm** (dùng chung ô "Chức danh / nhóm" ở bảng Thành viên — cũng là tag
+  "Tạo bởi" của tài sản mới), quyền, thiết bị (hệ điều hành · trình duyệt), IP, giờ máy chủ; loại hành động (tạo, sửa, xoá, xuất / tải,
+  đăng nhập, quản trị tài khoản). **Máy chủ đóng dấu** người làm (trigger `dong_dau_lich_su`) nên không ai ghi giả tên người khác; mỗi
+  người chỉ sửa được dòng của mình (gộp lần gõ liên tiếp); **không ai xoá** lịch sử, kể cả quản trị.
+- **Quản trị** có 3 thẻ: Thao tác (lọc theo tài khoản, chức danh, quyền, hành động, loại dữ liệu, thời gian, chỉ dòng có cảnh báo; Tải
+  Excel đủ cột) · Theo tài khoản (7 ngày: số thao tác, mục bị xoá, cảnh báo, hoạt động gần nhất, thiết bị, IP) · Cảnh báo.
+- **Cảnh báo** (người dùng bật cả 4 nhóm; chỉ quản trị thấy — quy tắc 16; **không chặn** thao tác của ai; không tính thao tác của chính
+  người xem; xét 7 ngày): xoá ≥ 5 mục hoặc ≥ 3 lần xoá cách nhau ≤ 10 phút · một lần đổi ≥ 30 mục · sửa kết quả kiểm người khác đã ghi ·
+  đổi quyền, khoá / mở khoá, đặt lại mật khẩu, miễn mã 6 số, sao chép khoá dữ liệu, thêm thành viên, xoá danh bạ · ≥ 5 lần xuất / tải
+  trong 60 phút · thao tác 22:00–6:00 · thiết bị chưa từng dùng (bảng `thiet_bi`). Báo bằng **thanh đầu trang + số đỏ ở Lịch sử**; "Đã
+  xem" lưu trên máy chủ (col `cb`, chỉ quản trị). Ngưỡng ở `GS_NGUONG` (web/giam-sat.js) — đổi ngưỡng là quyết định của người dùng.
+- Thao tác mới phải có câu lịch sử (quy tắc 14); tải dữ liệu ra file / ảnh cũng ghi lịch sử (loại "xuất").
 
 ### Quyết định khác của người dùng (giao diện, chức năng)
 

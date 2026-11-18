@@ -26,6 +26,7 @@ const KICH_BAN = [
   { ten: 'dang-nhap', mo: 'Đăng nhập: mật khẩu, chặn nhập sai, chính sách mật khẩu, xác thực 2 bước, thành viên, quyền, Danh bạ, tự đăng xuất' },
   { ten: 'anh', mo: 'Ảnh: nút ⋯ trên dòng tài sản (mã QR, tải ảnh lên, thu nhỏ, xem kiểu Messenger) + Chung › Ảnh tài sản (xem, tìm, thêm, xếp, quyền, trợ năng)' },
   { ten: 'tai-san-moi', mo: 'Tài sản mới: cán bộ mua sắm / giảng viên tạo kèm ảnh, tag Tạo bởi, chỉ sửa của mình, tự nối khi trùng Mã TSCĐ, xuất chung sheet phát sinh' },
+  { ten: 'giam-sat', mo: 'Lịch sử = giám sát: tài khoản, chức danh, thiết bị; người thường chỉ xem của mình; 7 loại cảnh báo, thanh báo + số đỏ, Đã xem; lọc, theo tài khoản' },
   { ten: 'ma-hoa', mo: 'Dữ liệu tài sản mã hoá: chưa đăng nhập không đọc được, đăng nhập xong giải mã và chạy', maHoa: true },
   { ten: 'nang-cap-dt', mo: 'Nâng cấp điện thoại: việc kiểm lên trước, vùng bấm ≥ 44px, chữ ≥ 13px, thanh tiến độ dính, banner gọn', dt: true },
   { ten: 'nang-cap-pc', mo: 'Nâng cấp — máy tính giữ bố cục cũ, thanh tiến độ dính, chữ ≥ 13px' },

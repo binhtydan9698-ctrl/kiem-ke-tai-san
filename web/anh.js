@@ -210,7 +210,10 @@
     const ten = `${LB.ma}-anh-${LB.i + 1}.jpg`;
     try {
       const blob = await (await fetch((URLS.get(x.p) || {}).u)).blob();
-      if (v === 'tai') { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ten; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+      if (v === 'tai') {
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = ten; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+        try { if (typeof g.logEvent === 'function') g.logEvent({ kind: 'xuat', title: 'Tải ảnh tài sản về máy', lines: [`${LB.ma} · ${LB.ten} · ảnh ${LB.i + 1}`] }); } catch (er) { }   // giám sát: tải dữ liệu
+      }
       if (v === 'chiase') { const f = new File([blob], ten, { type: 'image/jpeg' }); if (navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: LB.ten }); }
     } catch (e) { if (!/AbortError/.test(e && e.name)) toast('Không ' + (v === 'tai' ? 'tải' : 'chia sẻ') + ' được ảnh'); }
   }

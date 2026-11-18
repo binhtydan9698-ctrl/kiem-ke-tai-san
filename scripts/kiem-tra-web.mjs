@@ -22,7 +22,7 @@ for (let i = 0; i < 30; i++) {
 ok(ver === can, ver === can ? `Vercel đã có phiên bản ${can}` : `Sau 5 phút Vercel vẫn ở phiên bản ${ver} (kiểm tra mục Deployments trên vercel.com)`);
 
 // Đợi Vercel phục vụ đúng mã trang vừa build (cần khi chỉ sửa giao diện, dữ liệu Excel không đổi)
-const MA_TRANG = ['index.html', 'ma-qr.js', 'chung.js', 'dang-nhap.js', 'anh.js', 'tai-san-moi.js', 'qr-rules.js', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js'];
+const MA_TRANG = ['index.html', 'ma-qr.js', 'chung.js', 'dang-nhap.js', 'anh.js', 'tai-san-moi.js', 'giam-sat.js', 'qr-rules.js', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js'];
 const boCR = s => s.replace(/\r/g, '');
 const tren_may = Object.fromEntries(MA_TRANG.map(f => [f, boCR(fs.readFileSync(path.join(ROOT, 'dist', f), 'utf8'))]));
 let khac = MA_TRANG;
@@ -38,7 +38,7 @@ for (let i = 0; i < 30; i++) {
 ok(!khac.length, !khac.length ? `Mã trang trên Vercel giống bản trên máy (${MA_TRANG.join(', ')})`
   : `Sau 5 phút trên Vercel vẫn khác bản trên máy: ${khac.join(', ')} (chưa push, hoặc Vercel build lỗi — xem Deployments trên vercel.com)`);
 
-for (const f of ['', 'img/logo-fpt-university.png', 'ma-qr.js', 'chung.js', 'dang-nhap.js', 'anh.js', 'tai-san-moi.js', 'qr-rules.js', 'fonts/BeVietnamPro-Regular.ttf', 'fonts/BeVietnamPro-Bold.ttf', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js', 'robots.txt']) {
+for (const f of ['', 'img/logo-fpt-university.png', 'ma-qr.js', 'chung.js', 'dang-nhap.js', 'anh.js', 'tai-san-moi.js', 'giam-sat.js', 'qr-rules.js', 'fonts/BeVietnamPro-Regular.ttf', 'fonts/BeVietnamPro-Bold.ttf', 'export.js', 'excel-rules.js', 'supabase-db.js', 'config.js', 'robots.txt']) {
   const r = await fetch(`${WEB_URL}/${f}`);
   ok(r.ok, `/${f} → ${r.status}`);
 }
@@ -74,11 +74,11 @@ try {
     ok(!an.length, an.length ? `người KHÔNG đăng nhập vẫn đọc được ${an.length} bản ghi — kiểm tra lại quyền (chạy lại supabase/dang-nhap.sql)` : 'người không đăng nhập không đọc được dữ liệu');
     // máy chủ đã chạy dang-nhap.sql bản mới (có hàm mật khẩu ban đầu, 17/11/2026): hàm có thật nhưng người lạ không gọi được.
     // Chỉ gọi một hàm chỉ-đọc, bị từ chối ngay → không đọc, không ghi gì.
-    // (chu_moi: bản có Tài sản mới — quyền Tạo tài sản mới, 17/11/2026 — hàm mới nhất của file; gửi đúng tên tham số để máy chủ nhận ra hàm)
+    // (ly_lich_tai_san: bản có giám sát lịch sử, 18/11/2026 — hàm mới nhất của file; gửi đúng tên tham số để máy chủ nhận ra hàm)
     const { url, key } = supabaseConfig();
-    const r = await fetch(`${url}/rest/v1/rpc/chu_moi`, { method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' }, body: '{"p_data":{}}' }), t = await r.text();
-    ok(/42501|permission denied/.test(t), /PGRST202/.test(t) ? 'máy chủ CHƯA chạy supabase/dang-nhap.sql bản mới nhất (thiếu phần Tài sản mới / quyền Tạo tài sản mới): chạy lại trong Supabase → SQL Editor'
-      : /42501|permission denied/.test(t) ? 'máy chủ đã chạy dang-nhap.sql bản mới nhất (mật khẩu ban đầu, Miễn mã 6 số, dung lượng kho ảnh, Tài sản mới; người lạ không gọi được hàm)' : `hàm chu_moi trả lạ: ${r.status} ${t.slice(0, 120)}`);
+    const r = await fetch(`${url}/rest/v1/rpc/ly_lich_tai_san`, { method: 'POST', headers: { apikey: key, 'Content-Type': 'application/json' }, body: '{"p_keys":[],"p_limit":1}' }), t = await r.text();
+    ok(/42501|permission denied/.test(t), /PGRST202/.test(t) ? 'máy chủ CHƯA chạy supabase/dang-nhap.sql bản mới nhất (thiếu phần giám sát lịch sử): chạy lại trong Supabase → SQL Editor'
+      : /42501|permission denied/.test(t) ? 'máy chủ đã chạy dang-nhap.sql bản mới nhất (mật khẩu ban đầu, Miễn mã 6 số, dung lượng kho ảnh, Tài sản mới, giám sát lịch sử; người lạ không gọi được hàm)' : `hàm ly_lich_tai_san trả lạ: ${r.status} ${t.slice(0, 120)}`);
     const token = await dangNhapToken().catch(e => { ok(false, e.message); return null; });
     if (token) ok(true, `đọc bằng tài khoản thành viên (KIEMKE_TEN): ${dem(await docTatCa(token))}`);
   }

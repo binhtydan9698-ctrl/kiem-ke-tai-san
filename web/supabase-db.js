@@ -103,13 +103,17 @@
         };
       },
       // Đọc các tài liệu mới nhất của một loại, mới trước cũ sau (id tăng theo thời gian).
-      // o = {limit, before: id (lấy cũ hơn id này), kind, who: {by, dev} (lọc theo tên HOẶC máy), key: Mã TSCĐ (thao tác của 1 tài sản)}
+      // o = {limit, before: id (lấy cũ hơn id này), after: id (mới hơn id này), kind, uid (một tài khoản), who: {by, dev} (lọc theo tên
+      // HOẶC máy), key: Mã TSCĐ (thao tác của 1 tài sản)}. Máy chủ chỉ trả dòng người đó được xem (quản trị: tất cả; người khác: của mình).
       async recent(col, o = {}) {
         const qt = s => '"' + String(s).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';   // đặt giá trị trong ngoặc kép
         let q = sb.from(TABLE).select('id,data').eq('col', col);
         if (o.kind) q = q.eq('data->>kind', o.kind);
+        if (o.uid) q = q.eq('data->>uid', String(o.uid));
+        if (o.after) q = q.gt('id', o.after);
         if (o.who) {
           const f = [];
+          if (o.who.uid) f.push('data->>uid.eq.' + qt(o.who.uid));
           if (o.who.by) f.push('data->>by.eq.' + qt(o.who.by));
           if (o.who.dev) f.push('data->>dev.eq.' + qt(o.who.dev));
           if (f.length) q = q.or(f.join(','));
@@ -123,9 +127,22 @@
         if (error) wrap(error);
         return data || [];
       },
+      // Lý lịch tài sản: thao tác của mọi người trên các mã này (hàm máy chủ ly_lich_tai_san: bỏ thiết bị, IP, tên đăng nhập).
+      // Máy chủ chưa chạy dang-nhap.sql bản mới (chưa có hàm) → đọc như cũ.
+      async lyLich(keys, limit) {
+        const { data, error } = await sb.rpc('ly_lich_tai_san', { p_keys: keys.map(String), p_limit: limit || 500 });
+        if (!error) return data || [];
+        if (/PGRST202|Could not find the function/i.test((error.code || '') + ' ' + (error.message || ''))) return (await Promise.all(keys.map(k => this.recent('log', { key: k, limit: limit || 500 })))).flat();
+        wrap(error);
+      },
       doc(path) {
         const [col, id] = split(path);
         return {
+          async get() {
+            const { data, error } = await sb.from(TABLE).select('data').eq('col', col).eq('id', id).maybeSingle();
+            if (error) wrap(error);
+            return data ? data.data : null;
+          },
           async set(data) {
             const { error } = await sb.from(TABLE).upsert({ col, id, data, updated_at: new Date().toISOString() });
             if (error) wrap(error);

@@ -828,7 +828,7 @@
     ok(!!oNhom && oNhom.value === 'Giảng viên' && !!document.getElementById('qtNhom'), 'bảng Thành viên: ô “Nhóm (Tạo bởi)” cho từng tài khoản; form thêm thành viên có ô nhóm');
     oNhom.value = 'Giảng viên khoa CNTT'; oNhom.dispatchEvent(new Event('change', { bubbles: true }));
     await until(() => A.tk.find(x => x.uid === 'u6').nhom === 'Giảng viên khoa CNTT');
-    ok(A.tk.find(x => x.uid === 'u6').nhom === 'Giảng viên khoa CNTT' && LOGMINE.some(e => /Đổi nhóm tài khoản giangvien/.test(e.title)), 'quản trị đổi nhóm của tài khoản (có lịch sử)');
+    ok(A.tk.find(x => x.uid === 'u6').nhom === 'Giảng viên khoa CNTT' && LOGMINE.some(e => /Đổi chức danh \/ nhóm tài khoản giangvien/.test(e.title)), 'quản trị đổi chức danh / nhóm của tài khoản (có lịch sử)');
     TSM.loc = ''; await go('tai-san-moi');
     theCua(id1).querySelector('[data-tsm="sua"]').click(); await until(() => document.getElementById('tsmTag'));
     ok(!!document.getElementById('tsmNoiIn'), 'quản trị sửa được mọi tài sản mới: có ô tag “Tạo bởi” và ô nối tay');
@@ -857,6 +857,105 @@
     TSM.loc = 'chua'; render();
     ok(/Mọi tài sản mới đều đã vào sổ/.test(app.textContent), 'lọc “Chưa vào sổ” khi mọi tài sản mới đã vào sổ: nói đúng như vậy');
     TSM.loc = ''; render(); window.scrollTo(0, 0); await until(() => app.querySelector('.tsm-the .at-anh img[src]'));
+  };
+
+  // Lịch sử = căn cứ giám sát (người dùng chốt 18/11/2026): mỗi dòng ghi tài khoản, chức danh, quyền, thiết bị; người thường chỉ xem của
+  // mình; quản trị xem mọi người, lọc chi tiết, bảng theo tài khoản; 7 loại cảnh báo (không chặn thao tác), thanh báo + số đỏ, Đã xem
+  KB['giam-sat'] = async () => {
+    const dangNhap = async (ten, mk) => { await until(() => document.getElementById('dnTen')); dien('dnTen', ten); dien('dnMk', mk); document.getElementById('dnNut').click(); await W(400); };
+    const dangXuat = async () => { await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500); };
+    const chon = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };
+    // phân loại hành động (thuần)
+    const pl = e => gsPhanLoai(e);
+    ok(pl({ kind: 'kiem', title: 'Máy chiếu', lines: ['Xoá 3 ảnh'] }).hd === 'xoa' && pl({ kind: 'kiem', title: 'Máy chiếu', lines: ['Xoá 3 ảnh'] }).sx === 3
+      && pl({ kind: 'kiem', bulk: 2, title: 'Hoàn tác', lines: ['1 · Bàn: Kết quả: Đủ → Chưa kiểm', '2 · Ghế: Kết quả: Đủ → Chưa kiểm'] }).sx === 2
+      && pl({ kind: 'chung', title: 'Đổi quyền tài khoản abc', lines: [] }).hd === 'qtri' && pl({ kind: 'chung', title: 'Đổi quyền tài khoản abc' }).nc === 1
+      && pl({ kind: 'xuat', title: 'Tải Excel: Khấu hao' }).hd === 'xuat' && pl({ kind: 'moi', title: 'Tài sản mới: X', lines: ['Tạo tài sản mới: X · SL 1'] }).hd === 'tao'
+      && pl({ kind: 'kiem', title: 'Bàn', lines: ['Kết quả: Chưa kiểm → Đủ'] }).hd === 'sua',
+      'phân loại hành động: xoá (đếm cả “Xoá 3 ảnh”, hoàn tác hàng loạt), quản trị tài khoản + nhạy cảm, xuất / tải, tạo, sửa');
+
+    // tài khoản thường: dòng của mình có đủ tên đăng nhập, quyền, thiết bị; chỉ xem của mình; không thấy cảnh báo
+    await dangNhap('kiemvien', 'Kiem-vien-thu-1'); await until(() => DN.toi && READY);
+    const a = BY_UNIT.GD.find(x => x.ma && String(x.ma) === String(x.key) && res(x) === 'chua');
+    await go('ts-' + a.key); app.querySelector('.row [data-act="du"]').click(); await W(400);
+    const e0 = LOGMINE.find(e => e.key === a.key);
+    ok(e0 && e0.uid === 'u8' && e0.tk === 'kiemvien' && e0.quyen === 'kiem' && /·/.test(e0.tb || '') && e0.hd === 'sua', `dòng lịch sử ghi tài khoản (@${e0 && e0.tk}), quyền, thiết bị (${e0 && e0.tb}), loại hành động`);
+    const now = Date.now(), id = (t, k) => lvMoc(t) + '-thu' + k + '-' + Math.random().toString(36).slice(2, 6);
+    const MS = { uid: 'u7', by: 'Mua Sắm Thử', tk: 'muasam', cd: 'Cán bộ mua sắm', quyen: 'moi', dev: 'mayms', tb: 'Windows · Chrome' };
+    const KHAC = { id: id(now - 3600e3, 'k'), t: now - 3600e3, kind: 'moi', title: 'Tài sản mới: Bàn thử khác', lines: ['Xoá tài sản mới: Bàn thử khác'], ...MS };
+    LOGMINE.unshift(KHAC);
+    await go('lich-su'); await W(300);
+    ok(!app.querySelector('.ltabs') && !document.getElementById('ltk') && /chỉ xem được thao tác của chính mình/.test(app.textContent) && !app.textContent.includes('Bàn thử khác') && app.textContent.includes(a.short),
+      'tài khoản thường: chỉ thấy thao tác của chính mình (không thấy của người khác), không có thẻ giám sát');
+    ok(!document.getElementById('gsBao') && !document.querySelector('#swLS .gs-n') && !GS.tai, 'tài khoản thường: không có cảnh báo, không có số đỏ (quy tắc vàng 16)');
+    await dangXuat();
+
+    // quản trị: dữ liệu giả của các tài khoản khác (bộ thử chỉ lưu trên máy nên đặt thẳng vào lịch sử trên máy)
+    const GV = { uid: 'u6', by: 'Giảng Viên Thử', tk: 'giangvien', cd: 'Giảng viên phòng Lab AI', quyen: 'moi', dev: 'maygv', tb: 'Android · Chrome' };
+    const KV = { uid: 'u8', by: 'Kiểm Viên Thử', tk: 'kiemvien', cd: '', quyen: 'kiem', dev: 'maykv', tb: 'Windows · Edge' };
+    const L = [];
+    for (let i = 0; i < 6; i++) L.push({ id: id(now - 50 * 60000 + i * 60000, 'x' + i), t: now - 50 * 60000 + i * 60000, kind: 'moi', title: 'Tài sản mới: Đồ thử ' + i, lines: ['Xoá tài sản mới: Đồ thử ' + i], ...MS });
+    L.push({ id: id(now - 40 * 60000, 'b'), t: now - 40 * 60000, kind: 'kiem', bulk: 40, title: 'Đủ tất cả còn lại', keys: [], lines: ['40 mục'], ...KV });
+    L.push({ id: id(now - 39 * 60000, 'd'), t: now - 39 * 60000, kind: 'kiem', key: a.key, ma: String(a.ma), title: a.short, de: 'Người Kiểm Trước', lines: ['Kết quả: Đủ → Thiếu: thấy 0/1'], ...KV });
+    L.push({ id: id(now - 30 * 60000, 'q'), t: now - 30 * 60000, kind: 'chung', title: 'Đổi quyền tài khoản tracuu', lines: ['Quyền: Tra cứu → Quản trị'], ...GV });
+    for (let i = 0; i < 5; i++) L.push({ id: id(now - 20 * 60000 + i * 60000, 'e' + i), t: now - 20 * 60000 + i * 60000, kind: 'xuat', title: 'Tải Excel: Tổng hợp', lines: ['1141 dòng'], ...GV });
+    const dem = new Date(now - 864e5); dem.setHours(23, 30, 0, 0);
+    L.push({ id: id(dem.getTime(), 'n'), t: dem.getTime(), kind: 'kiem', title: 'Bàn đêm', lines: ['Kết quả: Chưa kiểm → Đủ'], ...KV });
+    L.push({ id: id(now - 10 * 60000, 'v'), t: now - 10 * 60000, kind: 'chung', title: 'Đăng nhập', lines: ['iPhone · Safari'], tbmoi: true, ip: '203.0.113.7', ...GV, tb: 'iPhone · Safari' });
+    LOGMINE.unshift(...L);
+    await dangNhap('quantri', 'MatKhauThu#1'); await until(() => document.getElementById('dnMa'));
+    dien('dnMa', '246810'); document.getElementById('dnNut').click(); await until(() => DN.toi && DN.laQuanTri());
+    GS.tai = false; await gsTai();
+    const loai = new Set(GS.cb.map(c => c.loai));
+    ok(['xoa', 'hang-loat', 'ghi-de', 'nhay-cam', 'xuat', 'gio-la', 'thiet-bi'].every(k => loai.has(k)), `đủ 7 loại cảnh báo: ${[...loai].map(k => GS_LOAI[k][0]).join(' · ')}`);
+    const cXoa = GS.cb.find(c => c.loai === 'xoa' && c.nguoi.uid === 'u7');
+    ok(cXoa && cXoa.ids.length >= 6 && /6 mục|7 mục/.test(cXoa.chiTiet) && cXoa.nguoi.cd === 'Cán bộ mua sắm', 'xoá nhiều: gom đúng các lần xoá liên tiếp của một người (kèm chức danh)');
+    ok(!GS.cb.some(c => c.nguoi.uid === 'u1'), 'không tính thao tác của chính quản trị đang xem');
+    await go('trang-chu'); await until(() => document.getElementById('gsBao'));
+    const n0 = gsChuaXem().length, sn = document.querySelector('#swLS .gs-n');
+    ok(!!document.getElementById('gsBao') && /cảnh báo hoạt động chưa xem/.test(txt('gsBao')) && /không chặn thao tác/.test(txt('gsBao')) && sn && sn.textContent.includes(String(n0)),
+      `quản trị: thanh báo đầu trang + số đỏ ở mục Lịch sử (${n0} cảnh báo chưa xem)`);
+    await go('khau-hao');
+    ok(!!document.getElementById('gsBao'), 'thanh báo hiện ở mọi trang (trừ trang Lịch sử)');
+    // trang Lịch sử của quản trị
+    LV.tab = 'ds'; LV.tg = '7'; await go('lich-su'); await W(400);
+    ok(document.querySelectorAll('.ltabs button').length === 3 && !!document.getElementById('ltk') && !!document.getElementById('lcd') && !!document.getElementById('lqy') && !!document.getElementById('lhd') && !!document.getElementById('ltg') && !document.getElementById('gsBao'),
+      'quản trị: 3 thẻ (Thao tác · Theo tài khoản · Cảnh báo), lọc theo tài khoản, chức danh, quyền, hành động, thời gian');
+    const dongMS = [...document.querySelectorAll('.lg')].find(li => li.textContent.includes('Đồ thử 0'));
+    ok(dongMS && /@muasam/.test(dongMS.textContent) && /Cán bộ mua sắm/.test(dongMS.textContent) && /Tạo tài sản mới/.test(dongMS.textContent) && /Windows · Chrome/.test(dongMS.textContent) && dongMS.classList.contains('co-cb') && /Xoá nhiều/.test(dongMS.textContent),
+      'mỗi dòng: họ tên, @tên đăng nhập, chức danh, quyền, thiết bị, loại hành động; dòng dính cảnh báo tô đỏ, có nhãn cảnh báo');
+    chon('ltk', 'u7'); await W(400);
+    ok([...document.querySelectorAll('.lg')].length === 7 && [...document.querySelectorAll('.lg')].every(li => /@muasam/.test(li.textContent)), 'lọc theo tài khoản: chỉ còn thao tác của @muasam');
+    chon('lhd', 'xoa'); await W(200);
+    ok(document.querySelectorAll('.lg').length === 7 && [...document.querySelectorAll('.lg')].every(li => /Xoá, bỏ/.test(li.textContent)), 'lọc theo hành động “Xoá, bỏ”');
+    chon('ltk', ''); chon('lhd', ''); await W(300); chon('lcd', 'Giảng viên phòng Lab AI'); await W(200);
+    ok(document.querySelectorAll('.lg').length === 7 && [...document.querySelectorAll('.lg')].every(li => /Giảng viên phòng Lab AI/.test(li.textContent)), 'lọc theo chức danh / nhóm “Giảng viên phòng Lab AI”');
+    chon('lcd', ''); await W(200);
+    let cap = null; const gocX = window.xuatBangExcel; window.xuatBangExcel = async (ten, cot, dong) => { cap = { cot, dong }; };
+    app.querySelector('[data-act="logxlsx"]').click(); await W(300); window.xuatBangExcel = gocX;
+    ok(cap && ['Tên đăng nhập', 'Chức danh / nhóm', 'Quyền', 'Hành động', 'Thiết bị', 'IP', 'Cảnh báo'].every(c => cap.cot.some(x => x[0] === c)), 'Tải Excel lịch sử: có cột tên đăng nhập, chức danh, quyền, hành động, thiết bị, IP, cảnh báo');
+    // thẻ Cảnh báo
+    document.querySelector('.ltabs [data-v="cb"]').click(); await W(300);
+    ok(document.querySelectorAll('.gs-cb').length === GS.cb.length && document.querySelectorAll('.gs-cb.moi').length === n0 && /không chặn thao tác/.test(app.textContent), `thẻ Cảnh báo: ${GS.cb.length} cảnh báo, chưa xem đánh dấu riêng, nói rõ không chặn thao tác`);
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+    let kq = await axe.run(document, AXE);
+    ok(!kq.violations.length, 'thẻ Cảnh báo đạt trợ năng WCAG 2.2 AA' + (kq.violations.length ? ': ' + kq.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : ''));
+    const theXoa = document.querySelector(`.gs-cb[data-cb="${cXoa.id}"]`);
+    theXoa.querySelector('[data-gs="loc"]').click(); await W(400);
+    ok(LV.tab === 'ds' && document.querySelectorAll('.lg').length === cXoa.ids.length && /Đang xem \d+ thao tác của một cảnh báo/.test(app.textContent), '“Xem các thao tác” của cảnh báo: mở đúng các dòng lịch sử đó');
+    app.querySelector('[data-gs="bochi"]').click(); await W(300);
+    document.querySelector('.ltabs [data-v="tk"]').click(); await W(400);
+    const hangMS = [...document.querySelectorAll('.gs-tbl tbody tr')].find(tr => /@muasam/.test(tr.textContent));
+    ok(hangMS && +hangMS.cells[3].textContent.replace(/\D/g, '') >= 7 && /Windows · Chrome/.test(hangMS.textContent), 'thẻ Theo tài khoản: từng tài khoản có số thao tác, số mục bị xoá, cảnh báo chưa xem, thiết bị');
+    kq = await axe.run(document, AXE);
+    ok(!kq.violations.length, 'thẻ Theo tài khoản đạt trợ năng WCAG 2.2 AA' + (kq.violations.length ? ': ' + kq.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : ''));
+    document.querySelector('.ltabs [data-v="cb"]').click(); await W(300);
+    document.querySelector(`.gs-cb[data-cb="${cXoa.id}"] [data-gs="xem"]`).click(); await W(300);
+    ok(gsChuaXem().length === n0 - 1 && (JSON.parse(localStorage.getItem(KEY + '.cbXem')) || { ids: [] }).ids.includes(cXoa.id), '“Đã xem” một cảnh báo: bớt 1, được lưu lại');
+    app.querySelector('[data-gs="xemhet"]').click(); await W(300);
+    await go('trang-chu'); await W(300);
+    ok(!gsChuaXem().length && !document.getElementById('gsBao') && !document.querySelector('#swLS .gs-n'), '“Đã xem tất cả”: hết thanh báo, hết số đỏ');
+    LV.tab = 'ds';
   };
 
   // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,

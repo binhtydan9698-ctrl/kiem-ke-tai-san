@@ -266,6 +266,8 @@
     ws.views = [{ state: 'frozen', ySplit: 1 }];
     if (tuy && tuy.loc) ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cot.length } };
     taiVe(await wb.xlsx.writeBuffer(), tenFile + '.xlsx');
+    // giám sát (người dùng chốt 18/11/2026): mỗi lần tải dữ liệu ra file đều có lịch sử (cảnh báo khi tải nhiều)
+    try { if (typeof window.logEvent === 'function') window.logEvent({ kind: 'xuat', title: 'Tải Excel: ' + tenSheet, lines: [dong.length + ' dòng · ' + tenFile + '.xlsx'] }); } catch (e) { }
     return dong.length;
   };
 

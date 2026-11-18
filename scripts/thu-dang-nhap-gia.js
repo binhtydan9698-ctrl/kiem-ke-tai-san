@@ -1,12 +1,12 @@
 /*
  * Đăng nhập GIẢ cho bộ thử giao diện (npm run thu-giao-dien) — chạy trong trình duyệt, KHÔNG gọi Supabase.
- * Có cùng các hàm như cổng Supabase thật trong web/dang-nhap.js (sbCong). Chỉ bật ở trang thử ?dang-nhap, ?dang-nhap-dau, ?ma-hoa, ?anh, ?tai-san-moi.
+ * Có cùng các hàm như cổng Supabase thật trong web/dang-nhap.js (sbCong). Chỉ bật ở trang thử ?dang-nhap, ?dang-nhap-dau, ?ma-hoa, ?anh, ?tai-san-moi, ?giam-sat.
  * Mật khẩu, mã xác thực ở đây là của bộ thử, không phải của ai. Mã xác thực 2 bước giả: 246810.
  */
-if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa', '?anh', '?tai-san-moi'].includes(location.search)) (function () {
+if (['?dang-nhap', '?dang-nhap-dau', '?ma-hoa', '?anh', '?tai-san-moi', '?giam-sat'].includes(location.search)) (function () {
   const tk = location.search === '?dang-nhap-dau' ? [] : [
     { uid: 'u1', ten: 'quantri', ho_ten: 'Quản trị thử', email: 'quantri@vd.vn', mk: 'MatKhauThu#1', quyen: 'admin', khoa: false, mfa: false },
-  ].concat(['?anh', '?tai-san-moi'].includes(location.search) ? [
+  ].concat(['?anh', '?tai-san-moi', '?giam-sat'].includes(location.search) ? [
     { uid: 'u8', ten: 'kiemvien', ho_ten: 'Kiểm Viên Thử', email: 'kiemvien@vd.vn', mk: 'Kiem-vien-thu-1', quyen: 'kiem', khoa: false, mfa: false },
     { uid: 'u9', ten: 'tracuu', ho_ten: 'Tra Cứu Thử', email: 'tracuu@vd.vn', mk: 'Tra-cuu-thu-01', quyen: 'xem', khoa: false, mfa: false },
     { uid: 'u7', ten: 'muasam', ho_ten: 'Mua Sắm Thử', email: 'muasam@vd.vn', mk: 'Mua-sam-thu-01', quyen: 'moi', khoa: false, mfa: false, nhom: 'Cán bộ mua sắm' },

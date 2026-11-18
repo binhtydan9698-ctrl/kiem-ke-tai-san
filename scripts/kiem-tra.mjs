@@ -362,6 +362,15 @@ console.log('6. Bảo mật và riêng tư (BAO-MAT.md)');
     && /function public\.quan_tri_dat_mien_2_lop[\s\S]*?coalesce\(auth\.jwt\(\) ->> 'aal', 'aal1'\) <> 'aal2' then raise exception 'CAN_2_LOP'/.test(sql)
     && /or public\.duoc_mien_2_lop\(\)\)/.test(sql),
     'dang-nhap.sql: "Miễn mã 6 số" chỉ đổi được qua hàm, bởi quản trị đã qua mã 6 số; cột không sửa thẳng được');
+  // quy tắc vàng 17: lịch sử = căn cứ giám sát — máy chủ đóng dấu người làm; không ai sửa dòng của người khác, không ai xoá;
+  // quản trị xem tất cả, người khác chỉ xem của mình; lý lịch tài sản bỏ thiết bị, IP; cảnh báo đã xem chỉ quản trị
+  ok(/create trigger dong_dau_lich_su before insert or update on public\.kiemke_docs/.test(sql)
+    && /'uid', auth\.uid\(\)::text, 'tk', coalesce\(t\.ten_dang_nhap, ''\)/.test(sql) && /'cd', coalesce\(t\.nhom, ''\), 'quyen', coalesce\(t\.quyen, ''\)/.test(sql)
+    && /using \(public\.la_thanh_vien\(\) and \(col <> 'log' or public\.xem_lich_su\(data\)\) and \(col <> 'cb' or public\.la_quan_tri\(\)\)\)/.test(sql)
+    && /for delete to authenticated using \(public\.duoc_ghi\(col\) and col <> 'log' and/.test(sql) && (sql.match(/\(col <> 'log' or public\.cua_toi\(data\)\)/g) || []).length === 2
+    && /d\.data - 'dev' - 'tb' - 'ip' - 'tbmoi' - 'uid' - 'tk'/.test(sql) && /when p_col in \('dm', 'cb'\) then public\.la_quan_tri\(\)/.test(sql)
+    && /alter table public\.thiet_bi enable row level security/.test(sql) && !/create policy [^;]* on public\.thiet_bi/.test(sql) && /revoke all on public\.thiet_bi from anon, authenticated/.test(sql),
+    'dang-nhap.sql: lịch sử do máy chủ đóng dấu người làm, không ai sửa dòng người khác / xoá lịch sử; người thường chỉ xem của mình; lý lịch bỏ thiết bị, IP (quy tắc vàng 17)');
   // quy tắc vàng 16: thông số quản lý (dung lượng kho ảnh) máy chủ chỉ trả cho quản trị, người lạ không gọi được
   ok(/function public\.dung_luong_anh\(\)[\s\S]*?select case when public\.la_quan_tri\(\) then json_build_object/.test(sql) && /revoke all on function public\.dung_luong_anh\(\) from public, anon/.test(sql),
     'dang-nhap.sql: dung lượng kho ảnh (thông số quản lý) chỉ trả cho quản trị, người không đăng nhập không gọi được (quy tắc vàng 16)');
