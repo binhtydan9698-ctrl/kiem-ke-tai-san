@@ -20,6 +20,7 @@ const KICH_BAN = [
   { ten: 'doi-ma', mo: 'Kế toán đổi Mã TSCĐ: tem mã cũ mở tài sản mã mới, lý lịch gộp' },
   { ten: 'phong-ban', mo: 'Phòng bổ sung (Gamma, Alpha), quy tắc “xong”, đổi phòng ban như đổi phòng, Tải Excel Tổng hợp' },
   { ten: 'ket-qua', mo: 'Bảng tổng quan: nút “Xem →” ở 3 ô đầu, trang Kết quả đã kiểm / Lệch số lượng' },
+  { ten: 'that-lac', mo: 'Tài sản thất lạc: “Đã tìm thấy…” chọn số lượng, phòng, phòng ban; thấy một phần tính Thiếu; đếm thiếu tự vào trang' },
   { ten: 'xuat-goc', mo: 'Xuất cho kế toán sau nhiều thao tác thật: file gốc giữ nguyên, chỉ khác 3 cột cuối + sheet Tài sản phát sinh' },
   { ten: 'chung', mo: 'Chung: 6 mục, khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán, Ảnh tài sản khi chưa đăng nhập' },
   { ten: 'dang-nhap-dau', mo: 'Đăng nhập: lần đầu tạo tài khoản quản trị (đăng nhập giả, không đụng Supabase)' },

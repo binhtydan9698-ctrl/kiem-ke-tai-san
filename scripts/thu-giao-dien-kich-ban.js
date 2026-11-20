@@ -958,6 +958,82 @@
     LV.tab = 'ds';
   };
 
+  // Tài sản thất lạc (người dùng yêu cầu 20/11/2026): nút "Đã tìm thấy…" chọn số lượng, phòng, phòng ban → tài sản tự về đúng chỗ;
+  // thấy một phần tính Thiếu và xong luôn; tài sản đếm thiếu khi kiểm cũng tự vào trang để hỏi phần còn thiếu
+  KB['that-lac'] = async () => {
+    const tim = ok2 => ASSETS.find(x => x.sl >= 3 && !x.hoso && x.ma && res(x) === 'chua' && !UNIT[x.unit].review && roomOf(x) && ok2(x));
+    const a = tim(() => true), b = tim(x => x !== a), c = tim(x => x !== a && x !== b);
+    const the = st => document.querySelector(`.xm[data-stt="${st}"]`);
+    const nhom = st => { const t = the(st), h = t && t.closest('.list').previousElementSibling; return h ? h.textContent : ''; };
+    const xs = st => document.getElementById('xs-' + st), xr = st => document.getElementById('xr-' + st), xd = st => document.getElementById('xd-' + st);
+    const chon = async (st, v) => { const s = document.getElementById('xk-' + st); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); await W(300); };
+    const bam = async (st, act) => { the(st).querySelector(`[data-act="${act}"]`).click(); await W(350); };
+    const phA = roomOf(a);
+
+    await go('ts-' + a.key); app.querySelector(`.row[data-stt="${a.stt}"] [data-act="nf"]`).click(); await W(300);
+    ok(res(a) === 'nf' && xmCho(a), `bấm “Không thấy” (sổ ${a.sl}): tài sản vào mục Tài sản thất lạc, chờ phản hồi`);
+    const n0 = xmPending();
+    await go('xac-minh');
+    ok(/Chờ phản hồi/.test(nhom(a.stt)) && !!the(a.stt).querySelector('[data-act="xmthay"]') && !xs(a.stt), 'thẻ ở “Chờ phản hồi”, có nút “Đã tìm thấy…” (khung đóng sẵn)');
+    await bam(a.stt, 'xmthay');
+    ok(xs(a.stt) && +xs(a.stt).value === a.sl && xr(a.stt).value === phA && xd(a.stt).value === a.unit && document.activeElement === xs(a.stt),
+      'mở khung “Đã tìm thấy”: mặc định thấy đủ số sổ sách, phòng theo sổ, phòng ban hiện tại; con trỏ ở ô số lượng');
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+    { const k = await axe.run(document, AXE); ok(!k.violations.length, 'trang Tài sản thất lạc (khung mở) đạt trợ năng WCAG 2.2 AA' + (k.violations.length ? ': ' + k.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : '')); }
+    xr(a.stt).value = ''; await bam(a.stt, 'xmghi');
+    ok(res(a) === 'nf' && /phòng nơi tìm thấy/.test(txt('toastMsg')), 'chưa chọn phòng: báo rõ, không ghi gì');
+    // thấy 1 cái, ở phòng khác, phòng ban khác
+    const phMoi = ROOMS.find(p => p && p !== phA), dvMoi = UNITS.find(u => !u.review && u.id !== a.unit).id;
+    for (let i = 0; i < a.sl + 2; i++) the(a.stt).querySelector('[data-act="xmdec"]').click();
+    ok(+xs(a.stt).value === 1, 'nút − không xuống dưới 1');
+    xr(a.stt).value = phMoi; xd(a.stt).value = dvMoi;
+    const log0 = LOGMINE.length;
+    await bam(a.stt, 'xmghi');
+    ok(res(a) === 'thieu' && +S.rows[a.stt].tt === 1 && roomOf(a) === phMoi && a.unit === dvMoi && S.xm[a.stt].kq === 'thay',
+      `thấy 1/${a.sl}: tính Thiếu ${a.sl - 1}, tài sản tự về phòng ${phMoi} và phòng ban mới — không phải tìm lại mã tài sản`);
+    ok(!xmCho(a) && /Đã có kết quả/.test(nhom(a.stt)) && the(a.stt).textContent.includes(`Đã thấy 1/${a.sl}`) && the(a.stt).textContent.includes(phMoi),
+      'thấy một phần: sang “Đã có kết quả” ngay (người dùng chọn), thẻ ghi đã thấy bao nhiêu, ở phòng nào');
+    ok(xmPending() === n0 - 1 && +txt('xmCount') === n0 - 1, 'số chờ xác minh (số đỏ ở menu) giảm 1');
+    { const l = (LOGMINE[0].lines || []).join(' | ');
+      ok(LOGMINE.length === log0 + 1 && /Kết quả: Không thấy → Thiếu: thấy 1\//.test(l) && /Vị trí: .+ → /.test(l) && /Phòng ban: /.test(l) && /Xác minh: Chờ phản hồi → Đã tìm thấy/.test(l),
+        'lịch sử: đúng 1 dòng, đủ kết quả, vị trí, phòng ban, xác minh'); }
+    { const k = ketQuaKeToan(a); ok(k.kq.includes(`Thiếu ${a.sl - 1} (thực tế 1/${a.sl})`) && k.vt === phMoi && /Phân bổ về/.test(k.gc), `file kế toán: “${k.kq}”, vị trí thực tế ${k.vt}`); }
+    await go('ts-' + a.key);
+    ok(app.querySelector(`.row[data-stt="${a.stt}"] #tt-${a.stt}`).value === '1', 'trang tài sản: ô Thực tế đã là 1');
+    await go('xac-minh');
+    await chon(a.stt, 'mat');
+    ok(+S.rows[a.stt].tt === 1 && res(a) === 'thieu' && S.xm[a.stt].kq === 'mat' && ketQuaKeToan(a).gc.includes('Phần thiếu: Đã xác nhận mất'),
+      'thấy một phần rồi chọn “Xác nhận mất”: giữ số đã thấy, file kế toán ghi “Phần thiếu: Đã xác nhận mất”');
+
+    // chọn "Đã tìm thấy" ở ô Kết quả: mở khung, chưa ghi gì; Enter = Ghi nhận; Hoàn tác
+    const phB = roomOf(b);
+    S.rows[b.stt] = { tt: 0, nf: true, at: Date.now() }; S.xm[b.stt] = { kq: 'cho', cach: '' }; save(); render(); await W(300);
+    await chon(b.stt, 'thay');
+    ok(xs(b.stt) && S.xm[b.stt].kq === 'cho' && res(b) === 'nf', 'chọn “Đã tìm thấy” ở ô Kết quả: mở khung hỏi số lượng, phòng — chưa tự ghi đủ');
+    xr(b.stt).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await W(350);
+    ok(res(b) === 'du' && roomOf(b) === phB && S.xm[b.stt].kq === 'thay' && the(b.stt).textContent.includes(`Đã thấy đủ ${b.sl}/${b.sl}`), 'Enter trong khung = Ghi nhận; thấy đủ tính là Đủ');
+    document.getElementById('toastUndo').click(); await W(400);
+    ok(res(b) === 'nf' && S.xm[b.stt].kq === 'cho' && xmCho(b), 'Hoàn tác: trở lại chưa tìm thấy, chờ phản hồi');
+    await bam(b.stt, 'xmthay'); await bam(b.stt, 'xmghi');
+    await chon(b.stt, 'cho');
+    ok(res(b) === 'nf' && xmCho(b), 'thấy đủ rồi đổi lại “Chờ phản hồi” (chọn nhầm): trở lại chưa tìm thấy');
+    await bam(b.stt, 'xmthay'); await bam(b.stt, 'xmhuy');
+    ok(!xs(b.stt) && document.activeElement === the(b.stt).querySelector('[data-act="xmthay"]'), 'Huỷ: đóng khung, con trỏ về nút “Đã tìm thấy…”');
+
+    // đếm thiếu khi kiểm trong phòng: tự vào trang này để hỏi phần còn thiếu
+    const n1 = xmPending();
+    await go('ts-' + c.key); { const i = document.getElementById('tt-' + c.stt); i.value = c.sl - 1; i.dispatchEvent(new Event('change', { bubbles: true })); await W(300); }
+    ok(res(c) === 'thieu' && xmCho(c) && xmPending() === n1 + 1, `kiểm trong phòng đếm thiếu (${c.sl - 1}/${c.sl}): tự vào mục Tài sản thất lạc`);
+    await go('xac-minh');
+    ok(/Chờ phản hồi/.test(nhom(c.stt)) && the(c.stt).textContent.includes(`Đã thấy ${c.sl - 1}/${c.sl}`) && /Kết quả phần còn thiếu/.test(the(c.stt).textContent),
+      'thẻ đếm thiếu: ghi đã thấy bao nhiêu, ô “Kết quả phần còn thiếu”');
+    await chon(c.stt, 'dc');
+    ok(+S.rows[c.stt].tt === c.sl - 1 && !xmCho(c) && ketQuaKeToan(c).gc.includes('Phần thiếu: Đã điều chuyển đơn vị khác'), 'chọn “Điều chuyển” cho phần thiếu: giữ số đã đếm, xong, file kế toán ghi rõ');
+    await go('tong-quan');
+    { const nfCho = ASSETS.filter(x => res(x) === 'nf' && xmCho(x)).length, s = document.querySelector('.stats .stat.bad .sub');
+      ok(s && s.textContent.includes(`${nfCho} chờ xác minh`), `Bảng tổng quan: ô “Chưa tìm thấy” chỉ đếm tài sản chưa tìm thấy chờ xác minh (${nfCho})`); }
+  };
+
   // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,
   // vùng bấm ≥ 24px, bảng cuộn dùng được bằng bàn phím, tiêu đề đúng thứ tự… (chạy ở cỡ máy tính và cỡ điện thoại)
   KB['tro-nang'] = async () => {

@@ -206,6 +206,18 @@ main{padding-block:20px 60px}
 .xm .ask b{color:var(--fg)}
 .xm .form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .xm .form .wide{grid-column:1/-1}
+/* Tài sản thất lạc: đã thấy bao nhiêu, ở đâu + khung "Đã tìm thấy" (người dùng yêu cầu 20/11/2026) */
+.xm-tt{display:flex;gap:6px;align-items:flex-start;margin-top:8px;padding:6px 9px;border-radius:6px;font-size:13.5px;background:var(--surface-2);color:var(--fg)}
+.xm-tt svg.lucide{margin-top:2px}
+.xm-tt.warn{background:var(--warn-soft)} .xm-tt.warn svg{color:var(--warn)}
+.xm-tt.ok{background:var(--ok-soft)} .xm-tt.ok svg{color:var(--ok)}
+.xm-nutw{grid-column:1/-1;flex-direction:row}
+.xm-thay{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin:0;padding:8px 12px 12px;border:1px solid var(--line);border-left:3px solid var(--ok);border-radius:6px;background:var(--surface-2);min-width:0}
+.xm-thay legend{font-weight:700;font-size:14px;padding:0 6px;color:var(--fg)}
+.xm-thay .stepper{max-width:200px}
+.xm-so{font-weight:400}
+.xm-goi{grid-column:1/-1;margin:0;font-size:13px;color:var(--muted)}
+.xm-nuts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
 .xsteps{margin:0 0 18px;padding:12px 16px 12px 34px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);font-size:13.5px;color:var(--muted);display:grid;gap:5px}
 .xsteps b{color:var(--fg)} .xsteps i{font-style:normal;color:var(--fg)}
 
@@ -345,6 +357,7 @@ details.panel[open]>summary::before{content:"▾"}
   .ps .fld:first-child{grid-column:1/-1}
   .end{grid-template-columns:repeat(3,minmax(0,1fr))}
   .xm{grid-template-columns:1fr}
+  .xm-thay{grid-template-columns:1fr}
   .srow{grid-template-columns:1fr auto}
   .srow>*:nth-child(2){grid-column:1/-1;grid-row:2}
   .srow>*:nth-child(3),.srow>*:nth-child(4){grid-row:3}
@@ -461,7 +474,7 @@ details.thu-gon>summary h2 em{font-style:normal;color:var(--muted);font-weight:5
   .ts-trang .tsx-go{order:5}
   /* vùng bấm ≥ 44px cho ngón tay (khuyến nghị cho điện thoại) */
   #app .row .btn,#app .row select.in,#app .row input.in,#app .dv-l select,#app .stepper button,#app .stepper input,
-  #app .tools .seg button,#app .tools input.in,#app .tools .btn,#app .newroom .btn{min-height:44px}
+  #app .tools .seg button,#app .tools input.in,#app .tools .btn,#app .newroom .btn,#app .xm .in,#app .xm .btn{min-height:44px}
   #app .stepper button{min-width:44px}
   /* dòng tài sản: nút Đủ / Không thấy ngay dưới tên, các ô chọn phòng / phòng ban / số / tình trạng xuống sau */
   .row>*{order:4}
@@ -1823,7 +1836,11 @@ function count(list){
   c.da=c.tong-c.chua; c.lech=c.thieu+c.thua; return c;
 }
 function unitState(id){ return S.units[id] || (S.units[id]={ngay:'',ketoan:'',canbo:[],daidien:'',ended:false,signed:false}); }
-function xmPending(){ return Object.keys(S.rows).filter(k=>S.rows[k].nf && (S.xm[k]?.kq||'cho')==='cho').length; }
+/* Tài sản thất lạc (#xac-minh): tài sản bấm "Không thấy" VÀ tài sản đếm thiếu khi kiểm (người dùng chọn 20/11/2026: đếm thiếu cũng tự
+   vào để hỏi phần còn thiếu). Chờ = chưa có kết quả xác minh; ghi "Đã tìm thấy" (đủ hoặc một phần — một phần tính Thiếu) là xong. */
+function xmCo(a){ const r=res(a); return r==='nf'||r==='thieu'||!!S.xm[a.stt]; }
+function xmCho(a){ const r=res(a); return (r==='nf'||r==='thieu')&&(S.xm[a.stt]?.kq||'cho')==='cho'; }
+function xmPending(){ return ASSETS.filter(xmCho).length; }
 function barHTML(c){ const w=k=>c.tong?(c[k]/c.tong*100):0; return `<div class="bar" aria-hidden="true"><i class="ok" style="width:${w('du')}%"></i><i class="info" style="width:${w('hoso')}%"></i><i class="warn" style="width:${(c.tong?c.lech/c.tong*100:0)}%"></i><i class="bad" style="width:${w('nf')}%"></i></div>`; }
 
 /* rooms */
@@ -1909,14 +1926,18 @@ function roomField(a,room){
 /* ô chọn Phòng ban (người dùng yêu cầu 16/11/2026: đổi được như đổi số phòng). Đổi → tài sản chuyển sang trang của phòng ban
    mới ở "Kiểm theo phòng ban" (S.rows[stt].dv; chọn lại phòng ban theo file Excel thì bỏ dv). Sheet lẻ chỉ hiện cho tài sản gốc ở đó. */
 let DVOPT='';
-function dvField(a){
+// các lựa chọn phòng ban của một tài sản (đánh dấu phòng ban hiện tại); dùng ở ô Phòng ban và khung "Đã tìm thấy" (Tài sản thất lạc)
+function dvOpts(a,chon){
   // tên hiện trong ô: mã sheet ngắn đứng trước (vd. "GD · Bộ môn Thiết kế…") để ô hẹp bị cắt chữ vẫn nhận ra phòng ban
   const nhan=u=>/^[A-Z0-9]{2,6}$/.test(u.sheet)&&!u.ten.startsWith(u.sheet)?u.sheet+' · '+u.ten:u.ten;
   if(!DVOPT) DVOPT=`<optgroup label="Phòng ban, bộ môn, khoa">${UNITS.filter(u=>!u.review).map(u=>`<option value="${u.id}">${esc(nhan(u))}</option>`).join('')}</optgroup>`;
+  const u0=UNIT[a.unit0], cur=UNIT[chon]?chon:a.unit;
+  const h=DVOPT+(u0.review?`<optgroup label="Chưa phân bổ (sheet lẻ)"><option value="${u0.id}">${esc(u0.ten)}</option></optgroup>`:'');
+  return h.replace(`<option value="${cur}">`,`<option value="${cur}" selected>`);
+}
+function dvField(a){
   const u0=UNIT[a.unit0], cur=a.unit;
-  let h=DVOPT+(u0.review?`<optgroup label="Chưa phân bổ (sheet lẻ)"><option value="${u0.id}">${esc(u0.ten)}</option></optgroup>`:'');
-  h=h.replace(`<option value="${cur}">`,`<option value="${cur}" selected>`);
-  return `<label class="dv-l"><span>Phòng ban</span><select class="in dvsel ${UNIT[cur].review?'need':''}" data-f="dv" title="${esc(UNIT[cur].ten)}${cur!==a.unit0?' · theo file Excel: '+esc(u0.ten):''}" aria-label="Phòng ban của tài sản ${esc(a.ma||'STT '+a.stt)}">${h}</select></label>`;
+  return `<label class="dv-l"><span>Phòng ban</span><select class="in dvsel ${UNIT[cur].review?'need':''}" data-f="dv" title="${esc(UNIT[cur].ten)}${cur!==a.unit0?' · theo file Excel: '+esc(u0.ten):''}" aria-label="Phòng ban của tài sản ${esc(a.ma||'STT '+a.stt)}">${dvOpts(a)}</select></label>`;
 }
 // trang một sheet: tài sản theo file Excel thuộc sheet này nhưng đã chuyển sang phòng ban khác (để đối chiếu, mở lại được)
 function chuyenDiHTML(id){
@@ -2118,7 +2139,7 @@ function bldSecHTML(){
   </section>`;
 }
 function viewOverview(){
-  const all=count(ASSETS); const wait=xmPending();
+  const all=count(ASSETS); const wait=xmPending(), waitNf=ASSETS.filter(a=>res(a)==='nf'&&xmCho(a)).length;
   const rooms=Object.values(buildRooms()).filter(r=>r.slug!==NOROOM); const nRooms=rooms.length;
   const doneR=rooms.filter(r=>xong(count(r.list))).length;
   const n={chua:0,run:0,done:0}; UNITS.forEach(u=>n[unitState0(u)]++);
@@ -2142,7 +2163,7 @@ function viewOverview(){
     <div class="stat acc"><span class="si">${ic('Boxes')}</span><small>Tổng số dòng tài sản</small><b>${nf.format(all.tong)}</b><div class="sub"><span>${nf.format(all.sl)} cái · ${money(all.gia)}</span><a href="#tong-hop">Xem →</a></div></div>
     <div class="stat ok"><span class="si">${ic('CircleCheck')}</span><small>Đã kiểm</small><b>${nf.format(all.da)}</b><div class="sub"><span class="num">${pct}%</span>${barHTML(all)}${all.da?`<a href="#ket-qua">Xem →</a>`:''}</div></div>
     <div class="stat warn"><span class="si">${ic('TriangleAlert')}</span><small>Lệch số lượng</small><b>${nf.format(all.lech)}</b><div class="sub"><span>Thiếu ${nf.format(all.thieu)} · Thừa ${nf.format(all.thua)}</span>${all.lech?`<a href="#ket-qua-lech">Xem →</a>`:''}</div></div>
-    <div class="stat bad"><span class="si">${ic('CircleAlert')}</span><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b><div class="sub"><span>${wait} chờ xác minh</span>${wait?`<a href="#xac-minh">Xác minh →</a>`:''}</div></div>
+    <div class="stat bad"><span class="si">${ic('CircleAlert')}</span><small>Chưa tìm thấy</small><b>${nf.format(all.nf)}</b><div class="sub"><span>${waitNf} chờ xác minh</span>${waitNf?`<a href="#xac-minh">Xác minh →</a>`:''}</div></div>
     <div class="stat inf"><span class="si">${ic('MapPin')}</span><small>Chưa có vị trí</small><b>${nf.format(all.novt)}</b><div class="sub"><span>${nRooms} phòng, khu vực</span>${all.novt?`<a href="#phong-${NOROOM}">Xem →</a>`:''}</div></div>
   </div>
   <div class="stitle"><h2>Bắt đầu <strong>kiểm kê</strong></h2></div>
@@ -2389,7 +2410,7 @@ function viewKQ(){
   const T={all:'Tài sản đã kiểm',du:'Tài sản đã kiểm đủ',lech:'Tài sản lệch số lượng',nf:'Tài sản chưa tìm thấy'};
   const M={all:`Cả trường: ${nf.format(c.tong)}/${nf.format(all.tong)} dòng đã có kết quả. Mỗi dòng ghi người kiểm và giờ kiểm; cần sửa thì bấm “Kiểm lại”.`,
     du:'Thực tế bằng sổ sách (kể cả công trình, dịch vụ đã xác nhận hồ sơ).',
-    lech:`Thực tế khác sổ sách: Thiếu ${nf.format(c.thieu)} · Thừa ${nf.format(c.thua)}. Đến phòng kiểm lại, hoặc ghi rõ lý do ở “Chi tiết, ghi chú”.`,
+    lech:`Thực tế khác sổ sách: Thiếu ${nf.format(c.thieu)} · Thừa ${nf.format(c.thua)}. Đến phòng kiểm lại, hoặc ghi rõ lý do ở “Chi tiết, ghi chú”. Tài sản thiếu tự vào mục <a href="#xac-minh">Tài sản thất lạc</a> để hỏi phần còn thiếu.`,
     nf:'Đã bấm “Không thấy”. Hỏi đại diện phòng ban ở mục <a href="#xac-minh">Tài sản thất lạc</a>.'};
   const f=T[ui.filter]?ui.filter:'all';
   app.innerHTML=`${demoBanner()}
@@ -2503,34 +2524,55 @@ function endHTML(c,us,ps){
   <button class="btn ${us.ended?'':'pri'}" data-act="end">${us.ended?'Mở lại buổi':'Kết thúc buổi'}</button></div>`;
 }
 
+/* khung "Đã tìm thấy" trong thẻ (người dùng yêu cầu 20/11/2026): tổng số đã tìm thấy, phòng, phòng ban nơi tìm thấy → Ghi nhận
+   (data-act="xmghi"): tài sản tự về phòng / phòng ban đó; thấy đủ tính Đủ, thấy một phần tính Thiếu (xong luôn — người dùng chọn). */
+function xmThayHTML(a,x,s,v){
+  v=v||{}; const st=a.stt, n0=v.n!=null?v.n:(x.kq==='thay'&&+s.tt>0?+s.tt:a.sl), ph0=v.ph!=null?v.ph:((x.kq==='chi'&&x.phong)?x.phong:roomOf(a));
+  return `<fieldset class="xm-thay wide"><legend>Đã tìm thấy</legend>
+    ${a.sl>1?`<div class="fld"><label for="xs-${st}">Tổng số đã tìm thấy <span class="xm-so">/ sổ sách ${nf.format(a.sl)}</span></label><div class="stepper"><button type="button" data-act="xmdec" aria-label="Giảm số đã tìm thấy">${ic('Minus')||'−'}</button><input id="xs-${st}" type="number" min="1" inputmode="numeric" value="${n0}"><button type="button" data-act="xminc" aria-label="Tăng số đã tìm thấy">${ic('Plus')||'+'}</button></div></div>`:''}
+    <div class="fld"><label for="xr-${st}">Ở phòng</label><input class="in" id="xr-${st}" list="dl-phong" value="${esc(ph0)}" placeholder="VD: 205 Gamma" autocomplete="off"></div>
+    <div class="fld"><label for="xd-${st}">Phòng ban</label><select class="in" id="xd-${st}">${dvOpts(a,v.dv)}</select></div>
+    <p class="xm-goi">${a.sl>1?`Thấy đủ ${nf.format(a.sl)} → tính Đủ; thấy ít hơn → tính Thiếu.`:'Tính là Đủ.'} Tài sản tự về phòng, phòng ban đã chọn.</p>
+    <div class="xm-nuts"><button type="button" class="btn pri" data-act="xmghi">${ic('Check')}Ghi nhận</button><button type="button" class="btn" data-act="xmhuy">Huỷ</button></div>
+  </fieldset>`;
+}
 function viewXM(){
-  const items=ASSETS.filter(a=>S.rows[a.stt]?.nf || S.xm[a.stt]);
+  const items=ASSETS.filter(xmCo), mo=ui.xmMo||(ui.xmMo={});
   const card=a=>{
-    const x=S.xm[a.stt]||{kq:'cho'}; const u=UNIT[a.unit]; const us=S.units[a.unit]||{};
-    const done=x.kq!=='cho';
-    return `<div class="xm ${done?'done':''}" data-stt="${a.stt}">
+    const x=S.xm[a.stt]||{kq:'cho'}; const u=UNIT[a.unit]; const us=S.units[a.unit]||{}; const s=S.rows[a.stt]||{};
+    const r=res(a), cho=xmCho(a), tt=+s.tt||0, ph=roomOf(a);
+    // đã tìm thấy bao nhiêu, ở đâu (đếm thiếu: phần còn thiếu là việc cần hỏi)
+    const tim=r==='thieu'?`<div class="xm-tt warn">${ic('CircleAlert')}<span>Đã thấy <b class="num">${tt}/${a.sl}</b> ở <b>${esc(ph||'chưa có vị trí')}</b> · còn thiếu <b class="num">${a.sl-tt}</b></span></div>`
+      :(r==='du'||r==='thua')?`<div class="xm-tt ok">${ic('Check')}<span>Đã thấy ${r==='du'?'đủ ':''}<b class="num">${tt}/${a.sl}</b> ở <b>${esc(ph||'chưa có vị trí')}</b></span></div>`
+      :(r==='chua'&&x.kq==='chi')?`<div class="xm-tt">${ic('ArrowRight')}<span>Đang chờ kiểm lại ở <b>${esc(ph||x.phong||'phòng được chỉ')}</b></span></div>`:'';
+    const coThay=!a.hoso&&!READONLY, sua=x.kq==='thay'||r==='du'||r==='thua';
+    const nut=coThay?`<div class="fld xm-nutw"><button type="button" class="btn ${cho?'pri':''}" data-act="xmthay">${ic('MapPin')}${sua?'Sửa số, nơi tìm thấy…':'Đã tìm thấy…'}</button></div>`:'';
+    return `<div class="xm ${cho?'':'done'}" data-stt="${a.stt}">
       <div><div class="crumb">${esc(u.ten)} · STT ${a.stt} · <span class="mono">${esc(a.ma)}</span></div>
         <b>${esc(a.short)}</b>
-        <div class="ask">Sổ sách <b class="num">${a.sl}</b> · vị trí theo sổ <b>${esc(a.vt0||'chưa có')}</b>${S.rows[a.stt]?.note?` · ghi chú: ${esc(S.rows[a.stt].note)}`:''}</div>
+        <div class="ask">Sổ sách <b class="num">${a.sl}</b> · vị trí theo sổ <b>${esc(a.vt0||'chưa có')}</b>${s.note?` · ghi chú: ${esc(s.note)}`:''}</div>
+        ${tim}
         <div class="ask">Hỏi: <b>${esc(us.daidien||u.dd)}</b>${us.daidien?` (${esc(u.dd)})`:' (chưa nhập tên)'}</div>
         ${dmCua(u.id)?`<div class="ask">Đầu mối: ${dmText(u.id)}</div>`:''}</div>
       <div class="form">
         <div class="fld"><label for="xc-${a.stt}">Cách liên hệ</label><select class="in" id="xc-${a.stt}" data-x="cach">${XM_CACH.map(([k,v])=>`<option value="${k}" ${x.cach===k?'selected':''}>${v}</option>`).join('')}</select></div>
-        <div class="fld"><label for="xk-${a.stt}">Kết quả</label><select class="in" id="xk-${a.stt}" data-x="kq">${XM_KQ.map(([k,v])=>`<option value="${k}" ${x.kq===k?'selected':''}>${v}</option>`).join('')}</select></div>
+        <div class="fld"><label for="xk-${a.stt}">${r==='thieu'&&x.kq!=='thay'?'Kết quả phần còn thiếu':'Kết quả'}</label><select class="in" id="xk-${a.stt}" data-x="kq">${XM_KQ.map(([k,v])=>`<option value="${k}" ${(x.kq||'cho')===k?'selected':''}>${v}</option>`).join('')}</select></div>
         <div class="fld wide"><label for="xp-${a.stt}">Đại diện trả lời</label><input class="in" id="xp-${a.stt}" data-x="phanhoi" value="${esc(x.phanhoi||'')}" placeholder="Ghi lại câu trả lời"></div>
         ${x.kq==='chi'?`<div class="fld"><label for="xv-${a.stt}">Phòng được chỉ</label><input class="in" id="xv-${a.stt}" list="dl-phong" data-x="phong" value="${esc(x.phong||'')}"></div><div class="fld" style="justify-content:flex-end"><button class="btn pri" data-act="recheck">Đến phòng này kiểm lại</button></div>`:''}
+        ${mo[a.stt]&&coThay?xmThayHTML(a,x,s,mo[a.stt]):nut}
       </div></div>`;
   };
-  const wait=items.filter(a=>(S.xm[a.stt]?.kq||'cho')==='cho'), done=items.filter(a=>(S.xm[a.stt]?.kq||'cho')!=='cho');
+  const wait=items.filter(xmCho), done=items.filter(a=>!xmCho(a));
   app.innerHTML=`${demoBanner()}
-  ${banner('can-tin','Xác minh với đại diện phòng ban','Tài sản thất lạc','Nơi ghi lại thông tin đại diện phòng ban cung cấp về những tài sản đi kiểm mà chưa tìm thấy: hỏi ai, hỏi bằng cách nào, họ trả lời gì và kết quả cuối cùng.')}
+  ${banner('can-tin','Xác minh với đại diện phòng ban','Tài sản thất lạc','Nơi ghi lại thông tin đại diện phòng ban cung cấp về những tài sản đi kiểm mà chưa tìm thấy hoặc còn thiếu: hỏi ai, hỏi bằng cách nào, họ trả lời gì và kết quả cuối cùng.')}
   <ol class="xsteps">
-    <li><b>Khi kiểm</b>: tài sản nào không tìm thấy thì bấm <b>Không thấy</b>. Tài sản đó tự vào trang này.</li>
+    <li><b>Khi kiểm</b>: tài sản nào không tìm thấy thì bấm <b>Không thấy</b>; đếm được ít hơn sổ sách thì ghi số thực tế. Cả hai tự vào trang này.</li>
     <li><b>Hỏi đại diện phòng ban</b> (Trưởng phòng ban, Chủ nhiệm bộ môn, Trưởng khoa…), chọn cách liên hệ và ghi lại câu trả lời.</li>
-    <li><b>Chọn kết quả</b>: <i>Đã tìm thấy</i> → tính là Đủ · <i>Đã chỉ vị trí khác</i> → bấm “Đến phòng này kiểm lại” · <i>Điều chuyển, Hỏng, Xác nhận mất</i> → ghi vào file cho kế toán.</li>
+    <li><b>Tìm thấy</b>: bấm <b>Đã tìm thấy…</b>, chọn tổng số đã tìm thấy, phòng và phòng ban nơi tìm thấy → <b>Ghi nhận</b>. Tài sản tự về đúng phòng, phòng ban; thấy đủ tính là Đủ, thấy một phần tính là Thiếu.</li>
+    <li><b>Chưa tìm thấy</b>: chọn kết quả <i>Đã chỉ vị trí khác</i> → bấm “Đến phòng này kiểm lại” · <i>Điều chuyển, Hỏng, Xác nhận mất</i> → ghi vào file cho kế toán.</li>
   </ol>
   <div class="sect"><h2>Chờ phản hồi</h2><span class="num">${wait.length} món</span></div>
-  <div class="list">${wait.length?wait.map(card).join(''):`<div class="empty">${items.length?'Không còn món nào chờ xác minh.':'Chưa có tài sản nào. Khi kiểm, bấm “Không thấy” ở tài sản nào thì tài sản đó sẽ tự vào đây.'}</div>`}</div>
+  <div class="list">${wait.length?wait.map(card).join(''):`<div class="empty">${items.length?'Không còn món nào chờ xác minh.':'Chưa có tài sản nào. Khi kiểm, bấm “Không thấy” (hoặc đếm thiếu) ở tài sản nào thì tài sản đó sẽ tự vào đây.'}</div>`}</div>
   ${done.length?`<div class="sect" style="margin-top:22px"><h2>Đã có kết quả</h2><span class="num">${done.length} món</span></div><div class="list">${done.map(card).join('')}</div>`:''}`;
 }
 
@@ -2554,7 +2596,9 @@ function ketQuaKeToan(a){
   if(a.review&&!vt&&r!=='nf') vt='Chưa có vị trí';
   const cond=s.cond&&s.cond!=='tot'?(COND.find(c=>c[0]===s.cond)||[])[1]:'';
   // đổi phòng ban trên app (người dùng chọn 16/11/2026): ghi "Phân bổ về: …" để kế toán cập nhật sổ; dòng vẫn ở sheet gốc
-  const gc=[a.unit!==a.unit0?'Phân bổ về: '+UNIT[a.unit].ten:'', cond, s.sd?'Trạng thái sử dụng: '+lbl(SUDUNG,s.sd):'', s.note, x&&x.phanhoi?'Đại diện trả lời: '+x.phanhoi:''].filter(Boolean).join('; ');
+  // đếm thiếu rồi hỏi đại diện phòng ban (Tài sản thất lạc): ghi kết quả của phần còn thiếu
+  const kqThieu=r==='thieu'&&x&&['chi','dc','hong','mat'].includes(x.kq)?'Phần thiếu: '+(x.kq==='chi'?`đơn vị chỉ ở ${x.phong||'vị trí khác'}, chưa tìm thấy`:XM_TEXT[x.kq]):'';
+  const gc=[a.unit!==a.unit0?'Phân bổ về: '+UNIT[a.unit].ten:'', cond, s.sd?'Trạng thái sử dụng: '+lbl(SUDUNG,s.sd):'', s.note, kqThieu, x&&x.phanhoi?'Đại diện trả lời: '+x.phanhoi:''].filter(Boolean).join('; ');
   return {kq, vt, gc, thucTe: cellE(a), sl: a.sl, r};
 }
 function viewXuat(){
@@ -3163,7 +3207,24 @@ app.addEventListener('click',e=>{
   if(act==='rmcb'){ unitState(V.id).canbo.splice(+b.dataset.i,1); save(); render(); return; }
   if(act==='rmps'){ S.ps[psKey()].splice(+b.dataset.i,1); save(); render(); return; }
   if(act==='end'){ const us=unitState(V.id); us.ended=!us.ended; save(); render(); toast(us.ended?'Đã kết thúc buổi kiểm kê':'Đã mở lại buổi'); return; }
-  if(act==='recheck'){ const x=S.xm[stt]; const r=touch(stt); r.nf=false; r.tt=null; if(x.phong) r.phong=x.phong; save(); refreshRooms(); pendingQ=a.ma; location.hash='phong-'+slugify(roomOf(a)); return; }
+  if(act==='recheck'){ const x=S.xm[stt]; const r=touch(stt); if(r.nf||!(+r.tt>0)){ r.nf=false; r.tt=null; } if(x.phong) r.phong=x.phong; save(); refreshRooms(); pendingQ=a.ma; location.hash='phong-'+slugify(roomOf(a)); return; }   // đếm thiếu: giữ số đã thấy
+  // Tài sản thất lạc › "Đã tìm thấy…" (xmThayHTML): mở / đóng khung, tăng giảm số, Ghi nhận
+  if(act==='xmthay'||act==='xmhuy'){ const mo=ui.xmMo||(ui.xmMo={}); if(act==='xmthay') mo[stt]={}; else delete mo[stt]; viewXM();
+    const n=act==='xmthay'?(document.getElementById('xs-'+stt)||document.getElementById('xr-'+stt)):app.querySelector(`.xm[data-stt="${stt}"] [data-act="xmthay"]`); if(n) n.focus(); return; }
+  if(act==='xminc'||act==='xmdec'){ const i=document.getElementById('xs-'+stt); if(i){ const v=Math.floor(+i.value)||0; i.value=Math.max(1,v+(act==='xminc'?1:-1)); if(ui.xmMo&&ui.xmMo[stt]) ui.xmMo[stt].n=i.value; } return; }
+  if(act==='xmghi'){
+    const ns=document.getElementById('xs-'+stt), n=ns?Math.floor(+ns.value):1, pi=document.getElementById('xr-'+stt), ph=(pi&&pi.value||'').trim(), dv=(document.getElementById('xd-'+stt)||{}).value;
+    if(!(n>=1)){ toast('Số đã tìm thấy phải từ 1 trở lên'); if(ns) ns.focus(); return; }
+    if(!ph){ toast('Chọn hoặc nhập phòng nơi tìm thấy'); if(pi) pi.focus(); return; }
+    snap([stt]); const r=touch(stt), x=S.xm[stt]||(S.xm[stt]={kq:'cho'});
+    if(x.kq!=='thay') x.truoc=r.nf?0:(+r.tt||0);   // số đã thấy trước lần này: bỏ "Đã tìm thấy" (chọn nhầm) thì trả về số này
+    r.nf=false; r.tt=n; r.phong=ph; if(UNIT[dv]){ if(dv===a.unit0) delete r.dv; else r.dv=dv; } if(!r.cond) r.cond='tot';
+    x.kq='thay'; x.at=Date.now(); if(ME) x.by=ME;
+    delete ui.xmMo[stt]; save(); refreshRooms(); viewXM(); updateBadge();
+    flash(n>=a.sl?'ok':'warn',n>=a.sl?'✓':'−',n>=a.sl?`Đã tìm thấy đủ ${n}/${a.sl}`:`Đã tìm thấy ${n}/${a.sl} · thiếu ${a.sl-n}`,`${a.ma||'STT '+a.stt} · ${a.short} · ở ${ph}`);
+    toast('Bấm Hoàn tác nếu ghi nhầm',true);
+    const nb=app.querySelector(`.xm[data-stt="${stt}"] [data-act="xmthay"]`); if(nb) nb.focus({preventScroll:true}); return;
+  }
   if(act==='reload'){ location.reload(); return; }
   if(act==='xlsx'){
     if(!window.xuatExcelKeToan){ toast('Chưa tải được chức năng xuất Excel'); return; }
@@ -3202,11 +3263,19 @@ app.addEventListener('change',e=>{
     if(t.dataset.f==='cond'&&t.value){ const lb=(COND.find(c=>c[0]===t.value)||[])[1]; flash(t.value==='tot'?'ok':'warn',t.value==='tot'?'✓':'!',`Tình trạng: ${lb}`,`${a.ma||'STT '+a.stt} · ${a.short}`); }
     return;
   }
-  if(t.dataset.x && stt){ const x=S.xm[stt]||(S.xm[stt]={kq:'cho'}); const kq0=x.kq||'cho'; x[t.dataset.x]=t.value; x.at=Date.now(); if(ME) x.by=ME;
-    if(t.dataset.x==='kq'){ const r=S.rows[stt]||(S.rows[stt]={});
-      if(t.value==='thay'){ r.nf=false; r.tt=BY_STT[stt].sl; }
-      else if(kq0==='thay'){ r.nf=true; r.tt=0; }   // bỏ "Đã tìm thấy" (chọn nhầm) → lại là chưa tìm thấy
-      if(t.value==='hong'){ r.cond='thanh_ly'; }
+  if(t.dataset.x && stt){
+    // chọn "Đã tìm thấy": mở khung hỏi tìm thấy bao nhiêu, ở phòng nào (chưa ghi gì cho tới khi bấm Ghi nhận)
+    if(t.dataset.x==='kq'&&t.value==='thay'&&(S.xm[stt]?.kq||'cho')!=='thay'&&!BY_STT[stt].hoso){ (ui.xmMo||(ui.xmMo={}))[stt]={}; viewXM();
+      const n=document.getElementById('xs-'+stt)||document.getElementById('xr-'+stt); if(n) n.focus(); return; }
+    const x=S.xm[stt]||(S.xm[stt]={kq:'cho'}); const kq0=x.kq||'cho'; x[t.dataset.x]=t.value; x.at=Date.now(); if(ME) x.by=ME;
+    if(t.dataset.x==='kq'){ const r=S.rows[stt]||(S.rows[stt]={}), a=BY_STT[stt];
+      if(t.value==='thay'){ r.nf=false; r.tt=a.sl; }   // tài sản hồ sơ (không đếm)
+      else if(kq0==='thay'){ const n=+r.tt||0;
+        // thấy một phần rồi chọn kết quả khác: kết quả đó cho phần còn thiếu, giữ số đã thấy.
+        // thấy đủ rồi bỏ "Đã tìm thấy" (chọn nhầm): trả về số đã thấy trước đó (0 = lại là chưa tìm thấy)
+        if(!(n>0&&n<a.sl)){ const t0=+x.truoc||0; if(t0>0){ r.nf=false; r.tt=t0; } else { r.nf=true; r.tt=0; } }
+      }
+      if(t.value==='hong'&&res(a)==='nf'){ r.cond='thanh_ly'; }   // hỏng cả (không thấy cái nào); đếm thiếu thì chỉ phần thiếu hỏng
     }
     save(); viewXM(); updateBadge(); return; }
   if(t.dataset.u){ unitState(V.id)[t.dataset.u]=t.value; save(); return; }
@@ -3225,6 +3294,7 @@ app.addEventListener('change',e=>{
 });
 app.addEventListener('input',e=>{
   const t=e.target;
+  { const m=/^x([srd])-(\d+)$/.exec(t.id), v=m&&ui.xmMo&&ui.xmMo[m[2]]; if(v) v[{s:'n',r:'ph',d:'dv'}[m[1]]]=t.value; }   // khung "Đã tìm thấy": nhớ chữ đang gõ (trang vẽ lại khi có dữ liệu mới)
   if(t.id==='nsq'){ NS.q=t.value; NS.lim=200; clearTimeout(app._n); app._n=setTimeout(nsDraw,200); }
   if(t.id==='thq'){ TH.q=t.value; clearTimeout(app._th); app._th=setTimeout(()=>{ const d=document.getElementById('thDs'); if(d) d.innerHTML=thDanhSach(); },200); }
   if(t.id==='llq'){ LL.q=t.value; clearTimeout(app._ll); app._ll=setTimeout(llResDraw,150); }
@@ -3239,6 +3309,7 @@ app.addEventListener('input',e=>{
   if(t.dataset.f==='note'){ const stt=+t.closest('[data-stt]').dataset.stt; touch(stt).note=t.value; save(); }
 });
 app.addEventListener('keydown',e=>{
+  if(/^x[sr]-\d+$/.test(e.target.id) && e.key==='Enter'){ e.preventDefault(); const b=e.target.closest('.xm-thay')?.querySelector('[data-act="xmghi"]'); if(b) b.click(); return; }   // khung "Đã tìm thấy": Enter = Ghi nhận
   if(e.target.id==='u-cb' && e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; unitState(V.id).canbo.push(v); save(); render(); document.getElementById('u-cb').focus(); }
   // Enter trong ô tìm: nếu chỉ còn 1 món chưa kiểm thì đánh dấu đủ luôn
   if(e.target.id==='gq' && e.key==='Enter'){ const s=sttCua(e.target.value), a=s&&ASSETS.find(x=>x.stt===s.n); if(a){ e.preventDefault(); location.hash='ts-'+encodeURIComponent(a.key); } return; }   // gõ STT + Enter → mở tài sản

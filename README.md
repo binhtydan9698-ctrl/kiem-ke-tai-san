@@ -30,6 +30,7 @@ Trang Quản lý tài sản (Phòng Hành chính) gồm 2 phần, chọn ở tra
 | In tem mã QR | Trên web: **Quản lý mã QR tài sản** → chọn tài sản, chỉnh tem → **Tải PDF để in** (nhà in, máy in tem), ảnh PNG, Excel/CSV (phần mềm máy in tem) hoặc **In ngay** |
 | Quét tem để kiểm | Bấm **Quét mã**, đưa tem vào camera → trang mở thẳng tài sản đó để bấm Đủ / Không thấy |
 | Đứng trong phòng quét liên tục | Trang phòng → **Quét liên tục ở phòng này**: quét tem nào ghi Đủ tem đó; tài sản phòng khác, số lượng > 1 thì hỏi trước; mỗi món có Hoàn tác |
+| Tài sản bấm "Không thấy" (hoặc đếm thiếu) nay đã tìm thấy | **Kiểm kê → Tài sản thất lạc** → **Đã tìm thấy…**: chọn tổng số đã tìm thấy, phòng, phòng ban → **Ghi nhận**; tài sản tự về đúng phòng, phòng ban (thấy đủ tính Đủ, thấy một phần tính Thiếu) |
 | Ghi tài sản cất kho, cho mượn, chờ thanh lý, đã bàn giao… | Dòng tài sản → **Chi tiết, ghi chú** → ô **Trạng thái sử dụng** (tách riêng với Tình trạng hư hỏng) |
 | Biết khi Supabase bị tạm dừng | GitHub tự đọc thử mỗi sáng 8h; không đọc được thì gửi mail báo (tới email nhận thông báo của tài khoản GitHub) |
 | Gom tài sản hết khấu hao đi thanh lý | **Chung → Khấu hao**: chọn số năm khấu hao (đang tạm tính), xem tài sản đã hết và sắp hết trong 12 tháng tới, **Tải Excel danh sách** |
