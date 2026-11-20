@@ -126,6 +126,14 @@
 - Nút dạng đường link dùng `a.btn` (màu chữ của trang). Thử giao diện: `npm run thu-giao-dien`.
 - Quét mã (`scanShow`): tem của app → `KIEMKE_QR.parse` → tra đúng `BY_KEY`; mã khớp nguyên văn → mở `#ts-…`; camera không
   bao giờ đoán gần đúng; mã vạch (không phải QR) phải đọc giống nhau 2 lần mới nhận.
+- Biểu đồ tiến độ (`bieu-do.js`, người dùng chốt 21/11/2026; Chart.js qua jsDelivr): `chartsHTML()` (khung `<details id="charts">` +
+  `#bdTrong`), `drawCharts()` vẽ cả phần trong theo `CHV = {do, toa, tang, dv, xep, anXong}` (giữ khi trang vẽ lại), `killCharts()`. Thước đo
+  `DO` (dòng / cái / giá) → `dem(list)`; lọc `khop(a, f, bỏ)` (`chKhop` dùng lại ở trang Kết quả), nhóm `nhomToa` (tòa hoặc từng tầng của tòa
+  đang lọc, tầng = `thTang`), `nhomDv`, `nhomNgay` (`S.rows[].at`), `nhomTT` (tình trạng `cond || cond0`, trạng thái `sd`), `nhomNguoi`
+  (`S.rows[].by`, chỉ khi `DN.laQuanTri()` — quy tắc 16). Thanh chồng `thanhChong` (100% hoặc số tuyệt đối), `thanhDon`; chữ cuối thanh plugin
+  `bdNhan`. Sự kiện gắn một lần (`[data-bd]`, ô `#bdToa`/`#bdTang`/`#bdDv`/`#bdXep`/`#bdAnXong`); đổi xong `ve()` vẽ lại và giữ con trỏ. Bấm
+  thanh Tình trạng → `pendingTT` → trang Kết quả `ui.tt` (`ttKhop`, nút `data-act="ttbo"` bỏ lọc). Tải ảnh `taiAnh()` (ghép tiêu đề + biểu đồ
+  + chú thích), Excel `xuatNhieuBang()` (export.js, nhiều sheet) — cả hai ghi `logEvent` loại `xuat`.
 - Sắp xếp nhanh cạnh ô tìm (người dùng chốt 20/11/2026, AGENTS.md mục "Quyết định khác"): dùng chung `xepHTML(trang, ds, chữ mặc định)`
   (ô `select[data-xep]` trong `label.sbox.xep`), lựa chọn `XEP[trang]`, so sánh `xepSS(k, tên, stt)` (tên theo `XEP_CO` — Intl.Collator 'vi';
   không có STT xuống cuối), danh sách tài sản `xepTS(list, trang, q, mặc định)` (gõ đúng STT đứng đầu qua `sttTruoc`). Đổi ô → `xepDoi()`

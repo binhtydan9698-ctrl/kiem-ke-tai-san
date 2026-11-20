@@ -72,7 +72,7 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
 | `npm run sao-luu` | Sao lưu kết quả Supabase (và Danh bạ) về `sao-luu/` (chỉ đọc). Đã bật đăng nhập: người dùng tự đặt tạm `$env:KIEMKE_TEN`, `$env:KIEMKE_MK` khi chạy |
-| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, tài sản thất lạc, tài sản ở nhiều phòng, sắp xếp nhanh, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, trợ năng WCAG 2.2 AA, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
+| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, tài sản thất lạc, tài sản ở nhiều phòng, sắp xếp nhanh, biểu đồ tiến độ, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, trợ năng WCAG 2.2 AA, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
 | `npm run theo-doi-supabase` | Đọc thử Supabase (chỉ đọc). GitHub Actions chạy mỗi sáng 8h (`.github/workflows/theo-doi-supabase.yml`): giữ Supabase không bị tạm dừng; không đọc được thì lần chạy báo lỗi → GitHub gửi mail tới email nhận thông báo của tài khoản chủ repo (người dùng muốn nhận ở địa chỉ email công việc, không ghi địa chỉ vào repo công khai). |
 
 ## Skills trong `.agents/skills/`
@@ -335,6 +335,17 @@ tham khảo Google Workspace — Audit and investigation, reporting rules — v�
   Ô "Thực tế" trên dòng tài sản là số ở phòng chính (tổng = phòng chính + phần ở phòng khác); phòng chính chưa kiểm thì phần ở phòng khác
   chờ (bấm Đủ ở phòng chính = phần còn lại ở đó; Không thấy = chỉ tính phần đã thấy ở phòng khác). File kế toán, cột Vị trí thực tế:
   "101 Alpha (2); 205 Gamma (1)". Giữ bằng thử giao diện `nhieu-phong`.
+- **Biểu đồ tiến độ ở Bảng tổng quan** (người dùng nâng cấp 21/11/2026, chọn đủ 8 ý; mã trong `web/bieu-do.js`):
+  - Thanh công cụ: **thước đo** Số dòng / Số cái (theo sổ) / Nguyên giá; ô lọc Tòa, Tầng, Đơn vị (dùng được bằng bàn phím), Bỏ lọc, link mở
+    trang tòa / sheet; **Tải Excel số liệu** (1 file nhiều sheet: tòa, tầng, đơn vị, ngày, tình trạng, trạng thái sử dụng, người kiểm) — có lịch sử "xuất".
+  - **Lọc chéo, tòa → tầng**: bấm thanh tòa → hiện từng tầng của tòa đó và biểu đồ đơn vị chỉ tính tài sản ở tòa đó; bấm thanh đơn vị → biểu
+    đồ tòa / tầng chỉ tính tài sản của đơn vị đó (bấm thanh không còn nhảy sang trang khác — mở trang bằng link ở dòng "Đang lọc").
+  - Theo đơn vị: ghi % đã kiểm cuối mỗi thanh, xếp theo thứ tự sheet / % thấp → cao / cao → thấp, "Ẩn đơn vị đã xong" (quy tắc 12).
+  - Biểu đồ mới: **Tiến độ theo ngày** (cột: kiểm trong ngày, đường: % cộng dồn; trung bình mỗi ngày có kiểm, dự kiến ngày xong tính thứ Hai –
+    thứ Sáu; ngày theo lần ghi kết quả gần nhất của mỗi tài sản) · **Tình trạng & trạng thái sử dụng** (bấm thanh → trang Kết quả lọc đúng tình
+    trạng đó, gồm cả tài sản chưa kiểm, giữ bộ lọc tòa / đơn vị) · **Theo người kiểm** (chỉ Quản trị thấy — quy tắc 16; theo người ghi gần nhất).
+  - Mỗi biểu đồ có nút **Tải ảnh (PNG)** (kèm tiêu đề, thước đo, bộ lọc, chú thích) — có lịch sử "xuất". Phần "Chưa kiểm" có viền cho thấy rõ.
+  Giữ bằng thử giao diện `bieu-do`.
 - **Sắp xếp nhanh cạnh ô tìm** (người dùng yêu cầu 20/11/2026, "ở tất cả các trang"; chỗ xung đột người dùng tự quyết): ô **Sắp xếp** cạnh
   mọi ô tìm tài sản — Mặc định (thứ tự riêng của trang) · Tên A → Z · Tên Z → A · STT tăng dần · STT giảm dần. Trang đã có ô xếp riêng (Nhập
   sổ, In tem "Thứ tự tem", Ảnh tài sản "Xếp theo") thì gộp thêm lựa chọn vào ô đó, giữ mặc định cũ. Người dùng chọn:

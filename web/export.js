@@ -271,6 +271,24 @@
     return dong.length;
   };
 
+  // Nhiều bảng → một file .xlsx, mỗi bảng một sheet (vd. số liệu Biểu đồ tiến độ — bieu-do.js). bang: [{ten, cot, dong}]
+  window.xuatNhieuBang = async function (tenFile, bang, tieuDe) {
+    await loadExcelJS();
+    const wb = new window.ExcelJS.Workbook();
+    bang.forEach(({ ten, cot, dong }) => {
+      const ws = wb.addWorksheet(String(ten).slice(0, 31));
+      ws.columns = cot.map(([header, width]) => ({ header, width }));
+      dong.forEach(r => ws.addRow(r));
+      ws.eachRow(r => { r.alignment = { wrapText: true, vertical: 'top' }; });
+      ws.getRow(1).font = { bold: true };
+      ws.views = [{ state: 'frozen', ySplit: 1 }];
+    });
+    taiVe(await wb.xlsx.writeBuffer(), tenFile + '.xlsx');
+    // giám sát (quy tắc 17): tải dữ liệu ra file có lịch sử
+    try { if (typeof window.logEvent === 'function') window.logEvent({ kind: 'xuat', title: 'Tải Excel: ' + (tieuDe || tenFile), lines: [bang.map(b => `${b.ten}: ${b.dong.length} dòng`).join(' · '), tenFile + '.xlsx'] }); } catch (e) { }
+    return bang.length;
+  };
+
   function taiVe(buf, fname) {
     const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const a = document.createElement('a'); a.href = url; a.download = fname;

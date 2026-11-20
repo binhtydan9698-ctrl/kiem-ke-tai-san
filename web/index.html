@@ -26,6 +26,7 @@
 <script src="anh.js"></script>
 <script src="tai-san-moi.js"></script>
 <script src="giam-sat.js"></script>
+<script src="bieu-do.js"></script>
 </head>
 <body>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -551,6 +552,23 @@ details.thu-gon>summary h2 em{font-style:normal;color:var(--muted);font-weight:5
 .legend span{flex:1;color:var(--muted)}
 .legend b{font-variant-numeric:tabular-nums}
 .cbox{position:relative}
+/* Biểu đồ tiến độ nâng cấp 21/11/2026 (bieu-do.js): thước đo, lọc, tải ảnh / Excel, biểu đồ mới */
+.bd-cu{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.bd-cu select.in{width:auto;max-width:240px}
+.bd-loc{display:flex;gap:6px;align-items:flex-start;margin:0 0 10px;padding:6px 10px;border-radius:6px;background:var(--info-soft);font-size:13.5px}
+.bd-loc svg{color:var(--info);margin-top:2px}
+.bd-loc .lnk{margin-left:6px}
+.bd-dau{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.bd-anh{flex:none;display:grid;place-items:center;min-width:32px;min-height:32px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--muted);cursor:pointer}
+.bd-anh:hover{color:var(--accent);border-color:var(--accent)}
+.bd-dvcu{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px;font-size:13px}
+.bd-dvcu select.in{width:auto}
+.bd-g2{grid-template-columns:minmax(0,2fr) minmax(260px,1fr);margin-top:12px}
+.bd-g3{margin-top:12px}
+.bd-du{font-size:13px;color:var(--fg);margin:0 0 8px}
+.bd-trong{font-size:13px;color:var(--muted);margin:0 0 12px}
+.ccard .cs .lnk{font-size:13px}
+.legend i.idle{border:1px solid var(--muted)}
 /* danh sách, thẻ */
 .card,.room,.urow,.row,.srow,.xm,.panel,.tblwrap,.empty{box-shadow:var(--shadow-sm)}
 .card:hover,.room:hover{box-shadow:var(--shadow);transform:translateY(-1px)}
@@ -683,7 +701,8 @@ a.btn{text-decoration:none}
 @media (max-width:860px){
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .stats .stat:last-child{grid-column:1/-1}
-  .cgrid{grid-template-columns:1fr}
+  .cgrid,.bd-g2{grid-template-columns:1fr}
+  .bd-cu select.in,.bd-cu .btn,.bd-cu .seg button,.bd-dvcu select.in,.bd-anh{min-height:44px} .bd-anh{min-width:44px}
   .top .scanbtn span{display:none}
   .charts>summary span:last-child{display:none}
 }
@@ -2279,7 +2298,7 @@ function viewOverview(){
   <div style="height:26px"></div>
   ${chartsHTML(all)}`;
   const cd=document.getElementById('charts');
-  if(cd){ cd.addEventListener('toggle',()=>{ try{ localStorage.setItem(KEY+'.charts',cd.open?'1':'0'); }catch(e){} if(cd.open&&!CHARTS.length) drawCharts(); else if(!cd.open) killCharts(); }); if(cd.open) drawCharts(); }
+  if(cd){ cd.addEventListener('toggle',()=>{ try{ localStorage.setItem(KEY+'.charts',cd.open?'1':'0'); }catch(e){} if(cd.open) drawCharts(); else killCharts(); }); if(cd.open) drawCharts(); }
 }
 /* khối "theo tòa nhà": rê chuột / chọn bằng bàn phím vào tòa nào thì ảnh bên trái đổi theo tòa đó */
 function bldOn(it){ const sec=it.closest('.bsec'); if(!sec||it.classList.contains('on')) return; const i=it.dataset.i;
@@ -2287,62 +2306,7 @@ function bldOn(it){ const sec=it.closest('.bsec'); if(!sec||it.classList.contain
 app.addEventListener('mouseover',e=>{ const it=e.target.closest&&e.target.closest('.bitem'); if(it) bldOn(it); });
 app.addEventListener('focusin',e=>{ const it=e.target.closest&&e.target.closest('.bitem'); if(it) bldOn(it); });
 
-/* ---------- biểu đồ trang Tổng quan (Chart.js) ---------- */
-let CHARTS=[], CH_DRAWN=false;
-function killCharts(){ CHARTS.forEach(c=>{ try{ c.destroy(); }catch(e){} }); CHARTS=[]; }
-function cssv(n){ return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
-const SEG=[['Đủ / đã xác nhận','--ok',c=>c.du+c.hoso],['Lệch số lượng','--warn',c=>c.lech],['Chưa tìm thấy','--bad',c=>c.nf],['Chưa kiểm','--chart-idle',c=>c.chua]];
-function chartsHTML(all){
-  if(!window.Chart) return '';
-  let open=window.innerWidth>=860; try{ const v=localStorage.getItem(KEY+'.charts'); if(v) open=v==='1'; }catch(e){}  // điện thoại: thu gọn sẵn
-  const pct=all.tong?Math.round(all.da/all.tong*100):0;
-  return `<details class="charts" id="charts" ${open?'open':''}>
-    <summary><span class="chev">${ic('ChevronRight')}</span>${ic('ChartBar')} Biểu đồ tiến độ <span>Bấm vào thanh để mở đơn vị hoặc tòa nhà</span></summary>
-    <div class="cgrid">
-      <div class="ccol">
-        <div class="ccard"><h3>${ic('ChartPie')}Kết quả toàn trường</h3><div class="cs">Theo số dòng tài sản trong biên bản</div>
-          <div class="donut"><div class="cv"><canvas id="chDonut" aria-label="Tỷ lệ kết quả kiểm kê toàn trường"></canvas><div class="mid"><div><b>${pct}%</b><small>đã kiểm</small></div></div></div>
-            <div class="legend">${SEG.map(([l,v,f])=>`<div><i style="background:var(${v})"></i><span>${l}</span><b>${nf.format(f(all))}</b></div>`).join('')}</div></div></div>
-        <div class="ccard"><h3>${ic('Building2')}Theo tòa nhà</h3><div class="cs">Tỷ lệ theo vị trí hiện tại của tài sản</div><div class="cbox" id="cbBld"><canvas id="chBld" aria-label="Tiến độ theo tòa nhà"></canvas></div></div>
-      </div>
-      <div class="ccard"><h3>${ic('Users')}Theo đơn vị (sheet)</h3><div class="cs">Mỗi thanh là 100% số dòng của đơn vị</div><div class="cbox" id="cbUnit"><canvas id="chUnit" aria-label="Tiến độ theo đơn vị"></canvas></div></div>
-    </div></details>`;
-}
-function stackChart(canvas,groups,onPick){
-  const muted=cssv('--muted'), line=cssv('--line'), fg=cssv('--fg');
-  const pc=(v,c)=>c.tong?v/c.tong*100:0;
-  return new Chart(canvas,{type:'bar',
-    data:{labels:groups.map(g=>g.label),datasets:SEG.map(([l,v,f])=>({label:l,data:groups.map(g=>pc(f(g.c),g.c)),raw:groups.map(g=>f(g.c)),backgroundColor:cssv(v),borderWidth:0,barPercentage:.75,categoryPercentage:.9}))},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:CH_DRAWN?false:{duration:450},
-      scales:{x:{stacked:true,min:0,max:100,ticks:{callback:v=>v+'%',color:muted,font:{size:11}},grid:{color:line},border:{display:false}},
-              y:{stacked:true,ticks:{color:fg,font:{size:11.5}},grid:{display:false},border:{display:false}}},
-      plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:x=>`${x.dataset.label}: ${nf.format(x.dataset.raw[x.dataIndex])} dòng (${Math.round(x.parsed.x)}%)`,
-                            footer:it=>{ const g=groups[it[0].dataIndex]; return `Tổng ${nf.format(g.c.tong)} dòng · đã kiểm ${nf.format(g.c.da)}`; }}}},
-      onClick:(e,els)=>{ if(els.length&&onPick) onPick(groups[els[0].index]); },
-      onHover:(e,els)=>{ if(e.native&&e.native.target) e.native.target.style.cursor=els.length&&onPick?'pointer':'default'; }}});
-}
-function drawCharts(){
-  if(!window.Chart) return; killCharts();
-  Chart.defaults.font.family=cssv('--f-ui')||'sans-serif';
-  const all=count(ASSETS);
-  const dn=document.getElementById('chDonut');
-  if(dn) CHARTS.push(new Chart(dn,{type:'doughnut',
-    data:{labels:SEG.map(s=>s[0]),datasets:[{data:SEG.map(s=>s[2](all)),backgroundColor:SEG.map(s=>cssv(s[1])),borderColor:cssv('--surface'),borderWidth:2}]},
-    options:{cutout:'72%',responsive:true,maintainAspectRatio:false,animation:CH_DRAWN?false:{duration:450},plugins:{legend:{display:false},
-      tooltip:{callbacks:{label:x=>`${x.label}: ${nf.format(x.parsed)} dòng (${all.tong?Math.round(x.parsed/all.tong*100):0}%)`}}}}}));
-  // theo tòa nhà (vị trí hiện tại)
-  const bl={}; ASSETS.forEach(a=>{ const n=roomOf(a); const k=n?building(n):''; (bl[k]=bl[k]||[]).push(a); });
-  const bg=[...BLD_ORDER.filter(b=>bl[b]).map(b=>({label:b==='Khu khác'?'Khu khác':'Tòa '+b,id:b,c:count(bl[b])})),...(bl['']?[{label:'Chưa có vị trí',id:'',c:count(bl[''])}]:[])];
-  const cb=document.getElementById('cbBld'), cu=document.getElementById('cbUnit');
-  if(cb){ cb.style.height=(bg.length*30+20)+'px';
-    CHARTS.push(stackChart(document.getElementById('chBld'),bg,g=>{ if(!g.id){ location.hash='phong-'+NOROOM; return; } OV.bld=g.id; OV.sel=''; location.hash='vi-tri'; })); }
-  // theo đơn vị
-  const ug=UNITS.filter(u=>BY_UNIT[u.id].length).map(u=>({label:u.sheet.length>22?u.sheet.slice(0,21)+'…':u.sheet,id:u.id,c:count(BY_UNIT[u.id])}));
-  if(cu){ cu.style.height=(ug.length*24+20)+'px';
-    CHARTS.push(stackChart(document.getElementById('chUnit'),ug,g=>{ location.hash='dv-'+g.id; })); }
-  CH_DRAWN=true;
-}
+/* biểu đồ trang Tổng quan (Chart.js): web/bieu-do.js — chartsHTML(), drawCharts(), killCharts() */
 
 function rowHTML(a){
   const s=S.rows[a.stt]||{}; const r=res(a); const open=ui.open[a.stt];
@@ -2520,12 +2484,12 @@ function viewKQ(){
     du:'Thực tế bằng sổ sách (kể cả công trình, dịch vụ đã xác nhận hồ sơ).',
     lech:`Thực tế khác sổ sách: Thiếu ${nf.format(c.thieu)} · Thừa ${nf.format(c.thua)}. Đến phòng kiểm lại, hoặc ghi rõ lý do ở “Chi tiết, ghi chú”. Tài sản thiếu tự vào mục <a href="#xac-minh">Tài sản thất lạc</a> để hỏi phần còn thiếu.`,
     nf:'Đã bấm “Không thấy”. Hỏi đại diện phòng ban ở mục <a href="#xac-minh">Tài sản thất lạc</a>.'};
-  const f=T[ui.filter]?ui.filter:'all';
+  const f=T[ui.filter]?ui.filter:'all', tt=ui.tt, ttLoc=tt&&window.chLocChu?chLocChu(tt):'';
   app.innerHTML=`${demoBanner()}
-  <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Kết quả đã kiểm</div>
-  <div class="uhead kq-dau"><div><h1>${T[f]}</h1><p>${M[f]}</p></div></div>
-  ${toolsHTML(c,'Nhóm theo đơn vị',false,[['all','Tất cả đã kiểm',c.tong],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]])}
-  <div id="rows">${list.length?listBody(list,'unit'):'<div class="empty">Chưa có tài sản nào được kiểm.</div>'}</div>`;
+  <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / ${tt?'Biểu đồ tình trạng':'Kết quả đã kiểm'}</div>
+  <div class="uhead kq-dau"><div><h1>${tt?'Tài sản: '+esc(tt.ten):T[f]}</h1><p>${tt?`${tt.k==='cond'?'Tình trạng':'Trạng thái sử dụng'} “${esc(tt.ten)}”${ttLoc?' · '+esc(ttLoc):''} — mở từ biểu đồ ở Bảng tổng quan, gồm cả tài sản chưa kiểm. <button type="button" class="lnk" data-act="ttbo">Bỏ lọc, xem mọi tài sản đã kiểm</button>`:M[f]}</p></div></div>
+  ${toolsHTML(c,'Nhóm theo đơn vị',false,[['all',tt?'Tất cả':'Tất cả đã kiểm',c.tong],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]])}
+  <div id="rows">${list.length?listBody(list,'unit'):`<div class="empty">${tt?'Không có tài sản nào.':'Chưa có tài sản nào được kiểm.'}</div>`}</div>`;
 }
 /* Tổng hợp toàn bộ tài sản (#tong-hop, mở từ ô "Tổng số dòng tài sản" — người dùng đặt 16/11/2026). Bảng gọn chỉ để lướt
    bằng mắt (bấm một dòng mở trang tài sản để kiểm). 5 nhóm từ trên xuống: Đã kiểm đủ → Lệch số lượng → Chưa tìm thấy →
@@ -3276,7 +3240,9 @@ function setMod(m){
 }
 
 /* ---------- router ---------- */
-function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):V.type==='kq'?ASSETS.filter(a=>res(a)!=='chua'):null; }
+function currentList(){ return V.type==='unit'?BY_UNIT[V.id]:V.type==='room'?roomAssets(V.id):V.type==='kq'?(ui.tt?ASSETS.filter(ttKhop):ASSETS.filter(a=>res(a)!=='chua')):null; }
+// trang Kết quả mở từ biểu đồ "Tình trạng & trạng thái sử dụng" (bieu-do.js): mọi tài sản có đúng tình trạng / trạng thái đó, giữ bộ lọc tòa / tầng / đơn vị
+function ttKhop(a){ const t=ui.tt, s=S.rows[a.stt]||{}; if(!t) return true; const v=t.k==='cond'?(s.cond||a.cond0||''):(s.sd||''); return v===t.v&&(!window.chKhop||chKhop(a,t)); }
 function render(){ if(V.type!=='ov') killCharts(); if(MODE==='connecting'||(MODE==='shared'&&!READY)){ app.innerHTML=`<div class="empty" style="margin-top:40px">Đang tải kết quả kiểm kê chung…</div>`; return; } if(V.type==='unit') viewUnit(V.id); else if(V.type==='room') viewRoom(V.id); else if(V.type==='xm') viewXM(); else if(V.type==='xuat') viewXuat(); else if(V.type==='log') viewLog(); else if(V.type==='units') viewUnits(); else if(V.type==='rooms') viewRooms(); else if(V.type==='hub') viewHub(); else if(V.type==='qr') viewQR(); else if(V.type==='ts') viewTS(V.id); else if(V.type==='nhapso') viewNhapSo(); else if(V.type==='lylich') viewLyLich(V.id); else if(V.type==='khauhao') viewKhauHao(); else if(V.type==='daumoi') viewDauMoi(); else if(V.type==='danhba') viewDanhBa(); else if(V.type==='anh') viewAnhTS(); else if(V.type==='tsm') viewTaiSanMoi(); else if(V.type==='quanly') viewQuanLy(); else if(V.type==='kq') viewKQ(); else if(V.type==='th') viewTongHop(); else viewOverview(); dinhGan(); if(typeof khoAnhBao==='function') khoAnhBao(); if(typeof gsBao==='function') gsBao(); }
 /* Thanh tiến độ dính (người dùng chọn 17/11/2026): trang phòng / phòng ban — khi khung "Tiến độ kiểm" (#prog) đã cuộn khuất dưới đầu
    trang, thanh mảnh #dinh (nằm trong <header>, đặt tuyệt đối nên không làm giật nội dung) hiện "tên · x/y · % · còn N"; bấm để lên đầu. */
@@ -3304,7 +3270,7 @@ function route(){
   const nv = h==='trang-chu'?{type:'hub'}:h==='ma-qr'?{type:'qr'}:h==='so-ma-qr'?{type:'qr',id:'so'}:h==='nhap-so'?{type:'nhapso'}:h==='ly-lich'?{type:'lylich',id:''}:h.startsWith('ly-lich-')?{type:'lylich',id:tsKey(h.slice(8))}:h.startsWith('ts-')?{type:'ts',id:tsKey(h.slice(3))}:h.startsWith('dv-')?{type:'unit',id:h.slice(3)}:h.startsWith('phong-')?{type:'room',id:h.slice(6)}:h==='don-vi'?{type:'units'}:h==='vi-tri'?{type:'rooms'}:h==='xac-minh'?{type:'xm'}:h==='xuat'?{type:'xuat'}:h==='lich-su'?{type:'log'}:h==='khau-hao'?{type:'khauhao'}:h==='dau-moi'?{type:'daumoi'}:h==='danh-ba'?{type:'danhba'}:h==='quan-ly'?{type:'quanly'}:h==='anh-tai-san'?{type:'anh'}:h==='tai-san-moi'?{type:'tsm'}:h==='ket-qua'?{type:'kq',id:''}:h==='ket-qua-lech'?{type:'kq',id:'lech'}:h==='tong-hop'?{type:'th'}:{type:'ov'};
   if(nv.type==='log'&&V.type!=='log') LV.need=true;          // vào trang Lịch sử: đọc lại từ dữ liệu chung
   if(TSCU&&!(nv.type==='ts'&&(nv.id===TSCU.moi||nv.id===TSCU.cu))) TSCU=null;   // rời trang tài sản vừa mở bằng tem mã cũ
-  if(nv.type!==V.type||nv.id!==V.id){ ui={filter:nv.type==='kq'&&nv.id==='lech'?'lech':'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:''}; pendingQ=''; pendingU=''; if(nv.type!=='ov') window.scrollTo(0,0); }
+  if(nv.type!==V.type||nv.id!==V.id){ ui={filter:nv.type==='kq'&&nv.id==='lech'?'lech':'all',q:pendingQ||'',group:true,open:{},unit:(nv.type==='room'&&pendingU&&UNIT[pendingU])?pendingU:'',tt:nv.type==='kq'&&window.pendingTT||null}; pendingQ=''; pendingU=''; window.pendingTT=null; if(nv.type!=='ov') window.scrollTo(0,0); }   // tt: mở từ biểu đồ Tình trạng (bieu-do.js)
   V=nv; setMod(V.type==='hub'?'hub':V.type==='qr'?'qr':['log','nhapso','lylich'].includes(V.type)?'ls':['khauhao','daumoi','danhba','anh','tsm','quanly'].includes(V.type)?'ch':'kk');
   document.querySelectorAll('.top2 a[data-r]').forEach(a=>a.removeAttribute('aria-current'));
   const cur=V.type==='unit'?'don-vi':V.type==='room'?'vi-tri':(V.type==='ov'||V.type==='kq'||V.type==='th')?'tong-quan':V.type==='qr'?(V.id==='so'?'so-ma-qr':'ma-qr'):V.type==='lylich'?'ly-lich':h;
@@ -3446,6 +3412,7 @@ app.addEventListener('click',e=>{
     toast('Bấm Hoàn tác nếu ghi nhầm',true); return;
   }
   if(act==='reload'){ location.reload(); return; }
+  if(act==='ttbo'){ ui.tt=null; render(); return; }   // trang Kết quả: bỏ lọc tình trạng mở từ biểu đồ
   if(act==='xlsx'){
     if(!window.xuatExcelKeToan){ toast('Chưa tải được chức năng xuất Excel'); return; }
     const kq={}; ASSETS.forEach(a=>kq[a.key]=ketQuaKeToan(a));

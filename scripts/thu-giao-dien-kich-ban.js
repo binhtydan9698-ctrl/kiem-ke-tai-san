@@ -1161,6 +1161,86 @@
 
   // Sắp xếp nhanh cạnh ô tìm (người dùng yêu cầu 20/11/2026): Mặc định · Tên A → Z · Z → A · STT tăng / giảm. Người dùng chọn: gõ đúng STT
   // vẫn đứng đầu; trang gom nhóm thì xếp trong từng nhóm (Tổng hợp: trong từng phòng · bộ môn); lưới phòng giữ tòa → tầng; Lịch sử chỉ theo thời gian
+  // Biểu đồ tiến độ (người dùng nâng cấp 21/11/2026, chọn đủ 8 ý): thước đo, lọc chéo tòa ↔ đơn vị, tòa → tầng, xếp / ẩn / ghi %, tiến độ
+  // theo ngày, tình trạng & trạng thái sử dụng (mở danh sách), theo người kiểm (chỉ Quản trị — quy tắc 16), tải ảnh + Excel (có lịch sử)
+  KB['bieu-do'] = async () => {
+    const dangNhap = async (ten, mk) => { await until(() => document.getElementById('dnTen')); dien('dnTen', ten); dien('dnMk', mk); document.getElementById('dnNut').click(); await W(400); };
+    const chon = async (id, v) => { const e = document.getElementById(id); e.focus(); if (e.type === 'checkbox') e.checked = v; else e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); await W(350); };
+    const bam = async (sel) => { document.querySelector(sel).click(); await W(350); };
+    const ch = id => Chart.getChart(id), pick = async (id, i) => { ch(id).options.onClick({}, [{ index: i }]); await W(350); };
+    const tong = id => ch(id).data.datasets.reduce((s, d) => s + d.raw.reduce((t, v) => t + v, 0), 0);
+    await dangNhap('kiemvien', 'Kiem-vien-thu-1'); await until(() => DN.toi && READY);
+    const day = 864e5, now = Date.now(), L = ASSETS.filter(a => res(a) === 'chua' && !a.hoso && roomOf(a)).slice(0, 12);
+    L.forEach((a, i) => { S.rows[a.stt] = { tt: a.sl, nf: false, phong: roomOf(a), cond: i < 2 ? 'hong_mp' : 'tot', sd: i === 2 ? 'kho' : '', at: now - (i % 4) * day, by: i % 2 ? 'Kiểm Viên Thử' : 'Người Khác Thử' }; });
+    save();
+    await go('tong-quan'); await until(() => ch('chDonut'));
+    ok(!document.querySelector('[data-chc="ng"]') && ['donut', 'toa', 'dv', 'ngay', 'tt'].every(k => document.querySelector(`[data-chc="${k}"]`)),
+      'tài khoản thường: có các biểu đồ tiến độ, KHÔNG thấy “Theo người kiểm” (thông số quản lý — quy tắc 16)');
+    await go('quan-ly'); app.querySelector('[data-ql="ra"]').click(); await W(500);
+    await dangNhap('quantri', 'MatKhauThu#1'); await until(() => document.getElementById('dnMa'));
+    dien('dnMa', '246810'); document.getElementById('dnNut').click(); await until(() => DN.toi && DN.laQuanTri());
+    await go('tong-quan'); await until(() => ch('chNg'));
+    ok(['donut', 'toa', 'dv', 'ngay', 'tt', 'ng'].every(k => document.querySelector(`[data-chc="${k}"]`)), 'quản trị: đủ 6 biểu đồ (thêm Tiến độ theo ngày, Tình trạng & trạng thái sử dụng, Theo người kiểm)');
+    ok(ch('chUnit').data.datasets[3].borderWidth === 1 && !!document.querySelector('.legend i.idle'), 'phần “Chưa kiểm” có viền, thấy rõ (trước đây gần như vô hình)');
+    // thước đo
+    document.querySelector('[data-bd="do"][data-v="gia"]').focus(); await bam('[data-bd="do"][data-v="gia"]');
+    { const all = ASSETS.reduce((s, a) => s + (+a.gia || 0), 0), da = ASSETS.filter(a => res(a) !== 'chua').reduce((s, a) => s + (+a.gia || 0), 0);
+      ok(document.querySelector('[data-bd="do"][data-v="gia"]').getAttribute('aria-pressed') === 'true' && document.querySelector('#charts .mid b').textContent === Math.round(da / all * 100) + '%'
+        && /nguyên giá/.test(document.querySelector('[data-chc="dv"] .cs').textContent) && document.activeElement === document.querySelector('[data-bd="do"][data-v="gia"]'),
+        `thước đo Nguyên giá: % đã kiểm tính theo giá trị (${Math.round(da / all * 100)}%), con trỏ vẫn ở nút`); }
+    await bam('[data-bd="do"][data-v="dong"]');
+    ok(tong('chUnit') === ASSETS.length, `thước đo Số dòng: biểu đồ đơn vị đủ ${ASSETS.length} dòng`);
+    // lọc chéo: bấm thanh tòa → từng tầng + đơn vị chỉ tính tòa đó
+    const iG = ch('chBld').data.labels.indexOf('Tòa Gamma'); await pick('chBld', iG);
+    const nG = ASSETS.filter(a => roomOf(a) && building(roomOf(a)) === 'Gamma').length;
+    ok(CHV.toa === 'Gamma' && /Tòa Gamma: từng tầng/.test(document.querySelector('[data-chc="toa"] h3').textContent) && ch('chBld').data.labels.every(l => /^(▸ )?(Tầng \d+|Không rõ tầng)$/.test(l))
+      && tong('chBld') === nG && tong('chUnit') === nG && !!document.querySelector('.bd-loc a[data-gobld="Gamma"]'),
+      `bấm thanh Tòa Gamma: hiện từng tầng; biểu đồ đơn vị chỉ tính ${nG} dòng ở Gamma; có link mở trang tòa`);
+    const iU = ch('chUnit').data.labels.findIndex(l => /GD/.test(l)); await pick('chUnit', iU);
+    { const n = ASSETS.filter(a => roomOf(a) && building(roomOf(a)) === 'Gamma' && a.unit === CHV.dv).length;
+      ok(CHV.dv && tong('chBld') === n && /Tòa Gamma · /.test(document.querySelector('.bd-loc').textContent) && /Kết quả \(đang lọc\)/.test(document.querySelector('[data-chc="donut"] h3').textContent),
+        `bấm thanh đơn vị ${UNIT[CHV.dv].sheet}: biểu đồ tầng chỉ tính tài sản của đơn vị đó (${n} dòng), vòng tròn theo bộ lọc`); }
+    { const t = [...document.getElementById('bdTang').options].find(o => o.value !== '*'); await chon('bdTang', t.value);
+      ok(CHV.tang === +t.value && document.activeElement === document.getElementById('bdTang'), 'ô lọc Tầng (dùng được bằng bàn phím): lọc đúng tầng, con trỏ giữ ở ô'); }
+    await bam('[data-bd="bo"]');
+    ok(CHV.toa == null && CHV.tang == null && !CHV.dv && tong('chUnit') === ASSETS.length && !document.querySelector('.bd-loc'), '“Bỏ lọc”: về toàn trường');
+    await chon('bdDv', 'GD');
+    ok(tong('chBld') === BY_UNIT.GD.length && ch('chBld').data.labels.some(l => /^Tòa /.test(l)), 'ô lọc Đơn vị: biểu đồ tòa chỉ tính tài sản của GD');
+    await bam('[data-bd="bo"]');
+    // xếp, ẩn đơn vị đã xong, ghi % cuối thanh
+    await chon('bdXep', 'tang');
+    { const c = ch('chUnit'), p = c.data.labels.map((l, i) => 100 - c.data.datasets[3].data[i]);
+      ok(p.every((v, i) => !i || p[i - 1] <= v + 1e-9) && c.options.plugins.bdNhan.nhan.every(x => /^(\d+%|—)$/.test(x)), 'xếp đơn vị theo % đã kiểm thấp → cao; cuối mỗi thanh ghi % đã kiểm'); }
+    await chon('bdAnXong', true);
+    { const c = ch('chUnit'); ok(c.data.labels.every(l => { const u = UNITS.find(x => l.replace('▸ ', '').startsWith(x.sheet.slice(0, 21))); return u && !window.xong(count(BY_UNIT[u.id])); }), '“Ẩn đơn vị đã xong”: chỉ còn đơn vị chưa xong (quy tắc “xong” 12)'); }
+    await chon('bdAnXong', false); await chon('bdXep', 'sheet');
+    // tiến độ theo ngày
+    { const c = ch('chNgay'), hom = new Date(), lbl = String(hom.getDate()).padStart(2, '0') + '/' + String(hom.getMonth() + 1).padStart(2, '0');
+      const iH = c.data.labels.lastIndexOf(lbl), nH = ASSETS.filter(a => res(a) !== 'chua' && S.rows[a.stt].at && new Date(S.rows[a.stt].at).toDateString() === hom.toDateString()).length;
+      ok(iH >= 0 && c.data.datasets[0].data[iH] === nH && c.data.datasets[1].data.every((v, i, l) => !i || l[i - 1] <= v) && /dự kiến xong/.test(document.querySelector('[data-chc="ngay"] .bd-du').textContent),
+        `Tiến độ theo ngày: hôm nay ${nH} dòng, đường cộng dồn đi lên, có dự kiến ngày xong`); }
+    // người kiểm
+    { const c = ch('chNg'); ok(c.data.labels.some(l => /^Kiểm Viên Thử/.test(l)) && c.data.labels.some(l => /^Người Khác Thử/.test(l)) && /chỉ tài khoản Quản trị thấy/.test(document.querySelector('[data-chc="ng"] .cs').textContent),
+      'Theo người kiểm: mỗi người một thanh, ghi rõ “chỉ tài khoản Quản trị thấy”'); }
+    // tải ảnh, Excel (có lịch sử loại "xuất")
+    const goc = HTMLAnchorElement.prototype.click; let tai = null; HTMLAnchorElement.prototype.click = function () { tai = this.download; };
+    await bam('[data-bd="anh"][data-c="dv"]'); await until(() => tai);
+    ok(/^Bieu do - Theo don vi \(sheet\) \d\d-\d\d-\d{4}\.png$/.test(tai || '') && LOGMINE.some(e => e.kind === 'xuat' && /Tải ảnh biểu đồ: Theo đơn vị/.test(e.title)), `Tải ảnh biểu đồ: ${tai}, có lịch sử “xuất”`);
+    tai = null; await bam('[data-bd="xlsx"]'); await until(() => tai, 30000);
+    ok(/^So lieu bieu do .*\.xlsx$/.test(tai || '') && LOGMINE.some(e => e.kind === 'xuat' && /Số liệu biểu đồ tiến độ/.test(e.title) && /Theo tầng: \d+ dòng/.test((e.lines || []).join(' ')) && /Theo người kiểm/.test((e.lines || []).join(' '))),
+      'Tải Excel số liệu: 1 file nhiều sheet (tòa, tầng, đơn vị, ngày, tình trạng, người kiểm), có lịch sử “xuất”');
+    HTMLAnchorElement.prototype.click = goc;
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+    { const k = await axe.run(document, AXE); ok(!k.violations.length, 'Biểu đồ tiến độ đạt trợ năng WCAG 2.2 AA' + (k.violations.length ? ': ' + k.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : '')); }
+    // tình trạng: bấm thanh → danh sách tài sản đúng tình trạng
+    { const c = ch('chTT'), i = c.data.labels.indexOf('Hỏng một phần'); c.options.onClick({}, [{ index: i }]); await W(600);
+      const dong = [...app.querySelectorAll('.row[data-stt]')].map(r => BY_STT[r.dataset.stt]);
+      ok(location.hash === '#ket-qua' && /Tài sản: Hỏng một phần/.test(app.querySelector('h1').textContent) && dong.length >= 2 && dong.every(a => ((S.rows[a.stt] || {}).cond || a.cond0) === 'hong_mp'),
+        `bấm thanh “Hỏng một phần”: mở danh sách ${dong.length} tài sản đúng tình trạng đó`);
+      app.querySelector('[data-act="ttbo"]').click(); await W(300);
+      ok(/Tài sản đã kiểm/.test(app.querySelector('h1').textContent), '“Bỏ lọc”: về danh sách mọi tài sản đã kiểm'); }
+  };
+
   KB['sap-xep'] = async () => {
     const chon = async (k, v) => { const s = app.querySelector(`select[data-xep="${k}"]`); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); await W(350); return app.querySelector(`select[data-xep="${k}"]`); };
     const go2 = async (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); await W(500); };
