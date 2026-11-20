@@ -72,7 +72,7 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
 | `npm run sao-luu` | Sao lưu kết quả Supabase (và Danh bạ) về `sao-luu/` (chỉ đọc). Đã bật đăng nhập: người dùng tự đặt tạm `$env:KIEMKE_TEN`, `$env:KIEMKE_MK` khi chạy |
-| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, tài sản thất lạc, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, trợ năng WCAG 2.2 AA, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
+| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, tài sản thất lạc, tài sản ở nhiều phòng, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, trợ năng WCAG 2.2 AA, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
 | `npm run theo-doi-supabase` | Đọc thử Supabase (chỉ đọc). GitHub Actions chạy mỗi sáng 8h (`.github/workflows/theo-doi-supabase.yml`): giữ Supabase không bị tạm dừng; không đọc được thì lần chạy báo lỗi → GitHub gửi mail tới email nhận thông báo của tài khoản chủ repo (người dùng muốn nhận ở địa chỉ email công việc, không ghi địa chỉ vào repo công khai). |
 
 ## Skills trong `.agents/skills/`
@@ -101,6 +101,8 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
      `COND`), `sd` = Trạng thái sử dụng (`SUDUNG`: '' Đang sử dụng, kho, sua, muon, cho_tl, da_tl, bg), hai mục TÁCH RIÊNG.
      `dv` = **phòng ban hiện tại** khi cán bộ đổi ở ô "Phòng ban" (mục "Quyết định khác"): `a.unit0` = phòng ban theo Excel,
      `a.unit` (getter) = `dv` hoặc `unit0`; `BY_UNIT` dựng lại trong `refreshRooms()` (chi tiết: web/AGENTS.md).
+     `pp` = **phần ở phòng khác** `{phòng: số cái}` khi một tài sản ở nhiều phòng (mục "Quyết định khác"): `phong` = phòng chính, `tt` = tổng
+     thấy ở mọi phòng (null: phòng chính chưa kiểm), số ở phòng chính = `tt` − tổng `pp`.
    - `S.xm[stt]`: mục "Tài sản thất lạc" (`#xac-minh`, hỏi đại diện phòng ban) `{kq, cach, phanhoi, phong, truoc}` — `truoc` = số đã
      thấy trước khi ghi "Đã tìm thấy" (bỏ "Đã tìm thấy" vì chọn nhầm thì trả về số này). Trang gồm tài sản "Không thấy" và tài sản đếm thiếu.
    - `S.units[id]`: buổi kiểm của đơn vị · `S.ps[key]`: tài sản phát sinh
@@ -324,6 +326,15 @@ tham khảo Google Workspace — Audit and investigation, reporting rules — v�
     (mất / hỏng / điều chuyển / chỉ vị trí khác) giữ nguyên số đã đếm; file kế toán ghi "Phần thiếu: …" ở cột Ghi chú kiểm kê.
   Ô "Chưa tìm thấy" ở Bảng tổng quan chỉ đếm tài sản chưa tìm thấy chờ xác minh; số đỏ ở menu đếm cả tài sản đếm thiếu. Giữ bằng thử giao
   diện `that-lac`.
+- **Một tài sản ở nhiều phòng** (người dùng đồng ý gợi ý 20/11/2026, vd. dòng sổ "3 ghế": 2 ở 101 Alpha, 1 ở 205 Gamma). Người dùng chọn:
+  - **Nhập được ở cả khi kiểm trong phòng**: khung "Đã tìm thấy…" (Tài sản thất lạc) có "Thêm phòng" (mỗi phòng một số lượng); trang phòng ›
+    tìm tài sản phòng khác (số lượng > 1) có "Cả … ở đây" (kéo cả dòng như cũ) và **"Một phần ở đây…"** (chỉ ghi số thấy ở phòng này); quét
+    liên tục có "Chỉ một phần ở đây" / "Ghi một phần ở đây"; trang tài sản có mục **"Phân bổ theo phòng"** để xem / sửa.
+  - **Phòng chính tính, phòng kia ghi kèm**: tài sản thuộc **phòng chính** (phòng nhiều cái nhất lúc ghi phân bổ) — danh sách, tiến độ,
+    "Xong", Tổng hợp tính ở đó như cũ, số liệu tổng không cộng trùng; trang các phòng còn lại có mục "Một phần tài sản dòng khác ở phòng này".
+  Ô "Thực tế" trên dòng tài sản là số ở phòng chính (tổng = phòng chính + phần ở phòng khác); phòng chính chưa kiểm thì phần ở phòng khác
+  chờ (bấm Đủ ở phòng chính = phần còn lại ở đó; Không thấy = chỉ tính phần đã thấy ở phòng khác). File kế toán, cột Vị trí thực tế:
+  "101 Alpha (2); 205 Gamma (1)". Giữ bằng thử giao diện `nhieu-phong`.
 - **Tìm theo STT** (người dùng yêu cầu 16/11/2026) ở mọi ô tìm tài sản: "142" → tài sản STT 142 đứng đầu; "STT 142" / "#142" → chỉ
   đúng STT đó; ô tìm nhanh ở Bảng tổng quan gõ STT + Enter mở thẳng tài sản.
 - **Nâng cấp giao diện** (người dùng chọn cả 4, 17/11/2026): chữ nhỏ nhất 13px; điện thoại: nút / ô bấm cao ≥ 44px, việc kiểm lên

@@ -109,10 +109,18 @@
   `refreshRooms()` chỉ thêm phòng có slug chưa có; ghi chú `ghiChuPhong(tên)`. Lưới thẻ phòng xếp `thSapPhong`, nhãn tầng `tangTiles()`.
   "Xong" luôn tính bằng `xong(count)` (đủ hết hoặc 0/0), không dùng `chua===0`.
 - Tài sản thất lạc (`viewXM`, người dùng chốt 20/11/2026): danh sách `xmCo(a)` (Không thấy + đếm thiếu + có `S.xm`), chờ `xmCho(a)`, số đỏ
-  `xmPending()`. Khung "Đã tìm thấy" `xmThayHTML()` mở bằng nút `data-act="xmthay"` hoặc chọn "Đã tìm thấy" ở ô Kết quả (trạng thái
-  `ui.xmMo[stt]` nhớ chữ đang gõ); `xminc` / `xmdec`, `xmghi` (snap → `touch` → `tt`, `phong`, `dv`, `S.xm.kq='thay'`, `truoc` → `save()`, Hoàn
-  tác), `xmhuy`; Enter trong ô số / phòng = Ghi nhận. Ô phòng ban dùng `dvOpts(a, chọn)` (chung với `dvField`). Đổi kết quả từ "Đã tìm
-  thấy": thấy một phần → giữ số (kết quả cho phần thiếu); thấy đủ → trả về `truoc`.
+  `xmPending()`. Khung "Đã tìm thấy" `xmThayHTML()` mở bằng nút `data-act="xmthay"` hoặc chọn "Đã tìm thấy" ở ô Kết quả; `xmghi` (snap →
+  `touch` → `ppGhi`, `dv`, `S.xm.kq='thay'`, `truoc` → `save()`, Hoàn tác), `xmhuy`. Ô phòng ban dùng `dvOpts(a, chọn)` (chung với `dvField`).
+  Đổi kết quả từ "Đã tìm thấy": thấy một phần → giữ số (kết quả cho phần thiếu); thấy đủ → trả về `truoc`, bỏ `pp`.
+- Một tài sản ở nhiều phòng (người dùng chốt 20/11/2026): `S.rows[stt].pp = {phòng khác: số}`, `phong` = phòng chính, `tt` = tổng. Hàm (cạnh
+  `roomOf`): `ppCua`, `ppTong`, `ppChinh` (số ở phòng chính, null = chưa kiểm), `ppDs`, `viTriThucTe` (file kế toán, thẻ thất lạc, trang tài
+  sản), `ppSoat` (save() gọi cho mọi dòng có `pp`: bỏ dòng sai, Không thấy / hồ sơ thì bỏ `pp`, `tt` ≥ tổng `pp`), `ppGhi(r, ds)` (phòng nhiều
+  cái nhất là phòng chính), `ppThemPhong(a, r, phòng, n)` ("Một phần ở đây"). `roomOf()` vẫn là phòng chính nên danh sách phòng, tiến độ,
+  "Xong", Tổng hợp không đổi. Khung phòng + số lượng dùng chung `ppKhungHTML` (ô `pr-<stt>-<i>` / `pn-<stt>-<i>`, trạng thái `ui.ppMo[stt]`,
+  `ppSync` / `ppDoc` / `ppTongVe`, nút `ppthem` / `ppxoa` / `ppinc` / `ppdec`; Enter = Ghi nhận) ở "Đã tìm thấy" và "Phân bổ theo phòng"
+  (`ppTsHTML`, `ppsua` / `ppghi` / `pphuy`). Trang phòng: `srowNut` ("Cả … ở đây" `here` bỏ `pp` / "Một phần ở đây…" `ppday` → `ppDayHTML`,
+  `ppdayghi`), mục ghi kèm `.pp-phu` (`ppPhuRow`). Dòng tài sản: ô Thực tế = số ở phòng chính (`tt` = ô + tổng `pp`, − không xuống dưới tổng
+  `pp`), dòng `.pp-l`. Đổi ô Phòng thực tế sang một phòng ghi kèm (`moveRoom`) = đổi phòng chính. Quét liên tục: `act:'mot'` → `contDu({mot})`.
 - Trạng thái sử dụng: ô `data-f="sd"` trong phần "Chi tiết, ghi chú" của dòng tài sản (trang tài sản mở sẵn); nhãn trên dòng,
   câu lịch sử trong `logRowLines`, cột Ghi chú kiểm kê trong `ketQuaKeToan`. Không gộp vào `COND`.
 - Nút dạng đường link dùng `a.btn` (màu chữ của trang). Thử giao diện: `npm run thu-giao-dien`.

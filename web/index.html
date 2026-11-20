@@ -218,6 +218,25 @@ main{padding-block:20px 60px}
 .xm-so{font-weight:400}
 .xm-goi{grid-column:1/-1;margin:0;font-size:13px;color:var(--muted)}
 .xm-nuts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+/* Một tài sản ở nhiều phòng (người dùng chốt 20/11/2026): khung phòng + số lượng, dòng "Ở nhiều phòng", mục ghi kèm ở trang phòng */
+.pp-ds{grid-column:1/-1;display:grid;gap:8px}
+.pp-d{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.pp-ph{flex:1 1 180px}
+.pp-so{flex:0 0 auto} .pp-so .stepper{width:150px}
+.pp-xoa{flex:none;min-width:36px;padding-inline:8px}
+.pp-cuoi{grid-column:1/-1;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pp-tong{font-size:13.5px;color:var(--fg)}
+.pp-khung{display:grid;gap:10px}
+.pp-ul{margin:0 0 8px;padding-left:20px;display:grid;gap:4px;font-size:14px}
+.pp-l{display:flex;gap:6px;align-items:flex-start;margin-top:6px;padding:4px 8px;border-radius:6px;background:var(--info-soft);color:var(--fg);font-size:13px}
+.pp-l svg.lucide{margin-top:2px;color:var(--info)}
+.pp-day{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.pp-day label{font-size:13px;font-weight:600;color:var(--muted)}
+.pp-day .stepper{width:130px}
+.srow .acts{flex-wrap:wrap}
+.th-pp{font-style:normal;font-size:13px;color:var(--info)}
+.pp-o{display:block;margin-top:3px;font-size:13px;color:var(--muted);text-align:center}
+@media (max-width:860px){ .pp-o{display:none} }   /* điện thoại: nhãn ô đã ghi "Ở phòng chính" */
 .xsteps{margin:0 0 18px;padding:12px 16px 12px 34px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);font-size:13.5px;color:var(--muted);display:grid;gap:5px}
 .xsteps b{color:var(--fg)} .xsteps i{font-style:normal;color:var(--fg)}
 
@@ -467,14 +486,16 @@ details.thu-gon>summary h2 em{font-style:normal;color:var(--muted);font-weight:5
   .ts-trang .tsx,.ts-trang .tsx-in{display:contents}
   .ts-trang .tsx-dau{order:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:6px 0 4px}
   .ts-trang .tsx-dau h1{margin:2px 0 0}
-  .ts-trang .ts-kiem{order:2}
+  .ts-trang .ts-kiem,.ts-trang .pp-ts{order:2}
   .ts-trang .tsx-dl{order:3;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin-top:12px}
   .ts-trang .tsx-qr{order:4;align-self:flex-start;margin-top:12px}
   .ts-trang .tsx-qr svg{width:96px;height:96px}
   .ts-trang .tsx-go{order:5}
   /* vùng bấm ≥ 44px cho ngón tay (khuyến nghị cho điện thoại) */
   #app .row .btn,#app .row select.in,#app .row input.in,#app .dv-l select,#app .stepper button,#app .stepper input,
-  #app .tools .seg button,#app .tools input.in,#app .tools .btn,#app .newroom .btn,#app .xm .in,#app .xm .btn{min-height:44px}
+  #app .tools .seg button,#app .tools input.in,#app .tools .btn,#app .newroom .btn,#app .xm .in,#app .xm .btn,
+  #app .pp-ts .in,#app .pp-ts .btn,#app .srow .btn,#app .pp-day input{min-height:44px}
+  #app .pp-xoa{min-width:44px}
   #app .stepper button{min-width:44px}
   /* dòng tài sản: nút Đủ / Không thấy ngay dưới tên, các ô chọn phòng / phòng ban / số / tình trạng xuống sau */
   .row>*{order:4}
@@ -1523,6 +1544,7 @@ function logRowLines(a,o,n){
   const L=[], ro=logRes(o,a), rn=logRes(n,a); if(ro!==rn) L.push(`Kết quả: ${ro} → ${rn}`);
   const po=((o&&o.phong!=null)?o.phong:a.vt0)||'', pn=((n&&n.phong!=null)?n.phong:a.vt0)||'';
   if(po!==pn) L.push(`Vị trí: ${po||'chưa có'} → ${pn||'chưa có'}`);
+  const qo=ppChu(o&&o.pp), qn=ppChu(n&&n.pp); if(qo!==qn) L.push(qn?`Phần ở phòng khác: ${qn}`:'Bỏ phần ở phòng khác');
   const uo=(o&&o.dv)||a.unit0, un=(n&&n.dv)||a.unit0; if(uo!==un) L.push(`Phòng ban: ${(UNIT[uo]||{}).ten||uo} → ${(UNIT[un]||{}).ten||un}`);
   const co=(o&&o.cond)||'', cn=(n&&n.cond)||''; if(co!==cn) L.push(cn?`Tình trạng: ${co?lbl(COND,co)+' → ':''}${lbl(COND,cn)}`:`Bỏ tình trạng: ${lbl(COND,co)}`);
   const so=(o&&o.sd)||'', sn=(n&&n.sd)||''; if(so!==sn) L.push(`Trạng thái sử dụng: ${lbl(SUDUNG,so)} → ${lbl(SUDUNG,sn)}`);
@@ -1624,6 +1646,7 @@ function logKeep(){ clearTimeout(logPut._t); try{ localStorage.setItem(LOGK,JSON
 window.addEventListener('pagehide',logKeep);
 function logEvent(d){ logPut(d); LOGTAIL=null; if(MODE==='shared') kick(); }
 function save(){
+  for(const k in S.rows){ const r=S.rows[k]; if(r&&r.pp&&BY_STT[k]) ppSoat(r,BY_STT[k]); }   // tài sản ở nhiều phòng: giữ dữ liệu đúng
   if(MODE==='local'){
     const want=desired(), ch=[];
     if(LOGPREV){ for(const p in want) if(want[p]!==LOGPREV[p]) ch.push([p,LOGPREV[p],want[p]]); for(const p in LOGPREV) if(!(p in want)) ch.push([p,LOGPREV[p],null]); }
@@ -1830,6 +1853,42 @@ function res(a){
 }
 const RES_LABEL={chua:'Chưa kiểm',du:'Đủ',thieu:'Thiếu',thua:'Thừa',nf:'Chưa tìm thấy',hoso:'Đã xác nhận hồ sơ'};
 function roomOf(a){ const s=S.rows[a.stt]; return ((s&&s.phong!=null)?s.phong:a.vt0)||''; }
+/* Một tài sản ở nhiều phòng (người dùng chốt 20/11/2026): S.rows[stt].phong = PHÒNG CHÍNH (danh sách, tiến độ, "Xong" tính ở đây như cũ;
+   = phòng nhiều cái nhất lúc ghi phân bổ), .pp = {phòng khác: số cái} (ghi kèm), .tt = tổng thấy ở mọi phòng (null: phòng chính chưa kiểm).
+   Số ở phòng chính = tt − tổng pp. Ô "Thực tế" trên dòng tài sản là số ở phòng chính. */
+function ppCua(a){ const p=S.rows[a.stt]?.pp; return p&&Object.keys(p).length?p:null; }
+function ppTong(p){ return p?Object.values(p).reduce((t,n)=>t+(+n||0),0):0; }
+function ppChinh(a){ const s=S.rows[a.stt]; if(!s||s.nf||s.tt==null||s.tt==='') return null; return Math.max(0,+s.tt-ppTong(s.pp)); }
+function ppDs(a){ const p=ppCua(a); return [[roomOf(a),ppChinh(a)],...(p?Object.entries(p):[])]; }   // [[phòng, số]] — phòng chính trước
+// vị trí thực tế để ghi ra (file kế toán, thẻ thất lạc): "101 Alpha (2); 205 Gamma (1)"; một phòng thì như cũ
+function viTriThucTe(a){ if(!ppCua(a)) return roomOf(a); return ppDs(a).map(([k,n])=>`${k||'Chưa có vị trí'}${n!=null?` (${n})`:''}`).join('; '); }
+function ppChu(p){ return p&&Object.keys(p).length?Object.entries(p).map(([k,n])=>`${k} (${n})`).join('; '):''; }
+// giữ dữ liệu đúng (save() gọi trước khi lưu): bỏ phòng trống / trùng phòng chính / số ≤ 0; Không thấy, hồ sơ thì bỏ phân bổ;
+// tổng thấy không nhỏ hơn phần ở phòng khác
+function ppSoat(r,a){
+  if(!r||!r.pp) return;
+  if(r.nf||r.hs){ delete r.pp; return; }
+  const ph=((r.phong!=null)?r.phong:a.vt0)||'';
+  for(const k of Object.keys(r.pp)){ const n=Math.floor(+r.pp[k]); if(!k||k===ph||!(n>0)) delete r.pp[k]; else r.pp[k]=n; }
+  if(!Object.keys(r.pp).length){ delete r.pp; return; }
+  if(r.tt!=null&&r.tt!==''&&+r.tt<ppTong(r.pp)) r.tt=ppTong(r.pp);
+}
+// ghi phân bổ mới ds = [[phòng, số ≥ 1]] (đã gộp phòng trùng): phòng chính = phòng nhiều cái nhất (bằng nhau: phòng đứng trước)
+function ppGhi(r,ds){
+  let m=0; ds.forEach(([,n],i)=>{ if(n>ds[m][1]) m=i; });
+  r.phong=ds[m][0]; r.tt=ds.reduce((t,[,n])=>t+n,0); r.nf=false;
+  const p={}; ds.forEach(([k,n],i)=>{ if(i!==m) p[k]=n; });
+  if(Object.keys(p).length) r.pp=p; else delete r.pp;
+}
+// thấy n cái ở phòng `noi` (không phải phòng chính): ghi kèm; phòng chính đã kiểm thì xét lại phòng chính (nhiều cái nhất);
+// phòng chính chưa kiểm thì để nguyên (phần còn lại chờ kiểm ở đó); tài sản chưa có vị trí thì phòng này thành phòng chính
+function ppThemPhong(a,r,noi,n){
+  const chinh=roomOf(a), c=r.nf?0:ppChinh(a), p=Object.assign({},r.pp||{});
+  if(!chinh||chinh===noi){ delete p[noi]; r.phong=noi; r.nf=false; r.tt=n+ppTong(p); if(Object.keys(p).length) r.pp=p; else delete r.pp; return; }
+  p[noi]=n;
+  if(c==null){ r.pp=p; return; }
+  ppGhi(r,[[chinh,c],...Object.entries(p)].filter(([,k])=>k>0));
+}
 function count(list){
   const c={tong:list.length,chua:0,du:0,thieu:0,thua:0,nf:0,hoso:0,sl:0,gia:0,novt:0};
   list.forEach(a=>{c[res(a)]++; c.sl+=a.sl; c.gia+=a.gia; if(!roomOf(a)) c.novt++;});
@@ -1855,6 +1914,7 @@ function buildRooms(){
   const m={};
   ASSETS.forEach(a=>{ const n=roomOf(a); const k=n?slugify(n):NOROOM; (m[k]=m[k]||{slug:k,name:n||'Chưa có vị trí',bld:n?building(n):'',list:[]}).list.push(a); });
   DMP.forEach(p=>{ const k=slugify(p.ten); if(!m[k]) m[k]={slug:k,name:p.ten,bld:building(p.ten),list:[]}; });   // phòng bổ sung: 0 tài sản
+  Object.values(S.rows).forEach(r=>r&&r.pp&&Object.keys(r.pp).forEach(n=>{ const k=slugify(n); if(n&&!m[k]) m[k]={slug:k,name:n,bld:building(n),list:[]}; }));   // phòng chỉ có phần ghi kèm
   Object.values(m).forEach(r=>ROOMNAME[r.slug]=r.name);
   return m;
 }
@@ -1900,7 +1960,7 @@ function flashRes(stt){
 }
 function refreshRooms(){
   rebuildUnits();
-  const set=new Set(); ASSETS.forEach(a=>a.vt0&&set.add(a.vt0)); Object.values(S.rows).forEach(r=>r.phong&&set.add(r.phong));
+  const set=new Set(); ASSETS.forEach(a=>a.vt0&&set.add(a.vt0)); Object.values(S.rows).forEach(r=>{ r.phong&&set.add(r.phong); r.pp&&Object.keys(r.pp).forEach(k=>k&&set.add(k)); });
   const coSan=new Set([...set].map(slugify)); DMP.forEach(p=>{ if(!coSan.has(slugify(p.ten))) set.add(p.ten); });   // phòng bổ sung chưa có
   ROOMS=[...set].sort(sortRooms); UROOMS={};
   document.getElementById('dl-phong').innerHTML=ROOMS.map(v=>`<option value="${esc(v)}">`).join('');
@@ -2253,10 +2313,13 @@ function rowHTML(a){
   const room=roomOf(a); const cond=s.cond||a.cond0||'';
   const moved = V.type==='room' && V.id!==NOROOM && slugify(room)!==V.id;
   const tags=[V.type==='room'?`<span class="tag ${UNIT[a.unit].review?'warn':''}">${esc(UNIT[a.unit].review?UNIT[a.unit].sheet:a.unit)}</span>`:'', a.unit!==a.unit0?`<span class="tag info" title="Theo file Excel: ${esc(UNIT[a.unit0].ten)}">Từ ${esc(UNIT[a.unit0].sheet)}</span>`:'', (a.vtx&&!s.phong)?`<span class="tag warn">Excel ghi: ${esc(a.vtx)} · cần xác nhận</span>`:'', a.shared?'<span class="tag info">Dùng chung HC; CTSV; Đào tạo</span>':'', a.sl>1?`<span class="tag">Đếm số lượng</span>`:'', a.cond0?`<span class="tag warn">Excel ghi: ${esc(Object.keys(STATUS_TEXT).find(k=>STATUS_TEXT[k]===a.cond0))}</span>`:'', (s.phong!=null&&a.vt0&&s.phong!==a.vt0)?`<span class="tag warn">Sổ ghi: ${esc(a.vt0)}</span>`:'', moved?`<span class="tag warn">Đã ghi sang ${esc(room||'chưa có vị trí')}</span>`:'', s.sd?`<span class="tag ${['cho_tl','da_tl','bg'].includes(s.sd)?'warn':'info'}">${esc(lbl(SUDUNG,s.sd))}</span>`:''].join('');
+  // ở nhiều phòng: ô Thực tế là số ở phòng chính (tổng = phòng chính + phần ở phòng khác)
+  const pp=ppCua(a), soO=pp?(ppChinh(a)??''):(s.tt??'');
+  const ppL=pp?`<div class="pp-l">${ic('MapPin')}<span>Ở nhiều phòng: ${ppDs(a).map(([k,n],i)=>`<b>${esc(k||'Chưa có vị trí')}</b> ${n==null?'chưa kiểm':nf.format(n)}${i?'':' (phòng chính)'}`).join(' · ')} · tổng thấy ${s.tt!=null&&s.tt!==''?nf.format(+s.tt):'—'}/${nf.format(a.sl)}</span></div>`:'';
   const real = a.hoso
     ? `<div class="hoso-note">Tài sản không kiểm đếm được (công trình, dịch vụ). Chỉ cần xác nhận hồ sơ.</div>`
     : `<div class="c-book"><span class="lbl">Sổ sách</span><b>${nf.format(a.sl)}</b></div>
-       <div class="c-real"><span class="lbl">Thực tế<em class="sosach"> · sổ sách ${nf.format(a.sl)}</em></span><div class="stepper"><button type="button" data-act="dec" aria-label="Giảm">${ic('Minus')||'−'}</button><input id="tt-${a.stt}" type="number" min="0" inputmode="numeric" value="${s.tt??''}" placeholder="—" data-f="tt"><button type="button" data-act="inc" aria-label="Tăng">${ic('Plus')||'+'}</button></div></div>`;
+       <div class="c-real"><span class="lbl">${pp?'Ở phòng chính':'Thực tế'}<em class="sosach"> · sổ sách ${nf.format(a.sl)}</em></span><div class="stepper"><button type="button" data-act="dec" aria-label="Giảm">${ic('Minus')||'−'}</button><input id="tt-${a.stt}" type="number" min="0" inputmode="numeric" value="${soO}" placeholder="—" data-f="tt"${pp?` aria-label="Số ở phòng chính ${esc(room||'')}"`:''}><button type="button" data-act="inc" aria-label="Tăng">${ic('Plus')||'+'}</button></div>${pp?'<small class="pp-o">ở phòng chính</small>':''}</div>`;
   const btns = a.hoso
     ? `<button class="btn sm ${r==='hoso'?'':'pri'}" data-act="hoso">${r==='hoso'?'Bỏ xác nhận':'Xác nhận hồ sơ'}</button>`
     : (r==='chua'
@@ -2270,6 +2333,7 @@ function rowHTML(a){
     <div class="c-id"><span class="stt num">STT ${a.stt}</span><span class="ma mono">${esc(a.ma||'không mã')}</span></div>
     <div class="c-name"><div class="nm">${esc(a.short)}</div>
       <div class="meta"><span>${dmy(a.ngay)}</span><span>${money(a.gia)}</span>${a.ct?`<span class="mono">${esc(a.ct)}</span>`:''}${by}${tags}<button class="lnk" data-act="more">${open?'Ẩn chi tiết':'Chi tiết, ghi chú'}</button><button type="button" class="xt-nut" data-act="xt" aria-label="Mở rộng: mã QR và ảnh của tài sản" title="Mã QR, ảnh">${ic('Ellipsis')||'⋯'}${soAnh(a)?`<span class="xt-n">${soAnh(a)}</span>`:''}</button></div>
+      ${ppL}
       ${open?`<div class="more"><div class="full">${esc(a.ten)}</div><input class="in" id="note-${a.stt}" data-f="note" aria-label="Ghi chú tại chỗ" placeholder="Ghi chú tại chỗ (VD: đang mượn ở phòng 404, số biên bản bàn giao)" value="${esc(s.note||'')}"><label class="sdf" for="sd-${a.stt}"><span>Trạng thái sử dụng</span><select class="in" id="sd-${a.stt}" data-f="sd">${SUDUNG.map(([k,v])=>`<option value="${k}" ${(s.sd||'')===k?'selected':''}>${v}</option>`).join('')}</select></label></div>`:(s.note?`<div class="meta"><span>Ghi chú: ${esc(s.note)}</span></div>`:'')}
     </div>
     ${roomField(a,room)}
@@ -2379,6 +2443,8 @@ function viewRoom(slug){
     return `<div class="ucard"><b>${esc(u.ten)}</b><span class="num">${byU[id].length} dòng ở đây · ${count(byU[id]).chua} chưa kiểm</span><span>Hỏi: ${esc(us.daidien||u.dd)}${us.canbo?.length?' · có mặt: '+esc(us.canbo.join(', ')):''}</span><span style="display:flex;gap:12px;flex-wrap:wrap"><a href="#phong-${slug}" data-act="goto" data-u="${id}">Đi theo đơn vị này</a><a href="#dv-${id}">Mở sheet</a></span></div>`;}).join('');
   // gợi ý: tài sản chưa có vị trí của các đơn vị đang có đồ ở phòng này
   const sugg = slug===NOROOM?[]:ASSETS.filter(a=>byU[a.unit]&&!roomOf(a)&&res(a)==='chua');
+  // tài sản có phòng chính khác, một phần đang ở phòng này (ghi kèm — tiến độ tính ở phòng chính)
+  const phu = slug===NOROOM?[]:ASSETS.filter(a=>{ const p=ppCua(a); return p&&p[name]!=null&&roomOf(a)!==name; });
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#vi-tri">Kiểm theo số phòng</a> / ${ui.unit?`<a href="#dv-${ui.unit}">Sheet ${esc(UNIT[ui.unit].sheet)}</a>`:'Theo vị trí'}${slug!==NOROOM?' / '+esc(building(name)):''}</div>
   <div class="uhead">
@@ -2390,14 +2456,17 @@ function viewRoom(slug){
   ${unitPanel?`<details class="panel thu-gon" data-nho="dv" ${moSan('dv')?'open':''}><summary><h2>Đơn vị có tài sản ở đây <em class="num">${Object.keys(byU).length}</em></h2><span>Hỏi đúng người khi không thấy đồ</span></summary><div class="units">${unitPanel}</div></details>`:''}
   ${toolsHTML(c,'Nhóm theo đơn vị',slug!==NOROOM)}
   <div id="rows">${list.length?listBody(list,'unit'):'<div class="empty">Phòng này chưa có tài sản nào theo sổ. Dùng ô tìm bên dưới để ghi nhận đồ thấy ở đây.</div>'}</div>
+  ${phu.length?`<section class="panel pp-phu" style="margin-top:22px"><div class="sect" style="margin-top:0"><h2>Một phần tài sản dòng khác ở phòng này</h2><span class="num">${phu.length} tài sản</span></div>
+    <p class="hint">Các tài sản này thuộc phòng chính khác (tiến độ, “Xong” tính ở phòng chính), có một phần đang ở đây. Sửa số ở trang tài sản, mục “Phân bổ theo phòng”.</p>
+    <div class="sr">${phu.map(a=>ppPhuRow(a,name)).join('')}</div></section>`:''}
   ${slug!==NOROOM?`
   <details class="panel" style="margin-top:22px" ${sugg.length&&sugg.length<=40?'open':''}>
     <summary><h2>Có thể đang ở phòng này</h2><span class="num">${sugg.length} tài sản chưa ghi vị trí của các đơn vị trên</span></summary>
-    <p class="hint">Nhìn quanh phòng. Món nào thấy ở đây thì bấm "Có ở đây" để chuyển vào danh sách phòng.</p>
+    <p class="hint">Nhìn quanh phòng. Món nào thấy ở đây thì bấm "Có ở đây" để chuyển vào danh sách phòng; tài sản số lượng nhiều mà chỉ một phần ở đây thì bấm "Một phần ở đây…".</p>
     <div class="sr" id="sugg">${sugg.slice(0,80).map(a=>srow(a,name)).join('')||'<div class="empty">Không có gợi ý.</div>'}</div>
   </details>
   <section class="panel">
-    <div class="sect" style="margin-top:0"><h2>Thấy đồ của nơi khác ở đây?</h2><span>Tìm trong cả trường rồi ghi nhận vào phòng này</span></div>
+    <div class="sect" style="margin-top:0"><h2>Thấy đồ của nơi khác ở đây?</h2><span>Tìm trong cả trường rồi ghi nhận vào phòng này (cả dòng, hoặc một phần nếu số lượng nhiều)</span></div>
     <input class="in" id="aq" type="search" placeholder="Gõ mã hoặc tên tài sản…" style="max-width:460px">
     <div class="sr" id="ares" style="margin-top:10px"></div>
   </section>`:''}
@@ -2439,7 +2508,7 @@ function thSapPhong(x,y){ return (x===''?1:0)-(y===''?1:0)||thToa(x)-thToa(y)||t
 function thDong(a){
   const s=S.rows[a.stt]||{}, r=res(a), who=whoLabel(s.by);
   const sl=a.hoso?'—':r==='chua'?nf.format(a.sl):`${nf.format(r==='nf'?0:(s.tt!=null?s.tt:a.sl))}/${nf.format(a.sl)}`;
-  return `<a class="th-r" href="#ts-${encodeURIComponent(a.key)}" data-stt="${a.stt}"><span class="mono th-ma">${esc(a.ma||'STT '+a.stt)}</span><span class="th-ten" title="${esc(a.ten)}">${esc(a.short)}</span><span class="num th-sl" title="${r==='chua'?'Số lượng theo sổ':'Thực tế / sổ sách'}">${sl}</span><span class="badge ${r}">${RES_LABEL[r]}</span><span class="th-ai">${r!=='chua'&&s.at?`${who?esc(who)+' · ':''}${hm(s.at)}`:''}</span></a>`;
+  return `<a class="th-r" href="#ts-${encodeURIComponent(a.key)}" data-stt="${a.stt}"><span class="mono th-ma">${esc(a.ma||'STT '+a.stt)}</span><span class="th-ten" title="${esc(a.ten)}${ppCua(a)?' · ở nhiều phòng: '+esc(viTriThucTe(a)):''}">${esc(a.short)}${ppCua(a)?` <em class="th-pp">+${Object.keys(ppCua(a)).length} phòng</em>`:''}</span><span class="num th-sl" title="${r==='chua'?'Số lượng theo sổ':'Thực tế / sổ sách'}">${sl}</span><span class="badge ${r}">${RES_LABEL[r]}</span><span class="th-ai">${r!=='chua'&&s.at?`${who?esc(who)+' · ':''}${hm(s.at)}`:''}</span></a>`;
 }
 // tên để gom: bỏ số lượng ở đầu ("3 ghế đôn…", "4,61m2 _ Tấm LED…") để cùng loại đồ (ghế, bàn…) đứng liền nhau
 function thTenGom(a){ return a.short.replace(/^\s*[\d.,]+\s*(m2|m)?\s*[_\-:]?\s*/i,'').trim()||a.short; }
@@ -2485,7 +2554,7 @@ async function thXlsx(b){
   const cot=[['Nhóm',16],['Tòa',10],['Tầng',6],['Phòng',16],['Ghi chú phòng',22],['Phòng ban',28],['STT',6],['Mã TSCĐ',11],['Tên tài sản',50],['Số lượng sổ',8],['Thực tế',8],['Kết quả',14],['Tình trạng',14],['Trạng thái sử dụng',16],['Ghi chú kiểm kê',30],['Người kiểm',18],['Lúc kiểm',15],['Nguyên giá',15],['Bắt đầu sử dụng',13]];
   const dong=[]; nh.forEach(({ten,l})=>l.forEach(a=>{ const s=S.rows[a.stt]||{}, r=res(a), n=roomOf(a), t=thTang(n), d=s.at?new Date(s.at):null, p=x=>String(x).padStart(2,'0');
     dong.push([ten, n?building(n):'', n&&t<99?t:'', n||'Chưa có vị trí', ghiChuPhong(n), UNIT[a.unit].ten+(a.unit!==a.unit0?` (từ ${UNIT[a.unit0].sheet})`:''), a.stt, a.ma?String(a.ma):'', a.ten, a.sl,
-      a.hoso||r==='chua'?'':(r==='nf'?0:(s.tt!=null?+s.tt:'')), RES_LABEL[r], s.cond?lbl(COND,s.cond):'', s.sd?lbl(SUDUNG,s.sd):'', s.note||'', r!=='chua'?(whoLabel(s.by)||''):'',
+      a.hoso||r==='chua'?'':(r==='nf'?0:(s.tt!=null?+s.tt:'')), RES_LABEL[r], s.cond?lbl(COND,s.cond):'', s.sd?lbl(SUDUNG,s.sd):'', [ppCua(a)?'Ở nhiều phòng: '+viTriThucTe(a):'', s.note||''].filter(Boolean).join('; '), r!=='chua'?(whoLabel(s.by)||''):'',
       r!=='chua'&&d?`${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`:'', +a.gia||0, dmy(a.ngay)]); }));
   const d=new Date(), p=x=>String(x).padStart(2,'0');
   try{ await window.xuatBangExcel('Tổng hợp tài sản',cot,dong,`Tong hop tai san ${p(d.getDate())}-${p(d.getMonth()+1)}-${d.getFullYear()}`,{loc:true});
@@ -2511,7 +2580,27 @@ function srow(a,roomName){
     <div><div>${esc(a.short)}</div><div class="sub">${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div></div>
     <div class="sub">${n?'Sổ ghi: '+esc(n):'Chưa có vị trí'}</div>
     <span class="badge ${r}">${RES_LABEL[r]}</span>
-    <div class="acts"><button class="btn sm pri" data-act="here">Có ở đây</button></div></div>`;
+    <div class="acts">${srowNut(a)}</div></div>`;
+}
+// nút của tài sản tìm thấy ở phòng đang mở: số lượng > 1 thì chọn cả dòng ở đây, hay chỉ một phần (ghi kèm, người dùng chốt 20/11/2026)
+function srowNut(a){
+  if(a.sl>1&&!a.hoso) return `<button class="btn sm pri" data-act="here">Cả ${nf.format(a.sl)} ở đây</button><button class="btn sm" data-act="ppday">Một phần ở đây…</button>`;
+  return `<button class="btn sm pri" data-act="here">Có ở đây</button>`;
+}
+function ppDayHTML(a){
+  const st=a.stt, cu=(ppCua(a)||{})[ROOMNAME[V.id]];
+  return `<div class="pp-day"><label for="pd-${st}">Số thấy ở đây</label><div class="stepper"><button type="button" data-act="pddec" aria-label="Giảm số thấy ở đây">${ic('Minus')||'−'}</button><input id="pd-${st}" type="number" min="1" inputmode="numeric" value="${cu||1}"><button type="button" data-act="pdinc" aria-label="Tăng số thấy ở đây">${ic('Plus')||'+'}</button></div>
+    <button type="button" class="btn sm pri" data-act="ppdayghi">${ic('Check')}Ghi nhận</button><button type="button" class="btn sm" data-act="ppdayhuy">Huỷ</button></div>`;
+}
+// dòng ở mục "Một phần tài sản dòng khác ở phòng này"
+function ppPhuRow(a,name){
+  const r=res(a), c=ppChinh(a), chinh=roomOf(a);
+  return `<div class="srow" data-stt="${a.stt}">
+    <div><div class="mono">${esc(a.ma)}</div><div class="sub">STT ${a.stt}</div></div>
+    <div><div>${esc(a.short)}</div><div class="sub">${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div></div>
+    <div class="sub"><b class="num">${nf.format(ppCua(a)[name])} cái ở đây</b> · phòng chính ${chinh?`<a href="#phong-${slugify(chinh)}">${esc(chinh)}</a>`:'chưa có vị trí'} (${c==null?'chưa kiểm':nf.format(c)})</div>
+    <span class="badge ${r}">${RES_LABEL[r]}</span>
+    <div class="acts"><a class="btn sm" href="#ts-${encodeURIComponent(a.key)}">Mở tài sản</a></div></div>`;
 }
 function progHTML(c){
   const pct=c.tong?Math.round(c.da/c.tong*100):0;
@@ -2524,23 +2613,57 @@ function endHTML(c,us,ps){
   <button class="btn ${us.ended?'':'pri'}" data-act="end">${us.ended?'Mở lại buổi':'Kết thúc buổi'}</button></div>`;
 }
 
-/* khung "Đã tìm thấy" trong thẻ (người dùng yêu cầu 20/11/2026): tổng số đã tìm thấy, phòng, phòng ban nơi tìm thấy → Ghi nhận
-   (data-act="xmghi"): tài sản tự về phòng / phòng ban đó; thấy đủ tính Đủ, thấy một phần tính Thiếu (xong luôn — người dùng chọn). */
-function xmThayHTML(a,x,s,v){
-  v=v||{}; const st=a.stt, n0=v.n!=null?v.n:(x.kq==='thay'&&+s.tt>0?+s.tt:a.sl), ph0=v.ph!=null?v.ph:((x.kq==='chi'&&x.phong)?x.phong:roomOf(a));
+/* Khung nhập phòng + số lượng (người dùng yêu cầu 20/11/2026), dùng ở "Đã tìm thấy…" (Tài sản thất lạc) và "Phân bổ theo phòng" (trang
+   tài sản): mỗi dòng một phòng (pr-<stt>-<i>) + số lượng (pn-<stt>-<i>); "Thêm phòng" khi tài sản ở nhiều phòng. Trạng thái
+   ui.ppMo[stt] = {ds: [[phòng, số]], dv} (nhớ chữ đang gõ khi trang vẽ lại). Ghi nhận: ppDoc() → ppGhi() (phòng nhiều cái nhất là phòng chính). */
+function ppMacDinh(a,x,sua){   // sua: ghi lại đúng số đã ghi; không thì phần chưa thấy coi như ở phòng chính
+  const p=ppCua(a)||{}, ph=(x&&x.kq==='chi'&&x.phong)?x.phong:roomOf(a);
+  const c=sua?ppChinh(a):Math.max(1,a.sl-ppTong(p));
+  const ds=[[ph,c],...Object.entries(p)].filter(([,n])=>n>0);
+  return ds.length?ds:[[ph,a.sl>1?a.sl:1]];
+}
+function ppTongChu(a,t){ return `Tổng <b class="num">${nf.format(t)}</b> / sổ sách ${nf.format(a.sl)} → ${t===a.sl?'Đủ':t<a.sl?'Thiếu '+nf.format(a.sl-t):'Thừa '+nf.format(t-a.sl)}`; }
+function ppKhungHTML(a,v){
+  const st=a.stt, ds=v.ds, nhieu=a.sl>1, tong=ds.reduce((t,[,n])=>t+(Math.floor(+n)||0),0);
+  return `<div class="pp-ds">${ds.map(([ph,n],i)=>`<div class="pp-d">
+      <div class="fld pp-ph"><label for="pr-${st}-${i}">${ds.length>1?`Phòng ${i+1}`:'Ở phòng'}</label><input class="in" id="pr-${st}-${i}" list="dl-phong" value="${esc(ph||'')}" placeholder="VD: 205 Gamma" autocomplete="off"></div>
+      ${nhieu?`<div class="fld pp-so"><label for="pn-${st}-${i}">Số lượng</label><div class="stepper"><button type="button" data-act="ppdec" data-i="${i}" aria-label="Giảm số ở phòng ${i+1}">${ic('Minus')||'−'}</button><input id="pn-${st}-${i}" type="number" min="1" inputmode="numeric" value="${esc(String(n??''))}"><button type="button" data-act="ppinc" data-i="${i}" aria-label="Tăng số ở phòng ${i+1}">${ic('Plus')||'+'}</button></div></div>`:''}
+      ${ds.length>1?`<button type="button" class="btn pp-xoa" data-act="ppxoa" data-i="${i}" aria-label="Bỏ phòng ${i+1}" title="Bỏ phòng này">${ic('X')||'×'}</button>`:''}
+    </div>`).join('')}</div>
+    ${nhieu?`<div class="pp-cuoi"><button type="button" class="btn sm" data-act="ppthem">${ic('Plus')}Thêm phòng</button><span class="pp-tong" id="pt-${st}" aria-live="polite">${ppTongChu(a,tong)}</span></div>`:''}`;
+}
+// đọc khung từ trang vào ui.ppMo (không kiểm tra) — trước khi vẽ lại
+function ppSync(stt){
+  const v=ui.ppMo&&ui.ppMo[stt]; if(!v) return null;
+  v.ds=v.ds.map(([ph,n],i)=>{ const pi=document.getElementById(`pr-${stt}-${i}`), ni=document.getElementById(`pn-${stt}-${i}`); return [pi?pi.value:ph, ni?ni.value:n]; });
+  const d=document.getElementById('xd-'+stt); if(d) v.dv=d.value; return v;
+}
+// đọc + kiểm tra để ghi: [[phòng, số ≥ 1]], gộp phòng trùng; sai thì báo, đưa con trỏ tới ô sai, trả null
+function ppDoc(stt){
+  const v=ppSync(stt); if(!v) return null; const a=BY_STT[stt], out=[], vt={}, nhieu=v.ds.length>1;
+  for(let i=0;i<v.ds.length;i++){ const ph=String(v.ds[i][0]||'').trim(), n=a.sl>1?Math.floor(+v.ds[i][1]):1;
+    if(!ph){ toast(`${nhieu?`Phòng ${i+1}: `:''}chọn hoặc nhập phòng nơi tìm thấy`); document.getElementById(`pr-${stt}-${i}`)?.focus(); return null; }
+    if(!(n>=1)){ toast(`${nhieu?`Phòng ${i+1}: `:''}số lượng phải từ 1 trở lên`); document.getElementById(`pn-${stt}-${i}`)?.focus(); return null; }
+    if(ph in vt) out[vt[ph]][1]+=n; else { vt[ph]=out.length; out.push([ph,n]); } }
+  return out;
+}
+function ppTongVe(stt){ const a=BY_STT[stt], el=document.getElementById('pt-'+stt); if(!el) return; let t=0; for(let i=0;;i++){ const n=document.getElementById(`pn-${stt}-${i}`); if(!n) break; t+=Math.floor(+n.value)||0; } el.innerHTML=ppTongChu(a,t); }
+/* khung "Đã tìm thấy" trong thẻ (người dùng yêu cầu 20/11/2026): số đã tìm thấy ở từng phòng, phòng ban → Ghi nhận (data-act="xmghi"):
+   tài sản tự về phòng / phòng ban đó; thấy đủ tính Đủ, thấy một phần tính Thiếu (xong luôn — người dùng chọn). */
+function xmThayHTML(a,v){
+  const st=a.stt;
   return `<fieldset class="xm-thay wide"><legend>Đã tìm thấy</legend>
-    ${a.sl>1?`<div class="fld"><label for="xs-${st}">Tổng số đã tìm thấy <span class="xm-so">/ sổ sách ${nf.format(a.sl)}</span></label><div class="stepper"><button type="button" data-act="xmdec" aria-label="Giảm số đã tìm thấy">${ic('Minus')||'−'}</button><input id="xs-${st}" type="number" min="1" inputmode="numeric" value="${n0}"><button type="button" data-act="xminc" aria-label="Tăng số đã tìm thấy">${ic('Plus')||'+'}</button></div></div>`:''}
-    <div class="fld"><label for="xr-${st}">Ở phòng</label><input class="in" id="xr-${st}" list="dl-phong" value="${esc(ph0)}" placeholder="VD: 205 Gamma" autocomplete="off"></div>
+    ${ppKhungHTML(a,v)}
     <div class="fld"><label for="xd-${st}">Phòng ban</label><select class="in" id="xd-${st}">${dvOpts(a,v.dv)}</select></div>
-    <p class="xm-goi">${a.sl>1?`Thấy đủ ${nf.format(a.sl)} → tính Đủ; thấy ít hơn → tính Thiếu.`:'Tính là Đủ.'} Tài sản tự về phòng, phòng ban đã chọn.</p>
+    <p class="xm-goi">${a.sl>1?`Thấy ở nhiều phòng thì bấm “Thêm phòng” (phòng nhiều cái nhất là phòng chính). Thấy đủ ${nf.format(a.sl)} → tính Đủ; ít hơn → tính Thiếu.`:'Tính là Đủ.'} Tài sản tự về phòng, phòng ban đã chọn.</p>
     <div class="xm-nuts"><button type="button" class="btn pri" data-act="xmghi">${ic('Check')}Ghi nhận</button><button type="button" class="btn" data-act="xmhuy">Huỷ</button></div>
   </fieldset>`;
 }
 function viewXM(){
-  const items=ASSETS.filter(xmCo), mo=ui.xmMo||(ui.xmMo={});
+  const items=ASSETS.filter(xmCo), mo=ui.ppMo||(ui.ppMo={});
   const card=a=>{
     const x=S.xm[a.stt]||{kq:'cho'}; const u=UNIT[a.unit]; const us=S.units[a.unit]||{}; const s=S.rows[a.stt]||{};
-    const r=res(a), cho=xmCho(a), tt=+s.tt||0, ph=roomOf(a);
+    const r=res(a), cho=xmCho(a), tt=+s.tt||0, ph=viTriThucTe(a);   // ở nhiều phòng: "101 Alpha (2); 205 Gamma (1)"
     // đã tìm thấy bao nhiêu, ở đâu (đếm thiếu: phần còn thiếu là việc cần hỏi)
     const tim=r==='thieu'?`<div class="xm-tt warn">${ic('CircleAlert')}<span>Đã thấy <b class="num">${tt}/${a.sl}</b> ở <b>${esc(ph||'chưa có vị trí')}</b> · còn thiếu <b class="num">${a.sl-tt}</b></span></div>`
       :(r==='du'||r==='thua')?`<div class="xm-tt ok">${ic('Check')}<span>Đã thấy ${r==='du'?'đủ ':''}<b class="num">${tt}/${a.sl}</b> ở <b>${esc(ph||'chưa có vị trí')}</b></span></div>`
@@ -2559,7 +2682,7 @@ function viewXM(){
         <div class="fld"><label for="xk-${a.stt}">${r==='thieu'&&x.kq!=='thay'?'Kết quả phần còn thiếu':'Kết quả'}</label><select class="in" id="xk-${a.stt}" data-x="kq">${XM_KQ.map(([k,v])=>`<option value="${k}" ${(x.kq||'cho')===k?'selected':''}>${v}</option>`).join('')}</select></div>
         <div class="fld wide"><label for="xp-${a.stt}">Đại diện trả lời</label><input class="in" id="xp-${a.stt}" data-x="phanhoi" value="${esc(x.phanhoi||'')}" placeholder="Ghi lại câu trả lời"></div>
         ${x.kq==='chi'?`<div class="fld"><label for="xv-${a.stt}">Phòng được chỉ</label><input class="in" id="xv-${a.stt}" list="dl-phong" data-x="phong" value="${esc(x.phong||'')}"></div><div class="fld" style="justify-content:flex-end"><button class="btn pri" data-act="recheck">Đến phòng này kiểm lại</button></div>`:''}
-        ${mo[a.stt]&&coThay?xmThayHTML(a,x,s,mo[a.stt]):nut}
+        ${mo[a.stt]&&coThay?xmThayHTML(a,mo[a.stt]):nut}
       </div></div>`;
   };
   const wait=items.filter(xmCho), done=items.filter(a=>!xmCho(a));
@@ -2592,7 +2715,7 @@ function ketQuaKeToan(a){
   else kq=XM_TEXT[(x&&x.kq)||'cho']||'Chưa tìm thấy';
   let vt='';
   if(r==='nf') vt=(x&&x.kq==='chi'&&x.phong)?x.phong:'';
-  else if(r!=='chua'||s.phong!=null) vt=roomOf(a);
+  else if(r!=='chua'||s.phong!=null||s.pp) vt=viTriThucTe(a);   // ở nhiều phòng: "101 Alpha (2); 205 Gamma (1)"
   if(a.review&&!vt&&r!=='nf') vt='Chưa có vị trí';
   const cond=s.cond&&s.cond!=='tot'?(COND.find(c=>c[0]===s.cond)||[])[1]:'';
   // đổi phòng ban trên app (người dùng chọn 16/11/2026): ghi "Phân bổ về: …" để kế toán cập nhật sổ; dòng vẫn ở sheet gốc
@@ -2967,6 +3090,19 @@ async function logXlsx(b){
 
 /* ---------- trang một tài sản (#ts-<khoá>): nơi tem mã QR dẫn tới ---------- */
 function tsKey(s){ try{ return decodeURIComponent(s); }catch(e){ return s; } }
+/* trang tài sản › "Phân bổ theo phòng" (người dùng chốt 20/11/2026): xem / sửa số cái ở từng phòng (tài sản số lượng > 1) */
+function ppTsHTML(a){
+  if(a.hoso||a.sl<2) return '';
+  const st=a.stt, v=ui.ppMo&&ui.ppMo[st], p=ppCua(a), s=S.rows[st]||{};
+  const tom=p?`<ul class="pp-ul">${ppDs(a).map(([k,n],i)=>`<li><b>${esc(k||'Chưa có vị trí')}</b> — ${n==null?'chưa kiểm':nf.format(n)+' cái'}${i?'':' <span class="tag info">phòng chính</span>'}</li>`).join('')}</ul>
+      <p class="xm-goi">Tổng đã thấy: <b class="num">${s.tt!=null&&s.tt!==''?nf.format(+s.tt):'—'}</b> / sổ sách ${nf.format(a.sl)}. Danh sách phòng, tiến độ, “Xong” tính ở phòng chính; các phòng kia ghi kèm.</p>`
+    :`<p class="xm-goi">Đang ghi ở một phòng: <b>${esc(roomOf(a)||'Chưa có vị trí')}</b>. Tài sản nằm rải ở nhiều phòng thì bấm “Ghi nhiều phòng…”.</p>`;
+  return `<section class="panel pp-ts" data-stt="${st}"><div class="sect" style="margin-top:0"><h2>Phân bổ theo phòng</h2><span>Tài sản ở nhiều phòng: mỗi phòng một số lượng</span></div>
+    ${v&&!READONLY?`<div class="pp-khung">${ppKhungHTML(a,v)}<p class="xm-goi">Phòng có nhiều cái nhất là phòng chính. Ghi nhận xong, tổng các phòng là số thực tế của tài sản.</p>
+      <div class="xm-nuts"><button type="button" class="btn pri" data-act="ppghi">${ic('Check')}Ghi nhận</button><button type="button" class="btn" data-act="pphuy">Huỷ</button></div></div>`
+      :`${tom}${READONLY?'':`<button type="button" class="btn" data-act="ppsua">${ic('MapPin')}${p?'Sửa phân bổ…':'Ghi nhiều phòng…'}</button>`}`}
+  </section>`;
+}
 function viewTS(key){
   const a=BY_KEY[key];
   if(!a){ const kn=maMoi(key); if(kn!==key&&BY_KEY[kn]){ TSCU={cu:key,moi:kn}; location.replace('#ts-'+encodeURIComponent(kn)); return; } }   // tem mang mã cũ → tài sản mã mới
@@ -2991,7 +3127,7 @@ function viewTS(key){
       <h1>${esc(a.ten)}</h1></div>
       <dl class="tsx-dl">
         <div><dt>Đơn vị</dt><dd>${esc(u.ten)}</dd></div>
-        <div><dt>Vị trí</dt><dd>${esc(n||'Chưa có vị trí')}${a.vt0&&n&&n!==a.vt0?` <span class="tag warn">sổ ghi ${esc(a.vt0)}</span>`:''}</dd></div>
+        <div><dt>Vị trí</dt><dd>${esc(ppCua(a)?viTriThucTe(a):(n||'Chưa có vị trí'))}${a.vt0&&n&&n!==a.vt0?` <span class="tag warn">sổ ghi ${esc(a.vt0)}</span>`:''}</dd></div>
         <div><dt>Số lượng theo sổ</dt><dd class="num">${nf.format(a.sl)}</dd></div>
         <div><dt>Bắt đầu sử dụng</dt><dd class="num">${dmy(a.ngay)}</dd></div>
         <div><dt>Nguyên giá</dt><dd class="num">${money(a.gia)}</dd></div>
@@ -3003,6 +3139,7 @@ function viewTS(key){
   </section>
   <div class="ts-kiem"><div class="sect"><h2>Kiểm tài sản này</h2></div>
   ${LHEAD}<div class="list">${rowHTML(a)}</div></div>
+  ${ppTsHTML(a)}
   <div class="tsx-go">
     <button type="button" class="btn pri" data-act="scan">${ic('ScanLine')}Quét tem tiếp</button>
     <a class="btn" href="#ma-qr" data-act="qrin" data-qk="${esc(a.key)}">${ic('QrCode')}In tem mã QR tài sản này</a>
@@ -3137,7 +3274,11 @@ function refreshRow(stt){
 /* đổi phòng: lưu, dựng lại danh sách để tài sản nhảy sang đúng nhóm phòng, cho phép hoàn tác */
 function moveRoom(stt,val){
   const a=BY_STT[stt]; const from=roomOf(a); if(val===from){ refreshRow(stt); return; }
-  snap([stt]); const r=touch(stt); r.phong=val;
+  snap([stt]); const r=touch(stt);
+  // ở nhiều phòng: chọn một phòng đang ghi kèm → phòng đó thành phòng chính, số của phòng chính cũ chuyển sang ghi kèm;
+  // chọn phòng khác → phần ở phòng chính chuyển sang phòng mới
+  if(r.pp&&val&&r.pp[val]!=null){ const c=ppChinh(a), n=r.pp[val]; delete r.pp[val]; if(from&&c>0) r.pp[from]=c; if(c==null){ r.tt=n+ppTong(r.pp); r.nf=false; } }
+  r.phong=val;
   save(); refreshRooms();
   const y=window.scrollY; render(); window.scrollTo(0,y);
   flash('info','→',val?`Đã chuyển vào ${val}`:'Đã bỏ vị trí',`${a.ma||'STT '+a.stt} · ${a.short}${from?' · trước đó: '+from:''}`);
@@ -3196,34 +3337,56 @@ app.addEventListener('click',e=>{
   }
   if(['du','nf','hoso','inc','dec','clr','here'].includes(act)) snap([stt]);
   if(act==='du'){ const r=touch(stt); r.tt=a.sl; r.nf=false; if(r.phong==null) r.phong=a.vt0; if(!r.cond) r.cond='tot'; }
-  if(act==='nf'){ const r=touch(stt); if(r.nf){ r.nf=false; r.tt=null; delete S.xm[stt]; save(); refreshRow(stt); flashRes(stt); return; } else { r.nf=true; r.tt=0; if(!S.xm[stt]) S.xm[stt]={kq:'cho',cach:''}; save(); refreshRow(stt); flashRes(stt); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); return; } }
+  if(act==='nf'){ const r=touch(stt); if(r.nf){ r.nf=false; r.tt=null; delete S.xm[stt]; save(); refreshRow(stt); flashRes(stt); return; }
+    else if(ppTong(r.pp)>0){ r.nf=false; r.tt=ppTong(r.pp); if(r.phong==null) r.phong=a.vt0; save(); refreshRow(stt); flashRes(stt); toast('Không thấy ở phòng chính; vẫn tính phần đã thấy ở phòng khác',true); return; }   // đã thấy một phần ở phòng khác
+    else { r.nf=true; r.tt=0; if(!S.xm[stt]) S.xm[stt]={kq:'cho',cach:''}; save(); refreshRow(stt); flashRes(stt); toast('Bấm Hoàn tác nếu đánh dấu nhầm',true); return; } }
   if(act==='hoso'){ const r=touch(stt); r.hs=!r.hs; }
   if(act==='clr'){ delete S.rows[stt]; delete S.xm[stt]; save(); refreshRow(stt); flashRes(stt); toast('Bấm Hoàn tác để lấy lại kết quả cũ',true); return; }
-  if(act==='inc'||act==='dec'){ const r=touch(stt); if(r.tt==null||r.tt===''){ r.tt=a.sl; } else r.tt=Math.max(0,+r.tt+(act==='inc'?1:-1)); r.nf=false; if(r.phong==null) r.phong=a.vt0; }
+  if(act==='inc'||act==='dec'){ const r=touch(stt); if(r.tt==null||r.tt===''){ r.tt=a.sl; } else r.tt=Math.max(ppTong(r.pp),+r.tt+(act==='inc'?1:-1)); r.nf=false; if(r.phong==null) r.phong=a.vt0; }   // ở nhiều phòng: −/+ đổi số ở phòng chính
   if(['du','hoso','inc','dec'].includes(act)){ save(); refreshRow(stt); flashRes(stt); return; }
   if(act==='saveroom'){ const v=(document.getElementById('nr-'+stt)?.value||'').trim(); if(!v){ toast('Nhập tên phòng trước khi lưu'); return; } delete ui.newRoom[stt]; moveRoom(stt,v); return; }
   if(act==='cancelroom'){ delete ui.newRoom[stt]; refreshRow(stt); return; }
-  if(act==='here'){ const name=ROOMNAME[V.id]; const from=roomOf(a); const r=touch(stt); r.phong=name; if(from&&from!==name) r.note=((r.note?r.note+'; ':'')+'Thấy ở '+name+', sổ ghi '+from); save(); refreshRooms(); render(); flash('info','→',`Đã ghi nhận ở ${name}`,`${a.ma||'STT '+a.stt} · ${a.short}`); toast('Bấm Hoàn tác nếu ghi nhầm',true); return; }
+  if(act==='here'){ const name=ROOMNAME[V.id]; const from=roomOf(a); const r=touch(stt); r.phong=name; delete r.pp; /* cả dòng ở phòng này */ if(from&&from!==name) r.note=((r.note?r.note+'; ':'')+'Thấy ở '+name+', sổ ghi '+from); save(); refreshRooms(); render(); flash('info','→',`Đã ghi nhận ở ${name}`,`${a.ma||'STT '+a.stt} · ${a.short}`); toast('Bấm Hoàn tác nếu ghi nhầm',true); return; }
   if(act==='rmcb'){ unitState(V.id).canbo.splice(+b.dataset.i,1); save(); render(); return; }
   if(act==='rmps'){ S.ps[psKey()].splice(+b.dataset.i,1); save(); render(); return; }
   if(act==='end'){ const us=unitState(V.id); us.ended=!us.ended; save(); render(); toast(us.ended?'Đã kết thúc buổi kiểm kê':'Đã mở lại buổi'); return; }
   if(act==='recheck'){ const x=S.xm[stt]; const r=touch(stt); if(r.nf||!(+r.tt>0)){ r.nf=false; r.tt=null; } if(x.phong) r.phong=x.phong; save(); refreshRooms(); pendingQ=a.ma; location.hash='phong-'+slugify(roomOf(a)); return; }   // đếm thiếu: giữ số đã thấy
-  // Tài sản thất lạc › "Đã tìm thấy…" (xmThayHTML): mở / đóng khung, tăng giảm số, Ghi nhận
-  if(act==='xmthay'||act==='xmhuy'){ const mo=ui.xmMo||(ui.xmMo={}); if(act==='xmthay') mo[stt]={}; else delete mo[stt]; viewXM();
-    const n=act==='xmthay'?(document.getElementById('xs-'+stt)||document.getElementById('xr-'+stt)):app.querySelector(`.xm[data-stt="${stt}"] [data-act="xmthay"]`); if(n) n.focus(); return; }
-  if(act==='xminc'||act==='xmdec'){ const i=document.getElementById('xs-'+stt); if(i){ const v=Math.floor(+i.value)||0; i.value=Math.max(1,v+(act==='xminc'?1:-1)); if(ui.xmMo&&ui.xmMo[stt]) ui.xmMo[stt].n=i.value; } return; }
-  if(act==='xmghi'){
-    const ns=document.getElementById('xs-'+stt), n=ns?Math.floor(+ns.value):1, pi=document.getElementById('xr-'+stt), ph=(pi&&pi.value||'').trim(), dv=(document.getElementById('xd-'+stt)||{}).value;
-    if(!(n>=1)){ toast('Số đã tìm thấy phải từ 1 trở lên'); if(ns) ns.focus(); return; }
-    if(!ph){ toast('Chọn hoặc nhập phòng nơi tìm thấy'); if(pi) pi.focus(); return; }
-    snap([stt]); const r=touch(stt), x=S.xm[stt]||(S.xm[stt]={kq:'cho'});
-    if(x.kq!=='thay') x.truoc=r.nf?0:(+r.tt||0);   // số đã thấy trước lần này: bỏ "Đã tìm thấy" (chọn nhầm) thì trả về số này
-    r.nf=false; r.tt=n; r.phong=ph; if(UNIT[dv]){ if(dv===a.unit0) delete r.dv; else r.dv=dv; } if(!r.cond) r.cond='tot';
-    x.kq='thay'; x.at=Date.now(); if(ME) x.by=ME;
-    delete ui.xmMo[stt]; save(); refreshRooms(); viewXM(); updateBadge();
-    flash(n>=a.sl?'ok':'warn',n>=a.sl?'✓':'−',n>=a.sl?`Đã tìm thấy đủ ${n}/${a.sl}`:`Đã tìm thấy ${n}/${a.sl} · thiếu ${a.sl-n}`,`${a.ma||'STT '+a.stt} · ${a.short} · ở ${ph}`);
+  // Khung phòng + số lượng: "Đã tìm thấy…" (Tài sản thất lạc, xmThayHTML) và "Phân bổ theo phòng" (trang tài sản, ppTsHTML)
+  const ppVe=()=>{ if(V.type==='xm') viewXM(); else render(); };
+  const ppNut=()=>app.querySelector(`[data-stt="${stt}"] [data-act="${V.type==='xm'?'xmthay':'ppsua'}"]`);
+  if(act==='xmthay'||act==='ppsua'){ const mo=ui.ppMo||(ui.ppMo={}); const x=S.xm[stt], s=S.rows[stt]||{};
+    mo[stt]={ds:ppMacDinh(a,act==='xmthay'?x:null,act==='xmthay'?(x&&x.kq==='thay'&&+s.tt>0):ppChinh(a)!=null)}; ppVe();
+    const n=document.getElementById(`pn-${stt}-0`)||document.getElementById(`pr-${stt}-0`); if(n) n.focus(); return; }
+  if(act==='xmhuy'||act==='pphuy'){ if(ui.ppMo) delete ui.ppMo[stt]; ppVe(); const n=ppNut(); if(n) n.focus(); return; }
+  if(act==='ppinc'||act==='ppdec'){ const i=document.getElementById(`pn-${stt}-${b.dataset.i}`); if(i){ const v=Math.floor(+i.value)||0; i.value=Math.max(1,v+(act==='ppinc'?1:-1)); ppSync(stt); ppTongVe(stt); } return; }
+  if(act==='ppthem'||act==='ppxoa'){ const v=ppSync(stt); if(!v) return; const i=+b.dataset.i;
+    if(act==='ppthem') v.ds.push(['',1]); else v.ds.splice(i,1);
+    ppVe(); const n=document.getElementById(`pr-${stt}-${act==='ppthem'?v.ds.length-1:Math.min(i,v.ds.length-1)}`); if(n) n.focus(); return; }
+  if(act==='xmghi'||act==='ppghi'){
+    const ds=ppDoc(stt); if(!ds) return; const dv=(document.getElementById('xd-'+stt)||{}).value;
+    snap([stt]); const r=touch(stt);
+    let x=null; if(act==='xmghi'){ x=S.xm[stt]||(S.xm[stt]={kq:'cho'}); if(x.kq!=='thay') x.truoc=r.nf?0:(+r.tt||0); }   // số đã thấy trước lần này: bỏ "Đã tìm thấy" (chọn nhầm) thì trả về số này
+    ppGhi(r,ds); if(x&&UNIT[dv]){ if(dv===a.unit0) delete r.dv; else r.dv=dv; } if(!r.cond) r.cond='tot';
+    if(x){ x.kq='thay'; x.at=Date.now(); if(ME) x.by=ME; }
+    delete ui.ppMo[stt]; save(); refreshRooms(); ppVe(); updateBadge();
+    const n=+r.tt;
+    flash(n===a.sl?'ok':'warn',n===a.sl?'✓':n<a.sl?'−':'+',n===a.sl?`Đã thấy đủ ${n}/${a.sl}`:`Đã thấy ${n}/${a.sl} · ${n<a.sl?'thiếu '+(a.sl-n):'thừa '+(n-a.sl)}`,`${a.ma||'STT '+a.stt} · ${a.short} · ở ${viTriThucTe(a)}`);
     toast('Bấm Hoàn tác nếu ghi nhầm',true);
-    const nb=app.querySelector(`.xm[data-stt="${stt}"] [data-act="xmthay"]`); if(nb) nb.focus({preventScroll:true}); return;
+    const nb=ppNut(); if(nb) nb.focus({preventScroll:true}); return;
+  }
+  // trang phòng › "Một phần ở đây…": ghi số thấy ở phòng đang mở, phần còn lại vẫn ở phòng chính (ghi kèm)
+  if(act==='ppday'){ const sr=b.closest('.srow'), ac=sr&&sr.querySelector('.acts'); if(ac){ ac.innerHTML=ppDayHTML(a); const i=document.getElementById('pd-'+stt); if(i){ i.focus(); i.select(); } } return; }
+  if(act==='ppdayhuy'){ const sr=b.closest('.srow'), ac=sr&&sr.querySelector('.acts'); if(ac){ ac.innerHTML=srowNut(a); ac.querySelector('[data-act="ppday"]')?.focus(); } return; }
+  if(act==='pdinc'||act==='pddec'){ const i=document.getElementById('pd-'+stt); if(i) i.value=Math.max(1,(Math.floor(+i.value)||0)+(act==='pdinc'?1:-1)); return; }
+  if(act==='ppdayghi'){
+    const i=document.getElementById('pd-'+stt), n=i?Math.floor(+i.value):0, noi=ROOMNAME[V.id];
+    if(!(n>=1)){ toast('Số thấy ở đây phải từ 1 trở lên'); if(i) i.focus(); return; }
+    if(!noi||V.type!=='room') return;
+    snap([stt]); const r=touch(stt); ppThemPhong(a,r,noi,n); if(!r.cond) r.cond='tot';
+    save(); refreshRooms(); const y=window.scrollY; render(); window.scrollTo(0,y);
+    const c=ppChinh(a), chinh=roomOf(a);
+    flash('info','→',`Đã ghi ${n} cái ở ${noi}`,`${a.ma||'STT '+a.stt} · ${a.short} · ${chinh===noi?'phòng này là phòng chính':`phòng chính ${chinh}${c==null?' (chưa kiểm)':''}`}`);
+    toast('Bấm Hoàn tác nếu ghi nhầm',true); return;
   }
   if(act==='reload'){ location.reload(); return; }
   if(act==='xlsx'){
@@ -3254,7 +3417,7 @@ app.addEventListener('change',e=>{
   if(t.dataset.f==='dv' && stt){ moveUnit(stt,t.value); return; }
   if(t.dataset.f && stt){
     const r=touch(stt); const a=BY_STT[stt];
-    if(t.dataset.f==='tt'){ snap([stt]); r.tt=t.value===''?null:Math.max(0,+t.value); r.nf=false; if(r.phong==null) r.phong=a.vt0; }
+    if(t.dataset.f==='tt'){ snap([stt]); r.tt=t.value===''?null:Math.max(0,+t.value)+ppTong(r.pp); r.nf=false; if(r.phong==null) r.phong=a.vt0; }   // ở nhiều phòng: ô là số ở phòng chính
     else r[t.dataset.f]=t.value.trim?t.value.trim():t.value;
     save(); if(t.dataset.f==='phong') refreshRooms();
     if(t.dataset.f!=='note') refreshRow(stt);
@@ -3265,15 +3428,15 @@ app.addEventListener('change',e=>{
   }
   if(t.dataset.x && stt){
     // chọn "Đã tìm thấy": mở khung hỏi tìm thấy bao nhiêu, ở phòng nào (chưa ghi gì cho tới khi bấm Ghi nhận)
-    if(t.dataset.x==='kq'&&t.value==='thay'&&(S.xm[stt]?.kq||'cho')!=='thay'&&!BY_STT[stt].hoso){ (ui.xmMo||(ui.xmMo={}))[stt]={}; viewXM();
-      const n=document.getElementById('xs-'+stt)||document.getElementById('xr-'+stt); if(n) n.focus(); return; }
+    if(t.dataset.x==='kq'&&t.value==='thay'&&(S.xm[stt]?.kq||'cho')!=='thay'&&!BY_STT[stt].hoso){ (ui.ppMo||(ui.ppMo={}))[stt]={ds:ppMacDinh(BY_STT[stt],S.xm[stt],false)}; viewXM();
+      const n=document.getElementById(`pn-${stt}-0`)||document.getElementById(`pr-${stt}-0`); if(n) n.focus(); return; }
     const x=S.xm[stt]||(S.xm[stt]={kq:'cho'}); const kq0=x.kq||'cho'; x[t.dataset.x]=t.value; x.at=Date.now(); if(ME) x.by=ME;
     if(t.dataset.x==='kq'){ const r=S.rows[stt]||(S.rows[stt]={}), a=BY_STT[stt];
       if(t.value==='thay'){ r.nf=false; r.tt=a.sl; }   // tài sản hồ sơ (không đếm)
       else if(kq0==='thay'){ const n=+r.tt||0;
         // thấy một phần rồi chọn kết quả khác: kết quả đó cho phần còn thiếu, giữ số đã thấy.
         // thấy đủ rồi bỏ "Đã tìm thấy" (chọn nhầm): trả về số đã thấy trước đó (0 = lại là chưa tìm thấy)
-        if(!(n>0&&n<a.sl)){ const t0=+x.truoc||0; if(t0>0){ r.nf=false; r.tt=t0; } else { r.nf=true; r.tt=0; } }
+        if(!(n>0&&n<a.sl)){ const t0=+x.truoc||0; delete r.pp; if(t0>0){ r.nf=false; r.tt=t0; } else { r.nf=true; r.tt=0; } }
       }
       if(t.value==='hong'&&res(a)==='nf'){ r.cond='thanh_ly'; }   // hỏng cả (không thấy cái nào); đếm thiếu thì chỉ phần thiếu hỏng
     }
@@ -3294,7 +3457,8 @@ app.addEventListener('change',e=>{
 });
 app.addEventListener('input',e=>{
   const t=e.target;
-  { const m=/^x([srd])-(\d+)$/.exec(t.id), v=m&&ui.xmMo&&ui.xmMo[m[2]]; if(v) v[{s:'n',r:'ph',d:'dv'}[m[1]]]=t.value; }   // khung "Đã tìm thấy": nhớ chữ đang gõ (trang vẽ lại khi có dữ liệu mới)
+  // khung phòng + số lượng: nhớ chữ đang gõ (trang vẽ lại khi có dữ liệu mới), cập nhật dòng Tổng
+  { const m=/^(?:p[rn]-(\d+)-\d+|xd-(\d+))$/.exec(t.id); if(m){ const st=m[1]||m[2]; ppSync(st); if(/^pn-/.test(t.id)) ppTongVe(st); } }
   if(t.id==='nsq'){ NS.q=t.value; NS.lim=200; clearTimeout(app._n); app._n=setTimeout(nsDraw,200); }
   if(t.id==='thq'){ TH.q=t.value; clearTimeout(app._th); app._th=setTimeout(()=>{ const d=document.getElementById('thDs'); if(d) d.innerHTML=thDanhSach(); },200); }
   if(t.id==='llq'){ LL.q=t.value; clearTimeout(app._ll); app._ll=setTimeout(llResDraw,150); }
@@ -3309,7 +3473,8 @@ app.addEventListener('input',e=>{
   if(t.dataset.f==='note'){ const stt=+t.closest('[data-stt]').dataset.stt; touch(stt).note=t.value; save(); }
 });
 app.addEventListener('keydown',e=>{
-  if(/^x[sr]-\d+$/.test(e.target.id) && e.key==='Enter'){ e.preventDefault(); const b=e.target.closest('.xm-thay')?.querySelector('[data-act="xmghi"]'); if(b) b.click(); return; }   // khung "Đã tìm thấy": Enter = Ghi nhận
+  if(/^p[rn]-\d+-\d+$/.test(e.target.id) && e.key==='Enter'){ e.preventDefault(); const b=e.target.closest('.xm-thay,.pp-khung')?.querySelector('[data-act="xmghi"],[data-act="ppghi"]'); if(b) b.click(); return; }   // khung phòng + số lượng: Enter = Ghi nhận
+  if(/^pd-\d+$/.test(e.target.id) && e.key==='Enter'){ e.preventDefault(); e.target.closest('.pp-day')?.querySelector('[data-act="ppdayghi"]')?.click(); return; }   // "Một phần ở đây": Enter = Ghi nhận
   if(e.target.id==='u-cb' && e.key==='Enter'){ e.preventDefault(); const v=e.target.value.trim(); if(!v) return; unitState(V.id).canbo.push(v); save(); render(); document.getElementById('u-cb').focus(); }
   // Enter trong ô tìm: nếu chỉ còn 1 món chưa kiểm thì đánh dấu đủ luôn
   if(e.target.id==='gq' && e.key==='Enter'){ const s=sttCua(e.target.value), a=s&&ASSETS.find(x=>x.stt===s.n); if(a){ e.preventDefault(); location.hash='ts-'+encodeURIComponent(a.key); } return; }   // gõ STT + Enter → mở tài sản
@@ -3388,6 +3553,10 @@ function contScan(raw,fromCam){
   if(old){ scanMsg(`Đã quét ${a.ma||'STT '+a.stt} rồi: ${old.msg}.`); return; }
   const r=res(a), here=roomOf(a)===c.name;
   if(a.hoso){ add({kind:'hoi',a,act:'hoso',msg:'Công trình, dịch vụ: chỉ cần xác nhận hồ sơ'}); contBeep(true); return; }
+  const ppO=(ppCua(a)||{})[c.name];
+  if(ppO){ add({kind:'da',a,msg:`Đã ghi ${nf.format(ppO)} cái ở phòng này (phòng chính ${roomOf(a)||'chưa có vị trí'})`}); contBeep(true); return; }
+  // tài sản số lượng nhiều đã kiểm ở phòng khác, quét thấy ở đây: hỏi có một phần ở đây không (ghi kèm, người dùng chốt 20/11/2026)
+  if(r!=='chua'&&!here&&a.sl>1&&r!=='hoso'){ add({kind:'hoi',a,act:'mot',msg:`Đã kiểm ở ${roomOf(a)||'chưa có vị trí'}: ${logRes(S.rows[a.stt],a)} · có một phần ở đây?`}); contBeep(true); return; }
   if(r!=='chua'){ add({kind:'da',a,msg:`Đã kiểm trước đó: ${RES_LABEL[r]}${here?'':' · đang ghi ở '+(roomOf(a)||'chưa có vị trí')}`}); contBeep(true); return; }
   if(!here){ add({kind:'hoi',a,act:'move',msg:roomOf(a)?`Sổ ghi ở ${roomOf(a)}`:'Chưa có vị trí trong sổ'}); contBeep(true); return; }
   if(a.sl>1){ add({kind:'hoi',a,act:'sl',msg:`Số lượng theo sổ ${nf.format(a.sl)}: nhập số đếm được`}); contBeep(true); return; }
@@ -3398,6 +3567,7 @@ function contDu(it,o){
   it.prev=S.rows[a.stt]?JSON.parse(JSON.stringify(S.rows[a.stt])):null;
   const r=touch(a.stt);
   if(o.hoso){ r.hs=true; }
+  else if(o.mot){ ppThemPhong(a,r,c.name,Math.max(1,o.tt||1)); if(!r.cond) r.cond='tot'; }   // một phần ở phòng này, phần còn lại ở phòng chính
   else{
     r.nf=false; r.tt=o.tt!=null?o.tt:a.sl;
     if(o.move){ r.phong=c.name; if(from&&from!==c.name) r.note=(r.note?r.note+'; ':'')+'Thấy ở '+c.name+', sổ ghi '+from; }
@@ -3406,7 +3576,7 @@ function contDu(it,o){
   }
   LOGCTX={tag:'Quét liên tục'}; save(); refreshRooms();
   const rr=res(a); it.kind='du'; it.act=''; it.done=true;
-  it.msg=o.hoso?'Đã xác nhận hồ sơ':(o.move?`${RES_LABEL[rr]} · chuyển vào ${c.name}`:(rr==='du'?'Đủ':`${RES_LABEL[rr]} · thực tế ${r.tt}/${a.sl}`));
+  it.msg=o.hoso?'Đã xác nhận hồ sơ':o.mot?`Ghi ${nf.format(Math.max(1,o.tt||1))} cái ở phòng này · ${roomOf(a)===c.name?'phòng này là phòng chính':'phòng chính '+(roomOf(a)||'chưa có vị trí')}${rr==='chua'?' (chưa kiểm)':' · '+RES_LABEL[rr]}`:(o.move?`${RES_LABEL[rr]} · chuyển vào ${c.name}`:(rr==='du'?'Đủ':`${RES_LABEL[rr]} · thực tế ${r.tt}/${a.sl}`));
   contDraw();
 }
 function contAct(b){
@@ -3415,6 +3585,7 @@ function contAct(b){
   if(v==='undo'){ const a=it.a; if(it.prev) S.rows[a.stt]=it.prev; else delete S.rows[a.stt]; LOGCTX={tag:'Hoàn tác'}; save(); refreshRooms(); it.kind='bo'; it.bo=true; it.done=false; it.msg='Đã hoàn tác, quét lại nếu cần'; contDraw(); return; }
   if(v==='skip'){ it.kind='bo'; it.bo=true; it.msg='Bỏ qua'; contDraw(); return; }
   if(v==='move') return contDu(it,{move:true,tt:it.a.sl>1?tt:null});
+  if(v==='mot') return contDu(it,{mot:true,tt});
   if(v==='sl') return contDu(it,{tt});
   if(v==='hoso') return contDu(it,{hoso:true});
 }
@@ -3426,9 +3597,10 @@ function contDraw(){
   sum.innerHTML=`<span><b class="num">${nf.format(du)}</b> đã ghi</span><span><b class="num">${nf.format(cho)}</b> chờ bạn chọn</span><span>Phòng ${esc(c.name)}: <b class="num">${nf.format(cc.da)}/${nf.format(cc.tong)}</b> đã kiểm</span>`;
   const IC={du:'CircleCheck',hoi:'CircleHelp',da:'Info',bad:'CircleAlert',bo:'Undo2'};
   box.innerHTML=c.items.map(it=>{ const a=it.a, ma=a?(a.ma||'STT '+a.stt):it.ma, ten=a?a.short:it.ten;
-    const num=a&&a.sl>1&&(it.act==='sl'||it.act==='move')?`<input class="in" type="number" min="0" inputmode="numeric" value="${a.sl}" data-csn aria-label="Số đếm được">`:'';
+    const num=a&&a.sl>1&&(it.act==='sl'||it.act==='move'||it.act==='mot')?`<input class="in" type="number" min="0" inputmode="numeric" value="${it.act==='mot'?1:a.sl}" data-csn aria-label="${it.act==='sl'?'Số đếm được':'Số thấy ở phòng này'}">`:'';
     const ac=it.kind==='du'&&it.done?'<button type="button" class="btn sm" data-cs="undo">Hoàn tác</button>'
-      :it.act==='move'?`${num}<button type="button" class="btn sm pri" data-cs="move">Chuyển vào phòng này${a.sl>1?' + ghi':' + Đủ'}</button><button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>`
+      :it.act==='move'?`${num}<button type="button" class="btn sm pri" data-cs="move">Chuyển vào phòng này${a.sl>1?' + ghi':' + Đủ'}</button>${a.sl>1?'<button type="button" class="btn sm" data-cs="mot">Chỉ một phần ở đây</button>':''}<button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>`
+      :it.act==='mot'?`${num}<button type="button" class="btn sm pri" data-cs="mot">Ghi một phần ở đây</button><button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>`
       :it.act==='sl'?`${num}<button type="button" class="btn sm pri" data-cs="sl">Ghi</button><button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>`
       :it.act==='hoso'?'<button type="button" class="btn sm pri" data-cs="hoso">Xác nhận hồ sơ</button><button type="button" class="btn sm" data-cs="skip">Bỏ qua</button>':'';
     return `<div class="cs-it cs-${it.kind}" data-ci="${it.id}"><span class="cs-ic">${ic(IC[it.kind]||'Info')}</span><div class="cs-tx"><b class="mono">${esc(ma)}</b> ${esc(ten||'')}<small>${esc(it.msg)}${it.cuMa?' · tem mang mã cũ '+esc(it.cuMa):''}</small></div>${ac?`<div class="cs-ac">${ac}</div>`:''}</div>`; }).join('');

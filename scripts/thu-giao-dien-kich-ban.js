@@ -965,7 +965,7 @@
     const a = tim(() => true), b = tim(x => x !== a), c = tim(x => x !== a && x !== b);
     const the = st => document.querySelector(`.xm[data-stt="${st}"]`);
     const nhom = st => { const t = the(st), h = t && t.closest('.list').previousElementSibling; return h ? h.textContent : ''; };
-    const xs = st => document.getElementById('xs-' + st), xr = st => document.getElementById('xr-' + st), xd = st => document.getElementById('xd-' + st);
+    const xs = st => document.getElementById('pn-' + st + '-0'), xr = st => document.getElementById('pr-' + st + '-0'), xd = st => document.getElementById('xd-' + st);
     const chon = async (st, v) => { const s = document.getElementById('xk-' + st); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); await W(300); };
     const bam = async (st, act) => { the(st).querySelector(`[data-act="${act}"]`).click(); await W(350); };
     const phA = roomOf(a);
@@ -984,7 +984,7 @@
     ok(res(a) === 'nf' && /phòng nơi tìm thấy/.test(txt('toastMsg')), 'chưa chọn phòng: báo rõ, không ghi gì');
     // thấy 1 cái, ở phòng khác, phòng ban khác
     const phMoi = ROOMS.find(p => p && p !== phA), dvMoi = UNITS.find(u => !u.review && u.id !== a.unit).id;
-    for (let i = 0; i < a.sl + 2; i++) the(a.stt).querySelector('[data-act="xmdec"]').click();
+    for (let i = 0; i < a.sl + 2; i++) the(a.stt).querySelector('[data-act="ppdec"]').click();
     ok(+xs(a.stt).value === 1, 'nút − không xuống dưới 1');
     xr(a.stt).value = phMoi; xd(a.stt).value = dvMoi;
     const log0 = LOGMINE.length;
@@ -1032,6 +1032,120 @@
     await go('tong-quan');
     { const nfCho = ASSETS.filter(x => res(x) === 'nf' && xmCho(x)).length, s = document.querySelector('.stats .stat.bad .sub');
       ok(s && s.textContent.includes(`${nfCho} chờ xác minh`), `Bảng tổng quan: ô “Chưa tìm thấy” chỉ đếm tài sản chưa tìm thấy chờ xác minh (${nfCho})`); }
+  };
+
+  // Một tài sản ở nhiều phòng (người dùng chốt 20/11/2026): phòng chính (nhiều cái nhất) tính tiến độ, các phòng kia ghi kèm;
+  // nhập ở khung "Đã tìm thấy…", "Một phần ở đây…" (trang phòng), quét liên tục, "Phân bổ theo phòng" (trang tài sản)
+  KB['nhieu-phong'] = async () => {
+    buildRooms(); const G108 = ROOMNAME['108-gamma'];
+    const tim = ok2 => ASSETS.find(x => x.sl >= 3 && !x.hoso && x.ma && res(x) === 'chua' && !UNIT[x.unit].review && roomOf(x) && roomOf(x) !== G108 && ok2(x));
+    const a = tim(() => true), b = tim(x => x !== a), c = tim(x => x !== a && x !== b), d = tim(x => ![a, b, c].includes(x));
+    const khac = (...tru) => ROOMS.find(p => p && !tru.includes(p) && p !== G108 && ROOMNAME[slugify(p)] === p);
+    const o = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('input', { bubbles: true })); };
+    const axeOk = async ten => { const k = await axe.run(document, AXE); ok(!k.violations.length, ten + ' đạt trợ năng WCAG 2.2 AA' + (k.violations.length ? ': ' + k.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : '')); };
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+
+    // 1. Tài sản thất lạc › "Đã tìm thấy…": thấy ở 2 phòng
+    const phA = roomOf(a), phB = khac(phA);
+    S.rows[a.stt] = { tt: 0, nf: true, at: Date.now() }; S.xm[a.stt] = { kq: 'cho', cach: '' }; save();
+    await go('xac-minh');
+    const the = st => document.querySelector(`.xm[data-stt="${st}"]`);
+    the(a.stt).querySelector('[data-act="xmthay"]').click(); await W(300);
+    the(a.stt).querySelector('[data-act="ppthem"]').click(); await W(300);
+    ok(document.getElementById(`pr-${a.stt}-1`) && document.activeElement === document.getElementById(`pr-${a.stt}-1`) && +document.getElementById(`pn-${a.stt}-1`).value === 1,
+      'khung “Đã tìm thấy”: “Thêm phòng” thêm một dòng phòng + số lượng, con trỏ ở ô phòng mới');
+    o(`pn-${a.stt}-0`, '1'); o(`pr-${a.stt}-1`, phB); o(`pn-${a.stt}-1`, '2');
+    ok(txt('pt-' + a.stt).includes(`Tổng 3 / sổ sách ${nf.format(a.sl)}`), `dòng Tổng tự cộng các phòng: 3 / sổ sách ${a.sl}`);
+    await axeOk('khung “Đã tìm thấy” 2 phòng');
+    the(a.stt).querySelector('[data-act="ppthem"]').click(); await W(300);
+    the(a.stt).querySelector('[data-act="xmghi"]').click(); await W(200);
+    ok(res(a) === 'nf' && /Phòng 3: chọn hoặc nhập phòng/.test(txt('toastMsg')) && document.activeElement === document.getElementById(`pr-${a.stt}-2`), 'dòng phòng để trống: báo rõ dòng nào, không ghi gì');
+    the(a.stt).querySelector('[data-act="ppxoa"][data-i="2"]').click(); await W(300);
+    ok(!document.getElementById(`pr-${a.stt}-2`) && document.getElementById(`pr-${a.stt}-1`).value === phB && document.getElementById(`pn-${a.stt}-0`).value === '1', 'bỏ một dòng phòng: các dòng còn lại giữ nguyên số đã gõ');
+    const log0 = LOGMINE.length;
+    the(a.stt).querySelector('[data-act="xmghi"]').click(); await W(400);
+    ok(roomOf(a) === phB && S.rows[a.stt].pp && S.rows[a.stt].pp[phA] === 1 && Object.keys(S.rows[a.stt].pp).length === 1 && +S.rows[a.stt].tt === 3,
+      `ghi 1 ở ${phA} + 2 ở ${phB}: phòng chính ${phB} (nhiều cái nhất), ${phA} ghi kèm, tổng thấy 3`);
+    { const vt = `${phB} (2); ${phA} (1)`;
+      ok(viTriThucTe(a) === vt && ketQuaKeToan(a).vt === vt && the(a.stt).textContent.includes(vt), `file kế toán, thẻ thất lạc: vị trí thực tế “${vt}”`); }
+    ok(LOGMINE.length === log0 + 1 && (LOGMINE[0].lines || []).includes(`Phần ở phòng khác: ${phA} (1)`), 'lịch sử: cùng 1 dòng, ghi phần ở phòng khác');
+
+    // 2. Trang phòng chính / phòng ghi kèm
+    await go('phong-' + slugify(phB));
+    const row = () => app.querySelector(`.row[data-stt="${a.stt}"]`), tt = () => document.getElementById('tt-' + a.stt);
+    ok(row() && row().querySelector('.pp-l') && row().querySelector('.pp-l').textContent.includes(phA) && tt().value === '2' && /Ở phòng chính/.test(row().textContent),
+      'phòng chính: tài sản trong danh sách, dòng ghi “Ở nhiều phòng”, ô số là số ở phòng chính (2)');
+    tt().value = '3'; tt().dispatchEvent(new Event('change', { bubbles: true })); await W(300);
+    ok(+S.rows[a.stt].tt === 4 && S.rows[a.stt].pp[phA] === 1, 'sửa số ở phòng chính thành 3: tổng thấy = 3 + 1 ở phòng kia = 4');
+    for (let i = 0; i < 6; i++) { row().querySelector('[data-act="dec"]').click(); await W(80); }
+    ok(+S.rows[a.stt].tt === 1 && tt().value === '0', 'nút − ở phòng chính dừng ở 0, không trừ vào phần ở phòng khác');
+    tt().value = '2'; tt().dispatchEvent(new Event('change', { bubbles: true })); await W(300);
+    await go('phong-' + slugify(phA));
+    { const phu = app.querySelector('.pp-phu');
+      ok(phu && phu.querySelector(`.srow[data-stt="${a.stt}"]`) && /1 cái ở đây/.test(phu.textContent) && !app.querySelector(`.row[data-stt="${a.stt}"]`),
+        `phòng ${phA}: tài sản không vào danh sách tiến độ, hiện ở mục “Một phần tài sản dòng khác ở phòng này”`); }
+    await go('phong-' + slugify(phB));
+    { const s = document.getElementById('ph-' + a.stt); s.value = phA; s.dispatchEvent(new Event('change', { bubbles: true })); await W(400); }
+    ok(roomOf(a) === phA && S.rows[a.stt].pp && S.rows[a.stt].pp[phB] === 2 && !(phA in S.rows[a.stt].pp) && +S.rows[a.stt].tt === 3,
+      `đổi ô Phòng thực tế sang ${phA} (đang ghi kèm): ${phA} thành phòng chính, ${phB} (2) chuyển sang ghi kèm, tổng không đổi`);
+
+    // 3. Trang tài sản › "Phân bổ theo phòng"
+    await go('ts-' + a.key);
+    const pt = () => app.querySelector('.pp-ts');
+    ok(pt() && /phòng chính/.test(pt().textContent) && pt().textContent.includes(phB), 'trang tài sản: mục “Phân bổ theo phòng” liệt kê từng phòng, đánh dấu phòng chính');
+    pt().querySelector('[data-act="ppsua"]').click(); await W(300);
+    ok(document.getElementById(`pr-${a.stt}-0`).value === phA && document.getElementById(`pn-${a.stt}-0`).value === '1' && document.getElementById(`pr-${a.stt}-1`).value === phB && document.getElementById(`pn-${a.stt}-1`).value === '2',
+      '“Sửa phân bổ…”: mở đúng số đang ghi ở từng phòng');
+    await axeOk('trang tài sản (đang sửa phân bổ)');
+    pt().querySelector('[data-act="ppxoa"][data-i="0"]').click(); await W(300);
+    o(`pn-${a.stt}-0`, String(a.sl)); pt().querySelector('[data-act="ppghi"]').click(); await W(400);
+    ok(!ppCua(a) && roomOf(a) === phB && +S.rows[a.stt].tt === a.sl && res(a) === 'du', `bỏ ${phA}, ghi cả ${a.sl} ở ${phB}: hết ghi kèm, tài sản ở một phòng, Đủ`);
+
+    // 4. Trang phòng › "Một phần ở đây…" (phòng chính chưa kiểm), rồi Không thấy / Đủ ở phòng chính
+    const phM = roomOf(b), phC = khac(phM, phA, phB);
+    await go('phong-' + slugify(phC));
+    o('aq', String(b.ma)); await W(500);
+    const sr = () => document.querySelector(`#ares .srow[data-stt="${b.stt}"]`);
+    ok(sr() && sr().querySelector('[data-act="ppday"]') && /^Cả .+ ở đây$/.test(sr().querySelector('[data-act="here"]').textContent.trim()), 'tìm tài sản phòng khác (số lượng nhiều): có nút “Cả … ở đây” và “Một phần ở đây…”');
+    sr().querySelector('[data-act="ppday"]').click(); await W(200);
+    ok(document.activeElement === document.getElementById('pd-' + b.stt), '“Một phần ở đây…”: hỏi số thấy ở phòng này');
+    await axeOk('trang phòng (đang ghi một phần ở đây)');
+    document.getElementById('pd-' + b.stt).value = '2'; sr().querySelector('[data-act="ppdayghi"]').click(); await W(500);
+    ok(S.rows[b.stt] && S.rows[b.stt].pp && S.rows[b.stt].pp[phC] === 2 && roomOf(b) === phM && res(b) === 'chua', `ghi 2 cái ở ${phC}: phòng chính vẫn là ${phM} (chưa kiểm), không kéo cả dòng sang`);
+    ok(!!app.querySelector(`.pp-phu .srow[data-stt="${b.stt}"]`), 'trang phòng vẽ lại: tài sản hiện ở mục ghi kèm của phòng này');
+    await go('phong-' + slugify(phM));
+    const rb = () => app.querySelector(`.row[data-stt="${b.stt}"]`);
+    ok(rb() && /chưa kiểm/.test(rb().querySelector('.pp-l').textContent), 'phòng chính: dòng ghi “Ở nhiều phòng”, phòng chính chưa kiểm');
+    rb().querySelector('[data-act="nf"]').click(); await W(300);
+    ok(res(b) === 'thieu' && +S.rows[b.stt].tt === 2 && !S.rows[b.stt].nf && /phần đã thấy ở phòng khác/.test(txt('toastMsg')), 'bấm “Không thấy” ở phòng chính: tính Thiếu, giữ 2 cái đã thấy ở phòng kia');
+    rb().querySelector('[data-act="du"]').click(); await W(300);
+    ok(res(b) === 'du' && S.rows[b.stt].pp[phC] === 2 && ppChinh(b) === b.sl - 2, `bấm “Đủ” ở phòng chính: phần còn lại (${b.sl - 2}) ở phòng chính, tổng đủ ${b.sl}`);
+
+    // 5. "Một phần ở đây…" cho tài sản đã "Không thấy" ở phòng chính → phòng này thành phòng chính; Hoàn tác
+    S.rows[c.stt] = { tt: 0, nf: true, at: Date.now() }; save();
+    const phC0 = roomOf(c), phD = khac(phC0, phA, phB, phC);
+    await go('phong-' + slugify(phD));
+    o('aq', String(c.ma)); await W(500);
+    document.querySelector(`#ares .srow[data-stt="${c.stt}"] [data-act="ppday"]`).click(); await W(200);
+    document.querySelector(`#ares .srow[data-stt="${c.stt}"] [data-act="ppdayghi"]`).click(); await W(500);
+    ok(roomOf(c) === phD && !ppCua(c) && +S.rows[c.stt].tt === 1 && res(c) === 'thieu', `tài sản đã “Không thấy”, nay thấy 1 ở ${phD}: ${phD} thành phòng chính, tính Thiếu`);
+    document.getElementById('toastUndo').click(); await W(400);
+    ok(res(c) === 'nf' && roomOf(c) === phC0, 'Hoàn tác: trở lại như trước');
+
+    // 6. Quét liên tục: tem của tài sản đã kiểm ở phòng khác → "Ghi một phần ở đây"
+    S.rows[d.stt] = { tt: d.sl - 1, nf: false, phong: roomOf(d), at: Date.now() }; save();
+    const phDm = roomOf(d);
+    await go('phong-108-gamma'); app.querySelector('[data-act="quetlt"]').click(); await W(500);
+    scanShow(KIEMKE_QR.payload(d.key), true); await W(250);
+    { const it = SC.cont.items[0], box = document.querySelector(`#scanRes [data-ci="${it.id}"]`);
+      ok(it.act === 'mot' && box.querySelector('[data-cs="mot"]') && box.querySelector('input[data-csn]').value === '1', 'quét liên tục: tem của tài sản đã kiểm ở phòng khác (số lượng nhiều) → hỏi “Ghi một phần ở đây”');
+      box.querySelector('[data-cs="mot"]').click(); await W(300); }
+    ok(S.rows[d.stt].pp && S.rows[d.stt].pp[G108] === 1 && roomOf(d) === phDm && +S.rows[d.stt].tt === d.sl && res(d) === 'du', `ghi 1 cái ở ${G108}: phòng chính vẫn ${phDm}, tổng thấy đủ ${d.sl}`);
+    SD.close(); await W(500);
+
+    // 7. Tổng hợp: vẫn mỗi tài sản 1 dòng, có dấu "+1 phòng"
+    TH.q = ''; await go('tong-hop');
+    { const r = app.querySelector(`.th-r[data-stt="${b.stt}"]`); ok(r && /\+1 phòng/.test(r.textContent) && app.querySelectorAll('.th-r').length === ASSETS.length, 'Tổng hợp: tài sản ở nhiều phòng có dấu “+1 phòng”, mỗi tài sản vẫn đúng 1 dòng'); }
   };
 
   // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,
