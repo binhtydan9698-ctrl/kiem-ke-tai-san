@@ -21,6 +21,7 @@ const KICH_BAN = [
   { ten: 'phong-ban', mo: 'Phòng bổ sung (Gamma, Alpha), quy tắc “xong”, đổi phòng ban như đổi phòng, Tải Excel Tổng hợp' },
   { ten: 'ket-qua', mo: 'Bảng tổng quan: nút “Xem →” ở 3 ô đầu, trang Kết quả đã kiểm / Lệch số lượng' },
   { ten: 'that-lac', mo: 'Tài sản thất lạc: “Đã tìm thấy…” chọn số lượng, phòng, phòng ban; thấy một phần tính Thiếu; đếm thiếu tự vào trang' },
+  { ten: 'sap-xep', mo: 'Sắp xếp nhanh cạnh ô tìm ở mọi trang: A → Z, Z → A, STT tăng / giảm; STT gõ đúng đứng đầu; xếp trong nhóm; Lịch sử theo thời gian' },
   { ten: 'nhieu-phong', mo: 'Một tài sản ở nhiều phòng: phòng chính tính tiến độ, phòng kia ghi kèm; nhập ở Đã tìm thấy, Một phần ở đây, quét liên tục, Phân bổ theo phòng' },
   { ten: 'xuat-goc', mo: 'Xuất cho kế toán sau nhiều thao tác thật: file gốc giữ nguyên, chỉ khác 3 cột cuối + sheet Tài sản phát sinh' },
   { ten: 'chung', mo: 'Chung: 6 mục, khấu hao (chọn số năm), đầu mối theo sheet, không xuất cho kế toán, Ảnh tài sản khi chưa đăng nhập' },

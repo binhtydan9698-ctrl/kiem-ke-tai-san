@@ -126,6 +126,15 @@
 - Nút dạng đường link dùng `a.btn` (màu chữ của trang). Thử giao diện: `npm run thu-giao-dien`.
 - Quét mã (`scanShow`): tem của app → `KIEMKE_QR.parse` → tra đúng `BY_KEY`; mã khớp nguyên văn → mở `#ts-…`; camera không
   bao giờ đoán gần đúng; mã vạch (không phải QR) phải đọc giống nhau 2 lần mới nhận.
+- Sắp xếp nhanh cạnh ô tìm (người dùng chốt 20/11/2026, AGENTS.md mục "Quyết định khác"): dùng chung `xepHTML(trang, ds, chữ mặc định)`
+  (ô `select[data-xep]` trong `label.sbox.xep`), lựa chọn `XEP[trang]`, so sánh `xepSS(k, tên, stt)` (tên theo `XEP_CO` — Intl.Collator 'vi';
+  không có STT xuống cuối), danh sách tài sản `xepTS(list, trang, q, mặc định)` (gõ đúng STT đứng đầu qua `sttTruoc`). Đổi ô → `xepDoi()`
+  (app 'change'): vẽ lại đúng phần kết quả (`gq` #gres, `aq` aqVe, `ls` logDraw, `ll` llResDraw, `uq` #ugrid; còn lại `render()`) rồi đưa con
+  trỏ về ô. Khoá trang: `gq` Bảng tổng quan, `ds` trang sheet / phòng / kết quả (`xepDs` trong `listGroups`, xếp trong từng nhóm), `aq` tìm đồ
+  nơi khác ở trang phòng, `th` Tổng hợp (`thThuTu`: chỉ thay bước "cùng loại đồ liền nhau"), `uq` đơn vị, `ls` Lịch sử (chỉ thời gian), `ll`
+  Lý lịch, `kh` Khấu hao (`khLoc`), `db` Danh bạ, `tsm` Tài sản mới. Ô xếp riêng sẵn có: Nhập sổ `#nss` (`NS.sap`), In tem `#qrSort`
+  (`TEM.sort` → `temSort`), Ảnh tài sản `#avxep` (`AV.xep` thẻ Có ảnh, `AV.xepc` thẻ Chưa có ảnh — luôn gom theo phòng). Thêm ô tìm mới thì
+  thêm ô Sắp xếp theo cùng cách và thêm bước vào kịch bản `sap-xep`.
 - Tìm tài sản (mọi ô tìm: Bảng tổng quan `#gq`, trang sheet / phòng / kết quả `#q`, Tổng hợp `#thq`, Lý lịch, Khấu hao, In tem):
   luôn qua `timKhop(a, q, chữ)` để tìm được theo **STT** (cột STT sheet Tổng hợp, người dùng yêu cầu 16/11/2026): "142" → STT 142
   đứng đầu (`sttTruoc`) + mã / tên chứa "142"; "STT 142" / "#142" → chỉ đúng STT. `#gq` gõ STT + Enter mở thẳng `#ts-`.

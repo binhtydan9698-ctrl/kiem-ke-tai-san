@@ -105,7 +105,8 @@
     const sua = DN.duocSuaDanhBa(), q = fold(DBV.q.trim()), ds = DN.db.ds;
     const l = ds.filter(r => (!DBV.dv || r.don_vi === DBV.dv) && (!q || fold([r.ho_ten, r.chuc_vu, r.dien_thoai, r.email, r.ghi_chu, dvTen(r.don_vi)].join(' ')).includes(q)));
     const thu = UNITS.map(u => u.id), nhom = new Map();
-    l.slice().sort((a, b) => { const x = thu.indexOf(a.don_vi), y = thu.indexOf(b.don_vi); return (x < 0 ? 999 : x) - (y < 0 ? 999 : y) || String(a.don_vi).localeCompare(String(b.don_vi)) || fold(a.ho_ten).localeCompare(fold(b.ho_ten)); })
+    const chieu = XEP.db === 'za' ? -1 : 1;   // ô Sắp xếp: họ tên A → Z / Z → A trong từng đơn vị (người dùng yêu cầu 20/11/2026)
+    l.slice().sort((a, b) => { const x = thu.indexOf(a.don_vi), y = thu.indexOf(b.don_vi); return (x < 0 ? 999 : x) - (y < 0 ? 999 : y) || String(a.don_vi).localeCompare(String(b.don_vi)) || XEP_CO.compare(String(a.ho_ten || ''), String(b.ho_ten || '')) * chieu; })
       .forEach(r => { const k = r.don_vi || ''; if (!nhom.has(k)) nhom.set(k, []); nhom.get(k).push(r); });
     const r0 = DBV.sua && DBV.sua !== 'moi' ? ds.find(r => r.id === DBV.sua) || {} : {};
     const form = DBV.sua ? `<form class="ql-form db-form" id="dbForm" novalidate>
@@ -127,6 +128,7 @@
     <div class="tools db-tools">
       <select class="in" id="dbdv" aria-label="Đơn vị"><option value="">Mọi đơn vị</option>${UNITS.map(u => `<option value="${u.id}" ${DBV.dv === u.id ? 'selected' : ''}>${esc(u.sheet)}</option>`).join('')}</select>
       <label class="sbox search">${ic('Search')}<input class="in" id="dbq" type="search" placeholder="Tìm tên, chức vụ, số điện thoại, email…" value="${esc(DBV.q)}" aria-label="Tìm trong danh bạ"></label>
+      ${xepHTML('db', [['', 'Tên A → Z'], ['za', 'Tên Z → A']])}
       ${sua && !DBV.sua ? `<button type="button" class="btn pri" data-db="moi">${ic('UserPlus')}Thêm người</button>` : ''}
     </div>
     ${form}
@@ -171,7 +173,10 @@
       const t = khHet(a, KHV.nam);
       if (t <= now) het.push({ a, t }); else if (t <= toi) gan.push({ a, t });
     });
-    het.sort((x, y) => x.t - y.t || x.a.stt - y.a.stt); gan.sort((x, y) => x.t - y.t || x.a.stt - y.a.stt);
+    // ô Sắp xếp (người dùng yêu cầu 20/11/2026): mặc định hết khấu hao sớm nhất trước; A → Z, STT…; gõ đúng STT thì món đó đứng đầu
+    const xs = XEP.kh ? xepSS(XEP.kh) : null, s = sttCua(KHV.q);
+    const so = (x, y) => (s ? (y.a.stt === s.n) - (x.a.stt === s.n) : 0) || (xs ? xs(x.a, y.a) : x.t - y.t || x.a.stt - y.a.stt);
+    het.sort(so); gan.sort(so);
     return { het, gan, boQua, now };
   }
   g.khLoc = khLoc;
@@ -203,6 +208,7 @@
     <div class="tools kh-tools">
       <select class="in" id="khdv" aria-label="Sheet"><option value="">Mọi sheet</option>${UNITS.map(u => `<option value="${u.id}" ${KHV.dv === u.id ? 'selected' : ''}>${esc(u.sheet)}</option>`).join('')}</select>
       <label class="sbox search">${ic('Search')}<input class="in" id="khq" type="search" placeholder="Tìm STT, mã, tên, phòng…" value="${esc(KHV.q)}" aria-label="Tìm tài sản"></label>
+      ${xepHTML('kh', null, 'Hết khấu hao sớm nhất trước')}
       <label class="kh-an"><input type="checkbox" id="khan" ${KHV.an ? 'checked' : ''}> Ẩn tài sản đã thanh lý, đã bàn giao</label>
       <button type="button" class="btn" data-ch="khxlsx">${ic('Download')}Tải Excel danh sách</button>
     </div>

@@ -72,7 +72,7 @@ Gồm 4 phần chính (trang chủ `#trang-chu`):
 | `npm run day-len-web` | Kiểm tra rồi commit + push riêng thư mục dữ liệu Excel |
 | `npm run kiem-tra-web` | Sau khi push: đợi Vercel, soát trang thật + Supabase (chỉ đọc) |
 | `npm run sao-luu` | Sao lưu kết quả Supabase (và Danh bạ) về `sao-luu/` (chỉ đọc). Đã bật đăng nhập: người dùng tự đặt tạm `$env:KIEMKE_TEN`, `$env:KIEMKE_MK` khi chạy |
-| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, tài sản thất lạc, tài sản ở nhiều phòng, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, trợ năng WCAG 2.2 AA, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
+| `npm run thu-giao-dien` | Thử giao diện tự động trên Edge/Chrome chạy ngầm (đầu trang, quét mã, in tem + đọc lại mã, lịch sử, quét liên tục, đổi mã, phòng / phòng ban, kết quả, tài sản thất lạc, tài sản ở nhiều phòng, sắp xếp nhanh, xuất cho kế toán, Chung, đăng nhập giả, ảnh, mã hoá, trợ năng WCAG 2.2 AA, điện thoại), chế độ chỉ lưu trên máy, KHÔNG đụng Supabase. **Chạy sau mọi thay đổi giao diện.** |
 | `npm run theo-doi-supabase` | Đọc thử Supabase (chỉ đọc). GitHub Actions chạy mỗi sáng 8h (`.github/workflows/theo-doi-supabase.yml`): giữ Supabase không bị tạm dừng; không đọc được thì lần chạy báo lỗi → GitHub gửi mail tới email nhận thông báo của tài khoản chủ repo (người dùng muốn nhận ở địa chỉ email công việc, không ghi địa chỉ vào repo công khai). |
 
 ## Skills trong `.agents/skills/`
@@ -335,6 +335,21 @@ tham khảo Google Workspace — Audit and investigation, reporting rules — v�
   Ô "Thực tế" trên dòng tài sản là số ở phòng chính (tổng = phòng chính + phần ở phòng khác); phòng chính chưa kiểm thì phần ở phòng khác
   chờ (bấm Đủ ở phòng chính = phần còn lại ở đó; Không thấy = chỉ tính phần đã thấy ở phòng khác). File kế toán, cột Vị trí thực tế:
   "101 Alpha (2); 205 Gamma (1)". Giữ bằng thử giao diện `nhieu-phong`.
+- **Sắp xếp nhanh cạnh ô tìm** (người dùng yêu cầu 20/11/2026, "ở tất cả các trang"; chỗ xung đột người dùng tự quyết): ô **Sắp xếp** cạnh
+  mọi ô tìm tài sản — Mặc định (thứ tự riêng của trang) · Tên A → Z · Tên Z → A · STT tăng dần · STT giảm dần. Trang đã có ô xếp riêng (Nhập
+  sổ, In tem "Thứ tự tem", Ảnh tài sản "Xếp theo") thì gộp thêm lựa chọn vào ô đó, giữ mặc định cũ. Người dùng chọn:
+  - **Gõ đúng STT thì tài sản đó vẫn đứng đầu** dù chọn Z → A / STT giảm dần (giữ quy tắc tìm theo STT bên dưới).
+  - **Tổng hợp: chỉ xếp trong từng phòng · bộ môn** — giữ 5 nhóm, tòa → tầng → phòng → bộ môn; "Mặc định" = cùng loại đồ liền nhau; file
+    Tải Excel theo đúng thứ tự trên trang.
+  - **Kiểm theo số phòng: giữ lưới tòa → tầng**, không thêm ô Sắp xếp (phòng không có STT).
+  - **Lịch sử thao tác: chỉ Mới nhất / Cũ nhất trước** (lịch sử tải dần từ máy chủ, A → Z chỉ đúng phần đã tải; nút "Xem thao tác cũ hơn"
+    lên đầu khi xếp cũ nhất trước).
+  Trợ lý tự chọn theo cùng tinh thần (báo người dùng): trang gom nhóm thì xếp trong từng nhóm (trang sheet / phòng / kết quả khi bật "Nhóm";
+  Danh bạ trong từng đơn vị; Ảnh tài sản › "Chưa có ảnh" giữ gom theo phòng để đi chụp lần lượt); nơi không có STT thì thay bằng thứ tự tự
+  nhiên (Tài sản mới: mới tạo / cũ nhất trước; Danh bạ: chỉ tên A → Z / Z → A; Kiểm theo phòng ban: thứ tự sheet trong file / tên đơn vị).
+  Dòng không có STT xuống cuối. Lựa chọn nhớ theo trang tới khi tải lại trang. **Điện thoại: ô Sắp xếp cùng dòng với ô tìm** (người dùng
+  chọn khi gặp xung đột: dòng riêng đẩy tài sản đầu tiên ở trang phòng xuống dưới màn hình đầu). Giữ bằng thử giao diện `sap-xep`,
+  `nang-cap-dt` (+ `anh`, `tai-san-moi`, `dang-nhap` cho trang cần đăng nhập).
 - **Tìm theo STT** (người dùng yêu cầu 16/11/2026) ở mọi ô tìm tài sản: "142" → tài sản STT 142 đứng đầu; "STT 142" / "#142" → chỉ
   đúng STT đó; ô tìm nhanh ở Bảng tổng quan gõ STT + Enter mở thẳng tài sản.
 - **Nâng cấp giao diện** (người dùng chọn cả 4, 17/11/2026): chữ nhỏ nhất 13px; điện thoại: nút / ô bấm cao ≥ 44px, việc kiểm lên

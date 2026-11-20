@@ -65,7 +65,8 @@
     const q = fold(TSM.q.trim());
     return ds().filter(m => (TSM.loc === 'chua' ? !g.moiNoi(m) : TSM.loc === 'noi' ? !!g.moiNoi(m) : true) && (!TSM.tag || (m.tao_boi || '') === TSM.tag)
       && (!q || fold([m.ten, m.ma, m.phong, m.tao_boi, m.by, m.ghi_chu, (UNIT[m.dv] || {}).ten, (UNIT[m.dv] || {}).sheet].join(' ')).includes(q)))
-      .sort((x, y) => (y.at || 0) - (x.at || 0));
+      // ô Sắp xếp (20/11/2026): tài sản mới chưa có STT → mới tạo / cũ nhất trước, tên A → Z / Z → A
+      .sort(xepSS(XEP.tsm || '', m => m.ten, () => null) || ((x, y) => ((y.at || 0) - (x.at || 0)) * (XEP.tsm === 'cu' ? -1 : 1)));
   }
   function theHTML(m) {
     const k = g.moiNoi(m), a = k ? BY_KEY[k] : null, anh = m.anh || [], x0 = anh[0], sua = g.moiDuocSua(m), kho = g.anhCoKho && g.anhCoKho();
@@ -139,6 +140,7 @@
       <div class="seg" role="group" aria-label="Lọc theo vào sổ">${[['chua', 'Chưa vào sổ', chua], ['noi', 'Đã vào sổ', noi.length], ['', 'Tất cả', all.length]].map(([k, t, n]) => `<button type="button" data-tsm="loc" data-v="${k}" aria-pressed="${TSM.loc === k}">${t} <em class="num">${nf.format(n)}</em></button>`).join('')}</div>
       <select class="in" id="tsmTagLoc" aria-label="Tạo bởi"><option value="">Mọi nhóm tạo</option>${tags.map(t => `<option value="${esc(t)}" ${TSM.tag === t ? 'selected' : ''}>Tạo bởi: ${esc(t)}</option>`).join('')}</select>
       <label class="sbox search">${ic('Search')}<input class="in" id="tsmQ" type="search" placeholder="Tìm tên, mã, phòng, người tạo…" value="${esc(TSM.q)}" aria-label="Tìm tài sản mới"></label>
+      ${xepHTML('tsm', [['', 'Mới tạo trước'], ['cu', 'Cũ nhất trước'], ['az', 'Tên A → Z'], ['za', 'Tên Z → A']])}
     </div>
     <p class="dm-sum" id="tsmDem">${r.dem}</p>
     <div id="tsmKq">${r.than}</div>`;

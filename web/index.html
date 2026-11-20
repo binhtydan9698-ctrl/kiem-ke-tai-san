@@ -235,6 +235,12 @@ main{padding-block:20px 60px}
 .pp-day .stepper{width:130px}
 .srow .acts{flex-wrap:wrap}
 .th-pp{font-style:normal;font-size:13px;color:var(--info)}
+/* ô Sắp xếp cạnh ô tìm (người dùng yêu cầu 20/11/2026) */
+.sbox.xep{flex:0 0 auto}
+.sbox.xep .in{width:auto;min-width:170px;max-width:100%}
+.sr-dau{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:14px 0 -6px}
+.sr-dau>.num{font-size:13.5px;color:var(--muted)}
+@media (max-width:860px){ #app .sbox.xep .in{min-height:44px} }
 .pp-o{display:block;margin-top:3px;font-size:13px;color:var(--muted);text-align:center}
 @media (max-width:860px){ .pp-o{display:none} }   /* điện thoại: nhãn ô đã ghi "Ở phòng chính" */
 .xsteps{margin:0 0 18px;padding:12px 16px 12px 34px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);font-size:13.5px;color:var(--muted);display:grid;gap:5px}
@@ -626,6 +632,9 @@ dialog.scan::backdrop{background:rgba(8,16,14,.55)}
   /* tiến độ, công cụ lọc */
   .prog{min-width:0}
   .tools .sbox.search{max-width:none;flex-basis:100%}
+  /* ô Sắp xếp cùng dòng với ô tìm (người dùng chọn 20/11/2026: không thêm dòng, tài sản đầu tiên vẫn hiện ngay màn hình đầu) */
+  .tools .sbox.search:has(+ .sbox.xep){flex:1 1 0;min-width:0}
+  .tools .sbox.xep{max-width:48%} .tools .sbox.xep .in{min-width:0;width:100%}
   .tools .seg{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;max-width:100%}
   .tools .seg::-webkit-scrollbar{display:none}
   .tools .seg button{white-space:nowrap}
@@ -2121,7 +2130,8 @@ function unitCard(u){
 function unitsGridHTML(){
   const q=slugify(OV.uq||''); const has=(OV.uq||'').trim();
   const ok=u=>(OV.ust==='all'||unitState0(u)===OV.ust)&&(!has||slugify(u.ten+' '+u.sheet).includes(q));
-  const main=UNITS.filter(u=>!u.review&&ok(u)), rv=UNITS.filter(u=>u.review&&ok(u));
+  const xs=xepSS(XEP.uq||'',u=>u.ten,()=>null), xep=l=>xs?l.sort(xs):l;   // ô Sắp xếp: tên A → Z / Z → A (mặc định: thứ tự sheet trong file)
+  const main=xep(UNITS.filter(u=>!u.review&&ok(u))), rv=xep(UNITS.filter(u=>u.review&&ok(u)));
   if(!main.length&&!rv.length) return '<div class="empty">Không có đơn vị nào khớp.</div>';
   return (main.length?`<div class="cards">${main.map(unitCard).join('')}</div>`:'')
     +(rv.length?`<div class="sect" style="margin-top:22px"><h2>${ic('MapPin')}Chưa có vị trí</h2><span>3 sheet lẻ: vì sao kế toán đưa vào sổ, ai mua — kiểm trực tiếp, đối chiếu rồi mới phân bổ vào sheet đơn vị</span></div><div class="cards">${rv.map(unitCard).join('')}</div>`:'');
@@ -2132,6 +2142,7 @@ function viewUnits(){
   ${banner('hoi-truong','Kiểm theo phòng&nbsp;ban / bộ&nbsp;môn / khoa','Danh sách theo sheet của kế toán',`Mỗi đơn vị là một sheet trong biên bản gốc. "Kiểm theo sheet" để kiểm đúng danh sách; "Xem các phòng" để biết tài sản của đơn vị đang nằm ở đâu.`)}
   <div class="tools">
     <label class="sbox search">${ic('Search')}<input class="in" id="uq" type="search" placeholder="Tìm đơn vị, VD: CNTT" value="${esc(OV.uq||'')}" aria-label="Tìm đơn vị"></label>
+    ${xepHTML('uq',[['','Thứ tự sheet trong file'],['az','Tên A → Z'],['za','Tên Z → A']])}
     <div class="seg" role="group" aria-label="Lọc theo trạng thái">${[['all','Tất cả'],['chua','Chưa kiểm'],['run','Đang kiểm'],['done','Hoàn tất']].map(([k,l])=>`<button data-ust="${k}" aria-pressed="${OV.ust===k}">${l} <em class="num">${n[k]}</em></button>`).join('')}</div>
   </div>
   <div id="ugrid">${unitsGridHTML()}</div>`;
@@ -2159,14 +2170,39 @@ function viewRooms(){
 function sttCua(q){ const m=String(q||'').trim().match(/^(stt\s*[:.]?\s*|#\s*)?(\d{1,5})$/i); return m?{n:+m[2],chi:!!m[1]}:null; }
 function timKhop(a,q,chu){ const s=sttCua(q); if(s&&a.stt===s.n) return true; if(s&&s.chi) return false; return chu.includes(q); }
 function sttTruoc(list,q){ const s=sttCua(q); return s?list.sort((x,y)=>(y.stt===s.n)-(x.stt===s.n)):list; }
+/* Sắp xếp nhanh cạnh ô tìm (người dùng yêu cầu 20/11/2026): Mặc định (thứ tự riêng của trang) · Tên A → Z · Tên Z → A · STT tăng dần ·
+   STT giảm dần. Người dùng chọn: gõ đúng STT thì tài sản đó VẪN đứng đầu (sttTruoc); trang gom theo nhóm (phòng, đơn vị) thì chỉ xếp
+   trong từng nhóm; lưới phòng giữ tòa → tầng; Lịch sử chỉ xếp theo thời gian. Lựa chọn nhớ theo trang (XEP[trang]) tới khi tải lại. */
+const XEP={}, XEP_TS=[['','Mặc định'],['az','Tên A → Z'],['za','Tên Z → A'],['stt','STT tăng dần'],['stt-','STT giảm dần']];
+const XEP_CO=new Intl.Collator('vi',{numeric:true,sensitivity:'base'});
+// ô chọn: ds = [[giá trị, chữ]] (mặc định XEP_TS); macDinh = chữ thay cho "Mặc định" (vd. "Mới nhất trước")
+function xepHTML(trang,ds,macDinh){ const v=XEP[trang]||''; return `<label class="sbox xep">${ic('ArrowUpDown')}<select class="in" data-xep="${trang}" aria-label="Sắp xếp">${(ds||XEP_TS).map(([k,t])=>`<option value="${k}" ${v===k?'selected':''}>${k===''&&macDinh?macDinh:t}</option>`).join('')}</select></label>`; }
+// hàm so sánh theo lựa chọn k ('' → null: giữ thứ tự riêng của trang); ten(x), stt(x) lấy tên / STT (không có STT thì xuống cuối)
+function xepSS(k,ten=x=>x.short,stt=x=>x.stt){
+  const s=x=>{ const v=stt(x); return v==null||v===''?null:+v; };
+  const theoStt=d=>(x,y)=>{ const a=s(x), b=s(y); return a==null?(b==null?0:1):b==null?-1:(a-b)*d; };
+  if(k==='az'||k==='za'){ const d=k==='az'?1:-1; return (x,y)=>XEP_CO.compare(String(ten(x)||''),String(ten(y)||''))*d||theoStt(1)(x,y); }
+  if(k==='stt'||k==='stt-') return theoStt(k==='stt'?1:-1);
+  return null;
+}
+// đổi ô Sắp xếp: chỉ vẽ lại phần kết quả khi được (giữ chữ đang gõ), rồi đưa con trỏ về lại ô
+function xepDoi(t){
+  const k=t.dataset.xep; XEP[k]=t.value;
+  const ve={gq:()=>{ const g=document.getElementById('gres'); if(g) g.innerHTML=ovSearchHTML(); }, aq:aqVe, ls:logDraw, ll:llResDraw,
+    uq:()=>{ const g=document.getElementById('ugrid'); if(g) g.innerHTML=unitsGridHTML(); }}[k];
+  if(ve) ve(); else render();
+  const s=app.querySelector(`select[data-xep="${k}"]`); if(s&&document.activeElement!==s) s.focus();
+}
+// xếp danh sách tài sản (bản sao) theo lựa chọn của trang, macDinh = hàm so sánh khi để "Mặc định"; q: chữ đang tìm (đúng STT đứng đầu)
+function xepTS(list,trang,q,macDinh){ const f=xepSS(XEP[trang]||'')||macDinh; const l=f?list.slice().sort(f):list.slice(); return q!=null?sttTruoc(l,q):l; }
 function ovSearchHTML(){
   const q=OV.gq.trim().toLowerCase(); if(q.length<2&&!sttCua(q)) return ''; const s=sttCua(q);
-  const hits=sttTruoc(ASSETS.filter(a=>timKhop(a,q,a.ten.toLowerCase()+' '+String(a.ma))),q).slice(0,30);
+  const all=xepTS(ASSETS.filter(a=>timKhop(a,q,a.ten.toLowerCase()+' '+String(a.ma))),'gq',q), hits=all.slice(0,30);
   if(!hits.length) return `<div class="sr"><div class="empty">Không tìm thấy tài sản nào có “${esc(OV.gq)}”.</div></div>`;
-  return `<div class="sr">${hits.map(a=>{const r=res(a);const n=roomOf(a);return `<div class="srow${s&&a.stt===s.n?' stt-hit':''}">
+  return `<div class="sr-dau"><span class="num">${all.length>30?`30 / ${nf.format(all.length)}`:nf.format(all.length)} kết quả</span>${xepHTML('gq')}</div><div class="sr">${hits.map(a=>{const r=res(a);const n=roomOf(a);return `<div class="srow${s&&a.stt===s.n?' stt-hit':''}">
     <div><div class="mono">${esc(a.ma)}</div><div class="sub">${s&&a.stt===s.n?'<b>STT '+a.stt+'</b>':'STT '+a.stt}</div></div>
     <div><div>${esc(a.short)}</div><div class="sub">${esc(UNIT[a.unit].ten)} · SL ${a.sl}</div></div>
-    <div>${n?esc(n):'<span style="color:var(--warn)">Chưa có vị trí</span>'}</div>
+    <div>${n?esc(n):'<span class="tag warn">Chưa có vị trí</span>'}</div>
     <span class="badge ${r}">${RES_LABEL[r]}</span>
     <div class="acts"><a class="btn sm pri" href="#ts-${encodeURIComponent(a.key)}">Mở tài sản</a><a class="btn sm" href="#phong-${n?slugify(n):NOROOM}" data-act="goto" data-q="${esc(a.ma)}">Mở phòng</a><a class="btn sm" href="#dv-${a.unit}" data-act="goto" data-q="${esc(a.ma)}">Mở đơn vị</a></div></div>`;}).join('')}</div>`;
 }
@@ -2363,19 +2399,22 @@ function listBody(list,groupBy){
   return LHEAD+listGroups(rows,groupBy);
 }
 const LHEAD=`<div class="lhead" aria-hidden="true"><span>STT · Mã TSCĐ</span><span>Tài sản</span><span>Phòng thực tế · Phòng ban</span><span>Sổ sách</span><span>Thực tế</span><span>Tình trạng</span><span>Kết quả</span></div>`;
+// trang sheet / phòng / kết quả: xếp theo ô Sắp xếp (mặc định STT tăng dần); có nhóm thì xếp trong từng nhóm; gõ đúng STT thì món đó đứng đầu
+function xepDs(l){ return xepTS(l,'ds',ui.q,(a,b)=>a.stt-b.stt); }
 function listGroups(rows,groupBy){
-  if(!ui.group) return `<div class="list">${rows.sort((a,b)=>a.stt-b.stt).map(rowHTML).join('')}</div>`;
+  if(!ui.group) return `<div class="list">${xepDs(rows).map(rowHTML).join('')}</div>`;
   const g={}; rows.forEach(a=>{const k=groupBy==='unit'?a.unit:roomOf(a);(g[k]=g[k]||[]).push(a);});
   const keys=Object.keys(g).sort((a,b)=>groupBy==='unit'?UNITS.findIndex(u=>u.id===a)-UNITS.findIndex(u=>u.id===b):((a===''?1:0)-(b===''?1:0)||a.localeCompare(b,'vi',{numeric:true})));
   return keys.map(k=>{const cc=count(g[k]);const title=groupBy==='unit'?esc(UNIT[k].ten):(k?esc(k):'Chưa có vị trí');
     const link=groupBy==='unit'?`<a class="glink" href="#dv-${k}">Mở sheet ${esc(UNIT[k].sheet)} →</a>`:`<a class="glink" href="#phong-${k?slugify(k):NOROOM}" data-act="goto" data-u="${V.id}">Kiểm tại phòng này →</a>`;
-    return `<div class="grp ${groupBy!=='unit'&&!k?'none':''}" data-g="${esc(k)}" data-by="${groupBy}"><b>${title}</b><span class="num">${g[k].length} dòng · ${cc.chua} chưa kiểm</span>${link}</div><div class="list">${g[k].sort((a,b)=>a.stt-b.stt).map(rowHTML).join('')}</div>`;}).join('');
+    return `<div class="grp ${groupBy!=='unit'&&!k?'none':''}" data-g="${esc(k)}" data-by="${groupBy}"><b>${title}</b><span class="num">${g[k].length} dòng · ${cc.chua} chưa kiểm</span>${link}</div><div class="list">${xepDs(g[k]).map(rowHTML).join('')}</div>`;}).join('');
 }
 function toolsHTML(c,groupLabel,bulk,F0){
   const F=F0||[['all','Tất cả',c.tong],['chua','Chưa kiểm',c.chua],['du','Đủ',c.du+c.hoso],['lech','Lệch',c.lech],['nf','Chưa tìm thấy',c.nf]];
   const nb=bulkCandidates().length;
   return `<div class="tools">
     <label class="sbox search">${ic('Search')}<input class="in" id="q" type="search" placeholder="Tìm theo STT, mã, tên, phòng…" value="${esc(ui.q)}" aria-label="Tìm tài sản"></label>
+    ${xepHTML('ds',[['','STT tăng dần'],['stt-','STT giảm dần'],['az','Tên A → Z'],['za','Tên Z → A']])}
     <div class="seg" role="group" aria-label="Lọc theo kết quả">${F.map(([k,l,n])=>`<button data-filter="${k}" aria-pressed="${ui.filter===k}">${l} <em class="num">${n}</em></button>`).join('')}</div>
     <label class="chk"><input type="checkbox" id="grp" ${ui.group?'checked':''}> ${groupLabel}</label>
     ${V.type==='room'&&ui.unit?`<span class="chip">Chỉ đồ của ${esc(UNIT[ui.unit].sheet)}<button data-act="unitall" aria-label="Xem đồ của mọi đơn vị">×</button></span>`:''}
@@ -2467,7 +2506,7 @@ function viewRoom(slug){
   </details>
   <section class="panel">
     <div class="sect" style="margin-top:0"><h2>Thấy đồ của nơi khác ở đây?</h2><span>Tìm trong cả trường rồi ghi nhận vào phòng này (cả dòng, hoặc một phần nếu số lượng nhiều)</span></div>
-    <input class="in" id="aq" type="search" placeholder="Gõ mã hoặc tên tài sản…" style="max-width:460px">
+    <div class="tools"><label class="sbox search">${ic('Search')}<input class="in" id="aq" type="search" placeholder="Gõ STT, mã hoặc tên tài sản…" aria-label="Tìm tài sản của nơi khác"></label>${xepHTML('aq')}</div>
     <div class="sr" id="ares" style="margin-top:10px"></div>
   </section>`:''}
   ${psHTML('p:'+slug)}`;
@@ -2513,9 +2552,10 @@ function thDong(a){
 // tên để gom: bỏ số lượng ở đầu ("3 ghế đôn…", "4,61m2 _ Tấm LED…") để cùng loại đồ (ghế, bàn…) đứng liền nhau
 function thTenGom(a){ return a.short.replace(/^\s*[\d.,]+\s*(m2|m)?\s*[_\-:]?\s*/i,'').trim()||a.short; }
 function thSapTen(x,y){ return thTenGom(x).localeCompare(thTenGom(y),'vi',{numeric:true,sensitivity:'base'})||x.stt-y.stt; }
-// thứ tự trong một nhóm (dùng chung cho trang và file Excel): tòa → phòng (tầng, số) → bộ môn → cùng loại đồ liền nhau
-function thThuTu(list,k){ const ui=id=>UNITS.findIndex(u=>u.id===id);
-  return list.slice().sort((x,y)=>(k==='novt'?0:thSapPhong(roomOf(x),roomOf(y)))||ui(x.unit)-ui(y.unit)||thSapTen(x,y)); }
+// thứ tự trong một nhóm (dùng chung cho trang và file Excel): tòa → phòng (tầng, số) → bộ môn → cùng loại đồ liền nhau;
+// ô Sắp xếp (A → Z, STT…) chỉ xếp tài sản trong từng phòng · bộ môn, giữ nguyên 5 nhóm, tòa, phòng (người dùng chọn 20/11/2026)
+function thThuTu(list,k){ const ui=id=>UNITS.findIndex(u=>u.id===id), ten=xepSS(XEP.th||'')||thSapTen;
+  return list.slice().sort((x,y)=>(k==='novt'?0:thSapPhong(roomOf(x),roomOf(y)))||ui(x.unit)-ui(y.unit)||ten(x,y)); }
 // các nhóm theo ô tìm hiện tại → [{k, ten, mo, l: tài sản đã xếp}]
 function thXep(){
   const q=fold(TH.q.trim()), g={}; TH_NHOM.forEach(([k])=>g[k]=[]);
@@ -2567,7 +2607,7 @@ function viewTongHop(){
   app.innerHTML=`${demoBanner()}
   <div class="crumb"><a href="#tong-quan">Kiểm kê tài sản 2026</a> / Tổng hợp toàn bộ tài sản</div>
   <div class="uhead"><div><h1>Tổng hợp toàn bộ tài sản</h1><p class="num">${nf.format(c.tong)} dòng · ${nf.format(c.sl)} cái theo sổ · nguyên giá ${money(c.gia)}</p><p>Gom theo kết quả, rồi theo tòa, phòng (tầng dưới lên tầng trên, số phòng nhỏ đến lớn), bộ môn; tài sản cùng tên đứng liền nhau. Bấm một dòng để mở tài sản.</p></div></div>
-  <div class="tools th-tools"><label class="sbox search">${ic('Search')}<input class="in" id="thq" type="search" placeholder="Tìm theo STT, mã, tên, phòng, bộ môn…" value="${esc(TH.q)}" aria-label="Tìm trong tổng hợp"></label>
+  <div class="tools th-tools"><label class="sbox search">${ic('Search')}<input class="in" id="thq" type="search" placeholder="Tìm theo STT, mã, tên, phòng, bộ môn…" value="${esc(TH.q)}" aria-label="Tìm trong tổng hợp"></label>${xepHTML('th',null,'Mặc định (cùng loại đồ liền nhau)')}
     <div class="seg" role="group" aria-label="Đi tới nhóm">${TH_NHOM.map(([k,ten])=>`<button type="button" data-act="thdi" data-k="${k}">${ten} <em class="num">${nf.format(n[k])}</em></button>`).join('')}</div>
     <button type="button" class="btn" data-act="thxlsx" style="margin-left:auto">${ic('FileSpreadsheet')}Tải Excel</button></div>
   <div class="th-dau" aria-hidden="true"><span>Mã TSCĐ</span><span>Tài sản</span><span>Thực tế / sổ</span><span>Kết quả</span><span>Người kiểm</span></div>
@@ -2581,6 +2621,13 @@ function srow(a,roomName){
     <div class="sub">${n?'Sổ ghi: '+esc(n):'Chưa có vị trí'}</div>
     <span class="badge ${r}">${RES_LABEL[r]}</span>
     <div class="acts">${srowNut(a)}</div></div>`;
+}
+// trang phòng › "Thấy đồ của nơi khác ở đây?": kết quả tìm (tìm được cả theo STT), xếp theo ô Sắp xếp
+function aqVe(){
+  const i=document.getElementById('aq'), box=document.getElementById('ares'); if(!i||!box) return;
+  const raw=i.value, q=raw.trim().toLowerCase(); if(q.length<2&&!sttCua(q)){ box.innerHTML=''; return; }
+  const name=ROOMNAME[V.id]; const hits=xepTS(ASSETS.filter(a=>roomOf(a)!==name&&timKhop(a,q,a.ten.toLowerCase()+' '+String(a.ma))),'aq',q).slice(0,25);
+  box.innerHTML=hits.length?hits.map(a=>srow(a,name)).join(''):`<div class="empty">Không tìm thấy “${esc(raw)}”. Nếu là đồ không có trong sổ, ghi vào Tài sản phát sinh.</div>`;
 }
 // nút của tài sản tìm thấy ở phòng đang mở: số lượng > 1 thì chọn cả dòng ở đây, hay chỉ một phần (ghi kèm, người dùng chốt 20/11/2026)
 function srowNut(a){
@@ -2800,7 +2847,8 @@ function logItems(){
   if(qt&&LV.chiCb&&window.gsCuaDong) l=l.filter(e=>gsCuaDong(e.id).length);
   const [ta,tb]=lvKhoangT(); if(ta) l=l.filter(e=>(e.t0||e.t)>=ta); if(tb) l=l.filter(e=>(e.t0||e.t)<tb);
   const q=fold(LV.q.trim()); if(q) l=l.filter(e=>fold([e.title,e.ma,e.stt,e.by,e.tk,e.cd,e.tb,e.ip,...(e.lines||[])].join(' ')).includes(q));
-  return l.sort((a,b)=>a.id<b.id?1:a.id>b.id?-1:0);
+  const d=XEP.ls==='cu'?-1:1;   // ô Sắp xếp: chỉ theo thời gian (người dùng chọn 20/11/2026)
+  return l.sort((a,b)=>(a.id<b.id?1:a.id>b.id?-1:0)*d);
 }
 const hh=t=>{ const d=new Date(t), p=n=>String(n).padStart(2,'0'); return p(d.getHours())+':'+p(d.getMinutes()); };
 const ddmmyy=t=>{ const d=new Date(t), p=n=>String(n).padStart(2,'0'); return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${hh(t)}`; };
@@ -2848,10 +2896,13 @@ function logDraw(){
   let h=`<div class="lsum" role="status"><span><b class="num">${nf.format(l.length)}</b> thao tác đang hiện</span><span><b class="num">${nf.format(td.length)}</b> hôm nay</span><span><b class="num">${nf.format(nA)}</b> tài sản được kiểm hôm nay</span><span><b class="num">${nf.format(nX)}</b> mục bị xoá / bỏ</span>${qt?`<span><b class="num">${nf.format(new Set(l.map(e=>e.uid||e.by)).size)}</b> tài khoản</span>`:''}${LV.loading?'<span class="lload">Đang tải lịch sử chung…</span>':''}</div>`;
   if(LV.err) h+=`<div class="demo">${esc(LV.err)}</div>`;
   if(!l.length&&!LV.loading) h+=`<div class="empty">${LV.q.trim()||LV.kind||LV.hd||LV.tk||LV.tkTen||LV.cd||LV.quyen||LV.chiCb||LV.chiDong?'Không có thao tác nào khớp bộ lọc.':'Chưa có thao tác nào trong khoảng thời gian này.'}</div>`;
+  // cũ nhất trước: dòng cũ hơn tải thêm sẽ nằm ở ĐẦU danh sách nên nút "Xem thao tác cũ hơn" đặt ở đầu
+  const cu=XEP.ls==='cu', nutCu=LV.more?`<div class="lmorebtn"><button class="btn" data-act="logmore" ${LV.loading?'disabled':''}>Xem thao tác cũ hơn${cu?' (hiện ở đầu danh sách)':''}</button></div>`:'';
+  if(cu) h+=nutCu;
   let day='';
   l.forEach(e=>{ const d=logDay(e.t0||e.t); if(d!==day){ h+=`${day?'</ol></section>':''}<section class="lday"><h2>${esc(d)}</h2><ol class="llist">`; day=d; } h+=logItemHTML(e); });
   if(day) h+='</ol></section>';
-  if(LV.more) h+=`<div class="lmorebtn"><button class="btn" data-act="logmore" ${LV.loading?'disabled':''}>Xem thao tác cũ hơn</button></div>`;
+  if(!cu) h+=nutCu;
   if(!logOnline()) h+=`<p class="lfoot">${MODE==='local'?'Trang đang lưu kết quả trên máy này, nên lịch sử':'Bản trang này chỉ đọc được lịch sử lưu trên máy, nên danh sách'} chỉ gồm thao tác trên trình duyệt này.</p>`;
   h+=`<p class="lfoot">Lịch sử bắt đầu ghi từ 14/11/2026. Tên đăng nhập, chức danh, quyền, thiết bị, IP do máy chủ ghi từ 18/11/2026; dòng cũ hơn chỉ có họ tên.</p>`;
   box.innerHTML=h;
@@ -2879,6 +2930,7 @@ function viewLog(){
     ${LV.tg==='khoang'?`<label class="lng">Từ <input class="in" type="date" id="ltu" value="${esc(LV.tu)}"></label><label class="lng">đến <input class="in" type="date" id="lden" value="${esc(LV.den)}"></label>`:''}
     ${qt?`<label class="chk"><input type="checkbox" id="lcb" ${LV.chiCb?'checked':''}> Chỉ dòng có cảnh báo</label>`:''}
     <input class="in" type="search" id="lq" placeholder="Tìm mã, tên tài sản, người, nội dung…" aria-label="Tìm trong lịch sử" value="${esc(LV.q)}">
+    ${xepHTML('ls',[['','Mới nhất trước'],['cu','Cũ nhất trước']])}
     <button class="btn" data-act="logrefresh">${ic('RefreshCw')}Làm mới</button>
     <button class="btn" data-act="logxlsx">${ic('Download')}Tải Excel</button>
   </div>
@@ -2912,6 +2964,9 @@ function nsList(){
   if(NS.nguon) l=l.filter(x=>x.loai===NS.nguon);
   if(NS.nam) l=l.filter(x=>(x.ghiSo||'').slice(0,4)===NS.nam);
   const q=fold(NS.q.trim()); if(q) l=l.filter(x=>fold([x.ma,x.ten,x.file,x.by,x.noi,x.phong,x.sang,(x.cu||[]).join(' ')].join(' ')).includes(q));
+  // Tên A → Z / STT… (người dùng thêm 20/11/2026): dòng không có STT (đã xoá khỏi BBKK, phát sinh, tài sản mới) xuống cuối; gõ đúng STT đứng đầu
+  const xs=xepSS(NS.sap,x=>x.ten,x=>x.key&&BY_KEY[x.key]&&x.trang!=='xoa'?BY_KEY[x.key].stt:null);
+  if(xs){ const s=sttCua(NS.q); l.sort(xs); return s?l.sort((x,y)=>(BY_KEY[y.key]?.stt===s.n)-(BY_KEY[x.key]?.stt===s.n)):l; }
   const k=NS.sap==='vao'?(x=>x.tu||''):(x=>x.ghiSo||''), asc=NS.sap==='ghiso-cu';
   return l.sort((a,b)=>{ const x=k(a),y=k(b); if(x===y) return String(a.ma).localeCompare(String(b.ma)); if(!x) return 1; if(!y) return -1; return (x<y?-1:1)*(asc?1:-1); });
 }
@@ -2948,7 +3003,7 @@ function viewNhapSo(){
   <div class="tools ns-tools">
     <select class="in" id="nsn" aria-label="Nguồn"><option value="">Mọi nguồn</option><option value="kt" ${NS.nguon==='kt'?'selected':''}>Kế toán (file BBKK)</option><option value="hc" ${NS.nguon==='hc'?'selected':''}>Cán bộ Hành chính</option><option value="moi" ${NS.nguon==='moi'?'selected':''}>Tài sản mới (tạo trên app)</option></select>
     <select class="in" id="nsy" aria-label="Năm bắt đầu sử dụng"><option value="">Mọi năm bắt đầu sử dụng</option>${nams.map(y=>`<option value="${y}" ${NS.nam===y?'selected':''}>Bắt đầu sử dụng năm ${y}</option>`).join('')}</select>
-    <select class="in" id="nss" aria-label="Sắp xếp"><option value="ghiso" ${NS.sap==='ghiso'?'selected':''}>Bắt đầu sử dụng mới nhất trước</option><option value="ghiso-cu" ${NS.sap==='ghiso-cu'?'selected':''}>Bắt đầu sử dụng cũ nhất trước</option><option value="vao" ${NS.sap==='vao'?'selected':''}>Vào app mới nhất trước</option></select>
+    <select class="in" id="nss" aria-label="Sắp xếp"><option value="ghiso" ${NS.sap==='ghiso'?'selected':''}>Bắt đầu sử dụng mới nhất trước</option><option value="ghiso-cu" ${NS.sap==='ghiso-cu'?'selected':''}>Bắt đầu sử dụng cũ nhất trước</option><option value="vao" ${NS.sap==='vao'?'selected':''}>Vào app mới nhất trước</option>${XEP_TS.slice(1).map(([k,t])=>`<option value="${k}" ${NS.sap===k?'selected':''}>${t}</option>`).join('')}</select>
     <label class="sbox search">${ic('Search')}<input class="in" id="nsq" type="search" placeholder="Tìm mã, tên tài sản, người ghi…" value="${esc(NS.q)}" aria-label="Tìm tài sản"></label>
     <button class="btn" data-act="nsxlsx">${ic('Download')}Tải Excel</button>
   </div>
@@ -3025,7 +3080,7 @@ function viewLyLich(key){
   if(key!==LL.key){ LL.key=key; LL.srv=[]; LL.err=''; if(key) llFetch(); }
   app.innerHTML=`${demoBanner()}
   ${banner('vuon','Lịch sử','Lý lịch tài sản','Tài sản có từ khi nào, vào sổ ra sao, đã được kiểm, chuyển phòng, ghi tình trạng, xác minh, in tem… lúc nào và ai làm. Dùng để quản lý và truy cứu khi tài sản đổi chỗ, bàn giao, hư hỏng hay thanh lý.')}
-  <div class="tools"><label class="sbox search">${ic('Search')}<input class="in" id="llq" type="search" placeholder="Gõ Mã TSCĐ hoặc tên tài sản để xem lý lịch…" value="${esc(LL.q)}" aria-label="Tìm tài sản"></label></div>
+  <div class="tools"><label class="sbox search">${ic('Search')}<input class="in" id="llq" type="search" placeholder="Gõ Mã TSCĐ hoặc tên tài sản để xem lý lịch…" value="${esc(LL.q)}" aria-label="Tìm tài sản"></label>${xepHTML('ll')}</div>
   <div class="ly-res" id="llRes"></div>
   <div id="llBody"></div>`;
   llResDraw(); llDraw();
@@ -3033,8 +3088,10 @@ function viewLyLich(key){
 function llResDraw(){
   const box=document.getElementById('llRes'); if(!box) return; const q=fold(LL.q.trim());
   if(q.length<2&&!sttCua(q)){ box.innerHTML=''; return; }
-  const hits=sttTruoc(ASSETS.filter(a=>timKhop(a,q,fold(a.ma+' '+a.ten))),q).slice(0,10).map(a=>({key:a.key,ma:a.ma,ten:a.short,sub:`STT ${a.stt} · ${roomOf(a)||'Chưa có vị trí'}`}))
-    .concat(Object.entries(SOQR.xoa||{}).filter(([k,e])=>fold(k+' '+e.ten).includes(q)).slice(0,5).map(([k,e])=>({key:k,ma:k,ten:e.ten,sub:e.sang?'Mã cũ, kế toán đã đổi sang '+e.sang.ma:'Đã xoá khỏi BBKK'})));
+  const xoa=Object.entries(SOQR.xoa||{}).filter(([k,e])=>fold(k+' '+e.ten).includes(q)).map(([k,e])=>({key:k,ma:k,ten:e.ten,sub:e.sang?'Mã cũ, kế toán đã đổi sang '+e.sang.ma:'Đã xoá khỏi BBKK'}));
+  const xs=xepSS(XEP.ll||'',x=>x.ten,()=>null); if(xs) xoa.sort(xs);   // tài sản đã xoá khỏi BBKK: không có STT, chỉ xếp theo tên
+  const hits=xepTS(ASSETS.filter(a=>timKhop(a,q,fold(a.ma+' '+a.ten))),'ll',q).slice(0,10).map(a=>({key:a.key,ma:a.ma,ten:a.short,sub:`STT ${a.stt} · ${roomOf(a)||'Chưa có vị trí'}`}))
+    .concat(xoa.slice(0,5));
   box.innerHTML=hits.length?hits.map(x=>`<a href="#ly-lich-${encodeURIComponent(x.key)}"><span class="mono">${esc(x.ma)}</span><span>${esc(x.ten)}</span><small>${esc(x.sub)}</small></a>`).join(''):'<div class="empty">Không có tài sản nào khớp.</div>';
 }
 function llDraw(){
@@ -3410,6 +3467,7 @@ app.addEventListener('click',e=>{
 });
 app.addEventListener('change',e=>{
   const t=e.target; const row=t.closest('[data-stt]'); const stt=row?+row.dataset.stt:null;
+  if(t.dataset.xep!=null){ xepDoi(t); return; }   // ô Sắp xếp cạnh ô tìm (mọi trang)
   if(t.dataset.f==='phong' && stt){
     if(t.value==='__new'){ (ui.newRoom=ui.newRoom||{})[stt]=true; refreshRow(stt); const n=document.getElementById('nr-'+stt); if(n) n.focus(); return; }
     moveRoom(stt,t.value); return;
@@ -3467,9 +3525,7 @@ app.addEventListener('input',e=>{
   if(t.id==='gq'){ OV.gq=t.value; clearTimeout(app._g); app._g=setTimeout(()=>document.getElementById('gres').innerHTML=ovSearchHTML(),200); }
   if(t.id==='uq'){ OV.uq=t.value; clearTimeout(app._u); app._u=setTimeout(()=>document.getElementById('ugrid').innerHTML=unitsGridHTML(),150); }
   if(t.id==='rq'){ OV.rq=t.value; clearTimeout(app._r); app._r=setTimeout(()=>document.getElementById('roomgrid').innerHTML=ovRoomsHTML(),150); }
-  if(t.id==='aq'){ clearTimeout(app._a); app._a=setTimeout(()=>{ const q=t.value.trim().toLowerCase(); const box=document.getElementById('ares'); if(q.length<2){box.innerHTML='';return;}
-      const name=ROOMNAME[V.id]; const hits=ASSETS.filter(a=>roomOf(a)!==name&&(a.ten.toLowerCase().includes(q)||String(a.ma).includes(q))).slice(0,25);
-      box.innerHTML=hits.length?hits.map(a=>srow(a,name)).join(''):`<div class="empty">Không tìm thấy “${esc(t.value)}”. Nếu là đồ không có trong sổ, ghi vào Tài sản phát sinh.</div>`; },200); }
+  if(t.id==='aq'){ clearTimeout(app._a); app._a=setTimeout(aqVe,200); }
   if(t.dataset.f==='note'){ const stt=+t.closest('[data-stt]').dataset.stt; touch(stt).note=t.value; save(); }
 });
 app.addEventListener('keydown',e=>{

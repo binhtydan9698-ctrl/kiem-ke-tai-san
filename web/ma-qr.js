@@ -107,8 +107,10 @@ function temPool() {
 function temSort(list) {
   const U = Object.fromEntries(UNITS.map((u, i) => [u.id, i]));
   const byRoom = (a, b) => { const x = roomOf(a), y = roomOf(b); return (x ? 0 : 1) - (y ? 0 : 1) || x.localeCompare(y, 'vi', { numeric: true }); };
-  return list.slice().sort(TEM.sort === 'phong' ? (a, b) => byRoom(a, b) || a.stt - b.stt
-    : TEM.sort === 'donvi' ? (a, b) => U[a.unit] - U[b.unit] || a.stt - b.stt : (a, b) => a.stt - b.stt);
+  // thêm STT giảm dần, tên A → Z / Z → A (người dùng yêu cầu 20/11/2026); gõ đúng STT ở ô tìm thì tài sản đó đứng đầu
+  const l = list.slice().sort(TEM.sort === 'phong' ? (a, b) => byRoom(a, b) || a.stt - b.stt
+    : TEM.sort === 'donvi' ? (a, b) => U[a.unit] - U[b.unit] || a.stt - b.stt : xepSS(TEM.sort) || ((a, b) => a.stt - b.stt));
+  return sttTruoc(l, TEMV.q);
 }
 function temAssets() { return temSort(temPool().filter(a => !TEMV.off.has(a.key))); }
 function temCopies(a) { return TEM.copies === 'sl' ? Math.max(1, Math.round(+a.sl || 1)) : 1; }
@@ -276,7 +278,7 @@ function viewQR() {
         </div>
         <div class="fld"><label for="qrQ">Tìm theo STT, mã hoặc tên</label><input class="in" id="qrQ" type="search" data-qf="q" value="${esc(TEMV.q)}" placeholder="VD: 142, 5467321 hoặc máy chiếu"></div>
         <div class="qr-g2">
-          <div class="fld"><label for="qrSort">Thứ tự tem</label><select class="in" id="qrSort" data-t="sort">${opt([['phong', 'Theo phòng'], ['donvi', 'Theo đơn vị (sheet)'], ['stt', 'Theo STT trong sổ']], TEM.sort)}</select></div>
+          <div class="fld"><label for="qrSort">Thứ tự tem</label><select class="in" id="qrSort" data-t="sort">${opt([['phong', 'Theo phòng'], ['donvi', 'Theo đơn vị (sheet)'], ['stt', 'STT tăng dần'], ['stt-', 'STT giảm dần'], ['az', 'Tên A → Z'], ['za', 'Tên Z → A']], TEM.sort)}</select></div>
           <div class="fld"><label for="qrCp">Số tem mỗi tài sản</label><select class="in" id="qrCp" data-t="copies">${opt([['one', '1 tem'], ['sl', 'Bằng số lượng trong sổ']], TEM.copies)}</select></div>
         </div>
         <p class="qr-count" id="qrCount"></p>

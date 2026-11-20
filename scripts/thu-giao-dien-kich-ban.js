@@ -539,6 +539,7 @@
     dien('dbHoTen', 'Lê Thị Danh'); dien('dbChucVu', 'Chủ nhiệm bộ môn'); dien('dbDonVi', 'GD'); dien('dbDt', '0905 123 456'); dien('dbEmail', 'danh.lt@vd.vn');
     document.querySelector('#dbForm button[type="submit"]').click(); await W(400);
     ok(A.db.length === 1 && app.textContent.includes('Lê Thị Danh') && !!app.querySelector('a[href="tel:0905123456"]'), 'Danh bạ: thêm người, số điện thoại bấm gọi được');
+    ok(!!app.querySelector('select[data-xep="db"]') && app.querySelector('select[data-xep="db"]').options.length === 2, 'Danh bạ: ô Sắp xếp họ tên A → Z / Z → A (trong từng đơn vị)');
     S.dm.GD = { ten: 'Lê Thị Danh', cv: 'Chủ nhiệm bộ môn', email: 'danh.lt@vd.vn', at: Date.now() }; save();
     const aGD = BY_UNIT.GD.find(a => a.ma && String(a.ma) === String(a.key));
     await go('ts-' + aGD.key);
@@ -700,6 +701,10 @@
     ok(the().map(x => +x.dataset.stt).join() === [b2.stt, a.stt].join(), 'Có ảnh, xếp “Ảnh mới nhất trước”: tài sản vừa thêm ảnh đứng đầu');
     const xep = document.getElementById('avxep'); xep.value = 'phong'; xep.dispatchEvent(new Event('change', { bubbles: true })); await W(300);
     ok(app.querySelectorAll('#avKq .sect h2').length >= 1 && the().length === 2, 'xếp “Theo phòng”: gom thẻ ảnh theo phòng, có tên phòng làm tiêu đề');
+    { const x2 = document.getElementById('avxep'); x2.value = 'za'; x2.dispatchEvent(new Event('change', { bubbles: true })); await W(300);
+      const t = the().map(x => BY_STT[x.dataset.stt].short);
+      ok(!app.querySelector('#avKq .sect h2') && t.length === 2 && XEP_CO.compare(t[0], t[1]) >= 0 && document.activeElement === document.getElementById('avxep'),
+        '“Có ảnh”, xếp Tên Z → A: cả lưới xếp theo tên (ô “Xếp theo” có thêm A → Z, STT — 20/11/2026)'); }
     await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
     const kqAxe = await axe.run(document, AXE);
     ok(!kqAxe.violations.length && !linkHong().length, 'trang Ảnh tài sản (đã đăng nhập, có ảnh) đạt trợ năng WCAG 2.2 AA, không có link hỏng' + (kqAxe.violations.length ? ': ' + kqAxe.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : ''));
@@ -836,6 +841,12 @@
     ok(/không có trong file BBKK/.test(txt('tsmLoi')) && !S.moi[id1].noi, 'nối tay với mã không có trong file BBKK: không lưu, báo rõ');
     dienF('tsmNoiIn', ''); dienF('tsmTag', 'Cán bộ mua sắm (phòng HC)'); await nop();
     ok(S.moi[id1].tao_boi === 'Cán bộ mua sắm (phòng HC)', 'quản trị đổi tag “Tạo bởi” của một tài sản');
+    { const loc0 = TSM.loc; TSM.loc = ''; render(); await W(200);   // ô Sắp xếp (20/11/2026): chưa có STT → mới tạo / cũ nhất, tên A → Z / Z → A
+      const chonX = async v => { const s = app.querySelector('select[data-xep="tsm"]'); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); await W(300); };
+      const ten = () => the().map(x => S.moi[x.dataset.moi].ten);
+      await chonX('az'); const t1 = ten(); await chonX('za'); const t2 = ten(); await chonX('cu'); const at = the().map(x => S.moi[x.dataset.moi].at || 0);
+      ok(t1.length === 2 && XEP_CO.compare(t1[0], t1[1]) <= 0 && t2.join('|') === t1.slice().reverse().join('|') && at[0] <= at[1], 'Tài sản mới: ô Sắp xếp (mới tạo / cũ nhất trước, Tên A → Z / Z → A)');
+      await chonX(''); TSM.loc = loc0; render(); await W(200); }
     const pk = moiChoKeToan();
     ok(pk.length === 1 && pk[0].mo_ta === 'Máy chiếu thử Epson EB-X51' && pk[0].nguon === 'Tạo bởi: Cán bộ mua sắm (phòng HC)' && pk[0].sl === 2 && pk[0].gia === 15000000,
       'xuất cho kế toán: chỉ tài sản mới chưa vào sổ, cột Nguồn “Tạo bởi …”; tài sản đã vào sổ không xuất lại');
@@ -1148,6 +1159,108 @@
     { const r = app.querySelector(`.th-r[data-stt="${b.stt}"]`); ok(r && /\+1 phòng/.test(r.textContent) && app.querySelectorAll('.th-r').length === ASSETS.length, 'Tổng hợp: tài sản ở nhiều phòng có dấu “+1 phòng”, mỗi tài sản vẫn đúng 1 dòng'); }
   };
 
+  // Sắp xếp nhanh cạnh ô tìm (người dùng yêu cầu 20/11/2026): Mặc định · Tên A → Z · Z → A · STT tăng / giảm. Người dùng chọn: gõ đúng STT
+  // vẫn đứng đầu; trang gom nhóm thì xếp trong từng nhóm (Tổng hợp: trong từng phòng · bộ môn); lưới phòng giữ tòa → tầng; Lịch sử chỉ theo thời gian
+  KB['sap-xep'] = async () => {
+    const chon = async (k, v) => { const s = app.querySelector(`select[data-xep="${k}"]`); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); await W(350); return app.querySelector(`select[data-xep="${k}"]`); };
+    const go2 = async (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); await W(500); };
+    const tang = (l, f) => l.every((x, i) => !i || f(l[i - 1], x) <= 0), az = (x, y) => XEP_CO.compare(x, y), za = (x, y) => XEP_CO.compare(y, x);
+    await loadScript('https://cdn.jsdelivr.net/npm/axe-core@4.10.2/axe.min.js');
+
+    // 1. Bảng tổng quan: ô Sắp xếp ở đầu kết quả tìm
+    await go('tong-quan'); await go2('gq', '14');
+    ok(!!app.querySelector('#gres .sr-dau select[data-xep="gq"]'), 'Bảng tổng quan: có ô Sắp xếp ở đầu kết quả tìm (không chen vào ảnh nền)');
+    let s = await chon('gq', 'za');
+    const dongGq = () => [...app.querySelectorAll('#gres .srow')].map(r => ({ stt: +r.querySelector('.sub').textContent.replace(/\D/g, ''), ten: r.children[1].firstElementChild.textContent }));
+    let d = dongGq();
+    ok(d.length > 2 && d[0].stt === 14 && tang(d.slice(1).map(x => x.ten), za) && document.activeElement === s,
+      'Tên Z → A: tài sản STT 14 (gõ đúng STT) vẫn đứng đầu, còn lại Z → A; con trỏ vẫn ở ô Sắp xếp');
+    await chon('gq', 'stt-'); d = dongGq();
+    ok(d[0].stt === 14 && tang(d.slice(1).map(x => x.stt), (a, b) => b - a), 'STT giảm dần: đúng thứ tự');
+    { const k = await axe.run(document, AXE); ok(!k.violations.length, 'Bảng tổng quan có ô Sắp xếp đạt trợ năng WCAG 2.2 AA' + (k.violations.length ? ': ' + k.violations.map(v => `${v.id} (${v.nodes[0].target.join(' ')})`).join('; ') : '')); }
+    OV.gq = '';
+
+    // 2. Trang sheet: xếp trong từng nhóm; tắt nhóm thì xếp cả danh sách; gõ đúng STT đứng đầu; lựa chọn giữ khi sang phòng
+    await go('dv-GD');
+    const nhomDs = () => [...app.querySelectorAll('#rows .list')].map(l => [...l.querySelectorAll('.row[data-stt]')].map(r => BY_STT[r.dataset.stt]));
+    await chon('ds', 'stt-');
+    ok(nhomDs().length > 1 && nhomDs().every(g => tang(g.map(a => a.stt), (a, b) => b - a)), 'trang sheet: STT giảm dần trong từng nhóm, nhóm giữ nguyên');
+    await chon('ds', 'az');
+    ok(nhomDs().every(g => tang(g.map(a => a.short), az)), 'trang sheet: Tên A → Z trong từng nhóm');
+    { const g = document.getElementById('grp'); g.checked = false; g.dispatchEvent(new Event('change', { bubbles: true })); await W(300); }
+    ok(nhomDs().length === 1 && tang(nhomDs()[0].map(a => a.short), az), 'bỏ “Nhóm”: cả danh sách xếp Tên A → Z');
+    { const cuoi = nhomDs()[0].slice(-1)[0]; await go2('q', String(cuoi.stt));
+      ok(nhomDs()[0][0] === cuoi, `gõ STT ${cuoi.stt} (cuối theo A → Z): tài sản đó vẫn đứng đầu`); }
+    await go('phong-108-gamma');
+    ok(app.querySelector('select[data-xep="ds"]').value === 'az' && nhomDs().every(g => tang(g.map(a => a.short), az)), 'sang trang phòng: vẫn giữ lựa chọn Tên A → Z');
+
+    // 3. Trang phòng › "Thấy đồ của nơi khác ở đây?"
+    await go2('aq', '14'); await chon('aq', 'stt');
+    { const l = [...app.querySelectorAll('#ares .srow')].map(r => BY_STT[r.dataset.stt]), r0 = l[0] && l[0].stt === 14 ? l.slice(1) : l;
+      ok(l.length > 1 && tang(r0.map(a => a.stt), (a, b) => a - b) && document.getElementById('aq').value === '14', 'tìm đồ nơi khác: STT tăng dần, chữ đang gõ giữ nguyên'); }
+    await chon('ds', '');
+
+    // 4. Tổng hợp: chỉ xếp trong từng phòng · bộ môn, giữ 5 nhóm và thứ tự phòng
+    TH.q = ''; await go('tong-hop');
+    ok(/cùng loại đồ liền nhau/.test(app.querySelector('select[data-xep="th"] option').textContent), 'Tổng hợp: “Mặc định” là quy luật gom cũ (cùng loại đồ liền nhau)');
+    await chon('th', 'za');
+    { const khoi = [...app.querySelectorAll('#th-chua .th-dv')].map(dv => { const r = []; let e = dv.nextElementSibling; while (e && e.classList.contains('th-r')) { r.push(BY_STT[e.dataset.stt]); e = e.nextElementSibling; } return r; });
+      ok(khoi.length > 3 && khoi.every(r => r.every(x => x.unit === r[0].unit && roomOf(x) === roomOf(r[0])) && tang(r.map(a => a.short), za)), 'Tên Z → A: xếp trong từng phòng · bộ môn'); }
+    { const ph = [...app.querySelectorAll('#th-chua .th-ph a')].map(x => x.textContent), k = n => [thToa(n), thTang(n), thSoPhong(n)];
+      ok(ph.length > 10 && ph.every((n, i) => { if (!i) return true; const p = k(ph[i - 1]), c = k(n); return p[0] < c[0] || (p[0] === c[0] && (p[1] < c[1] || (p[1] === c[1] && p[2] <= c[2]))); })
+        && app.querySelectorAll('.th-r').length === ASSETS.length, 'vẫn giữ 5 nhóm, thứ tự tòa → tầng → số phòng, mỗi tài sản 1 dòng'); }
+    await chon('th', '');
+
+    // 5. Kiểm theo phòng ban: tên đơn vị; Kiểm theo số phòng: giữ lưới tòa → tầng
+    await go('don-vi'); await chon('uq', 'za');
+    { const u = [...app.querySelectorAll('#ugrid .cards')][0], ten = [...u.querySelectorAll('.utile a.t')].map(a => UNIT[a.getAttribute('href').slice(4)].ten);
+      ok(ten.length > 3 && tang(ten, za), 'Kiểm theo phòng ban: tên đơn vị Z → A'); }
+    await chon('uq', '');
+    await go('vi-tri');
+    ok(!app.querySelector('select[data-xep]') && !!app.querySelector('#rq'), 'Kiểm theo số phòng: giữ lưới tòa → tầng, không thêm ô Sắp xếp (người dùng chọn)');
+
+    // 6. Lịch sử: chỉ Mới nhất / Cũ nhất trước
+    { const [x1, x2] = ASSETS.filter(a => res(a) === 'chua' && !a.hoso).slice(0, 2);
+      S.rows[x1.stt] = { tt: x1.sl, nf: false, at: Date.now() }; save(); await W(40); S.rows[x2.stt] = { tt: x2.sl, nf: false, at: Date.now() }; save(); }
+    await go('lich-su');
+    { const sl = app.querySelector('select[data-xep="ls"]');
+      ok(sl && [...sl.options].map(o => o.textContent).join('|') === 'Mới nhất trước|Cũ nhất trước', 'Lịch sử: ô Sắp xếp chỉ theo thời gian (người dùng chọn)'); }
+    const so = (a, b) => a < b ? -1 : a > b ? 1 : 0;
+    ok(logItems().length > 1 && tang(logItems().map(e => e.id), (a, b) => so(b, a)), 'mặc định: mới nhất trước');
+    await chon('ls', 'cu');
+    ok(tang(logItems().map(e => e.id), so), 'Cũ nhất trước: dòng cũ nhất lên đầu');
+    await chon('ls', '');
+
+    // 7. Nhập sổ: gộp vào ô Sắp xếp sẵn có
+    await go('nhap-so');
+    { const ns = document.getElementById('nss');
+      ok(['ghiso', 'az', 'za', 'stt', 'stt-'].every(v => [...ns.options].some(o => o.value === v)), 'Nhập sổ: thêm Tên A → Z / Z → A, STT vào ô Sắp xếp sẵn có');
+      ns.value = 'stt'; ns.dispatchEvent(new Event('change', { bubbles: true })); await W(300);
+      const st = nsList().map(x => x.key && BY_KEY[x.key] && x.trang !== 'xoa' ? BY_KEY[x.key].stt : null), i = st.indexOf(null);
+      ok(tang(st.filter(v => v != null), (a, b) => a - b) && (i < 0 || st.slice(i).every(v => v == null)), 'Nhập sổ: STT tăng dần, dòng không có STT xuống cuối');
+      ns.value = 'ghiso'; ns.dispatchEvent(new Event('change', { bubbles: true })); await W(200); }
+
+    // 8. Lý lịch tài sản
+    LL.q = ''; await go('ly-lich'); await go2('llq', '14'); await chon('ll', 'az');
+    { const l = [...document.querySelectorAll('#llRes a')].filter(a => /^STT /.test(a.querySelector('small').textContent));
+      ok(l.length > 2 && /^STT 14 /.test(l[0].querySelector('small').textContent) && tang(l.slice(1).map(a => a.querySelector('span:nth-child(2)').textContent), az), 'Lý lịch: STT 14 đứng đầu, còn lại Tên A → Z'); }
+
+    // 9. Khấu hao (file Tải Excel theo cùng thứ tự)
+    await go('khau-hao'); await chon('kh', 'stt-');
+    { const { het, gan } = khLoc(), dau = app.querySelector('#khHet tbody tr a');
+      ok(het.length > 1 && tang(het.map(x => x.a.stt), (a, b) => b - a) && tang(gan.map(x => x.a.stt), (a, b) => b - a) && dau && dau.getAttribute('href') === '#ts-' + encodeURIComponent(het[0].a.key),
+        'Khấu hao: STT giảm dần ở cả 2 danh sách'); }
+    await chon('kh', '');
+
+    // 10. In tem mã QR: gộp vào ô "Thứ tự tem"; thứ tự in theo đúng lựa chọn
+    await go('ma-qr'); await W(300);
+    { const qs = document.getElementById('qrSort');
+      ok(['phong', 'donvi', 'stt', 'stt-', 'az', 'za'].every(v => [...qs.options].some(o => o.value === v)), 'In tem: thêm STT giảm dần, Tên A → Z / Z → A vào ô “Thứ tự tem”');
+      qs.value = 'za'; qs.dispatchEvent(new Event('change', { bubbles: true })); await W(300);
+      ok(TEM.sort === 'za' && tang(temAssets().map(a => a.short), za), 'In tem: Tên Z → A, thứ tự in theo đúng lựa chọn');
+      qs.value = 'phong'; qs.dispatchEvent(new Event('change', { bubbles: true })); await W(200); }
+  };
+
   // Trợ năng (axe-core, chuẩn WCAG 2.2 AA): 14 trang chính không có vi phạm nào — chữ đủ tương phản, ô nhập / ô chọn có nhãn,
   // vùng bấm ≥ 24px, bảng cuộn dùng được bằng bàn phím, tiêu đề đúng thứ tự… (chạy ở cỡ máy tính và cỡ điện thoại)
   KB['tro-nang'] = async () => {
@@ -1177,6 +1290,8 @@
     const dv = app.querySelector('details[data-nho="dv"]'), r1 = app.querySelector('#rows .row');
     ok(dv && !dv.open, 'trang phòng (điện thoại): khung "Đơn vị có tài sản ở đây" thu gọn thành 1 dòng bấm mở');
     ok(tuyetDoi(r1) - caoDemo() < innerHeight, `trang phòng: tài sản đầu tiên hiện ngay màn hình đầu (cách đầu trang ${Math.round(tuyetDoi(r1) - caoDemo())}px, màn hình cao ${innerHeight}px)`);
+    { const q = document.getElementById('q').getBoundingClientRect(), x = app.querySelector('select[data-xep="ds"]').getBoundingClientRect();
+      ok(Math.abs(q.top - x.top) < 4 && x.height >= 44 && q.width >= 140, `ô Sắp xếp cùng dòng với ô tìm (người dùng chọn 20/11/2026), cao ≥ 44px, ô tìm còn rộng ${Math.round(q.width)}px`); }
     ok(r1.querySelector('.c-act').getBoundingClientRect().top < r1.querySelector('.c-room').getBoundingClientRect().top, 'mỗi dòng: nút Đủ / Không thấy nằm ngay dưới tên, trước ô chọn phòng');
     const bam = [...app.querySelectorAll('#rows .row')].slice(0, 6).flatMap(r => [...r.querySelectorAll('.c-act .btn, select.in, input.in, .stepper button')]).filter(e => e.getClientRects().length);
     const thap = bam.filter(e => e.getBoundingClientRect().height < 44);

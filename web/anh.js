@@ -221,7 +221,7 @@
      ảnh tài sản. Xem ảnh của mọi tài sản, tìm theo STT / mã / tên / phòng, lọc theo sheet, danh sách tài sản chưa có ảnh (xếp theo
      phòng để đi chụp lần lượt). Thêm / xoá ảnh dùng lại đúng hộp ⋯ (moMoRong) nên quyền, tối đa 5 ảnh, thu nhỏ ảnh, lịch sử giống hệt. */
   const AV_LIM = { co: 48, chua: 100 };
-  g.AV = { q: '', dv: '', loc: 'co', xep: 'moi', lim: AV_LIM.co };
+  g.AV = { q: '', dv: '', loc: 'co', xep: 'moi', xepc: '', lim: AV_LIM.co };   // xep: thẻ "Có ảnh"; xepc: "Chưa có ảnh" (luôn gom theo phòng)
   const moiNhat = a => dsHien(a).reduce((m, x) => x.at > m.at ? x : m, { at: 0 });
   const urlCo = p => { const x = URLS.get(p); return x && x.het > Date.now() ? x.u : ''; };
   const phongCua = a => roomOf(a) || 'Chưa có vị trí';
@@ -241,8 +241,11 @@
   function avLoc(p) {
     const q = fold(AV.q.trim());
     let l = p[AV.loc].filter(a => !q || timKhop(a, q, fold([a.ma, a.ten, roomOf(a), UNIT[a.unit].sheet].join(' '))));
+    // ô Xếp theo (thêm tên A → Z, STT… 20/11/2026): "Có ảnh" xếp cả lưới; "Chưa có ảnh" giữ gom theo phòng (đi chụp lần lượt), chỉ xếp trong từng phòng
+    const xs = xepSS(AV.loc === 'co' ? AV.xep : AV.xepc || '');
     if (AV.loc === 'co' && AV.xep === 'moi') l.sort((x, y) => moiNhat(y).at - moiNhat(x).at || x.stt - y.stt);
-    else l.sort((x, y) => thSapPhong(roomOf(x), roomOf(y)) || x.stt - y.stt);
+    else if (AV.loc === 'co' && xs) l.sort(xs);
+    else l.sort((x, y) => thSapPhong(roomOf(x), roomOf(y)) || (xs ? xs(x, y) : x.stt - y.stt));
     return sttTruoc(l, q);
   }
   const avThe = (a, tai) => {
@@ -266,7 +269,7 @@
       : `<b class="num">${nf.format(l.length)}</b> tài sản chưa có ảnh · xếp theo phòng để đi chụp lần lượt`;
     let than;
     if (!l.length) than = `<div class="empty">${AV.q.trim() ? 'Không có tài sản nào khớp ô tìm.' : AV.loc === 'co' ? 'Chưa có tài sản nào có ảnh.' + (tai ? ' Chọn “Chưa có ảnh” rồi bấm “Thêm ảnh”, hoặc bấm nút ⋯ trên dòng tài sản.' : '') : 'Mọi tài sản ở đây đều đã có ảnh.'}</div>`;
-    else if (AV.loc === 'co' && AV.xep === 'moi') than = `<div class="at-luoi">${show.map(a => avThe(a, tai)).join('')}</div>`;
+    else if (AV.loc === 'co' && AV.xep !== 'phong') than = `<div class="at-luoi">${show.map(a => avThe(a, tai)).join('')}</div>`;
     else {   // gom theo phòng (tòa → tầng → số phòng), như trang Tổng hợp
       const nhom = new Map(); show.forEach(a => { const k = phongCua(a); if (!nhom.has(k)) nhom.set(k, []); nhom.get(k).push(a); });
       than = [...nhom].map(([k, ds]) => `<div class="sect"><h2>${esc(k)}</h2><span class="num">${ds.length} tài sản</span></div>${AV.loc === 'co'
@@ -381,7 +384,9 @@
     <div class="tools at-tools">
       <select class="in" id="avdv" aria-label="Sheet"><option value="">Mọi sheet</option>${UNITS.map(u => `<option value="${u.id}" ${AV.dv === u.id ? 'selected' : ''}>${esc(u.sheet)}</option>`).join('')}</select>
       <div class="seg" role="group" aria-label="Lọc theo ảnh"><button type="button" data-at="loc" data-v="co" aria-pressed="${AV.loc === 'co'}">Có ảnh <em class="num">${nf.format(p.co.length)}</em></button><button type="button" data-at="loc" data-v="chua" aria-pressed="${AV.loc === 'chua'}">Chưa có ảnh <em class="num">${nf.format(p.chua.length)}</em></button></div>
-      ${AV.loc === 'co' ? `<select class="in" id="avxep" aria-label="Xếp theo"><option value="moi" ${AV.xep === 'moi' ? 'selected' : ''}>Ảnh mới nhất trước</option><option value="phong" ${AV.xep === 'phong' ? 'selected' : ''}>Theo phòng</option></select>` : ''}
+      ${(() => { const co = AV.loc === 'co', v = co ? AV.xep : AV.xepc || '';
+        const ds = co ? [['moi', 'Ảnh mới nhất trước'], ['phong', 'Theo phòng'], ...XEP_TS.slice(1)] : [['', 'Theo phòng'], ['az', 'Theo phòng, tên A → Z'], ['za', 'Theo phòng, tên Z → A'], ['stt', 'Theo phòng, STT tăng dần'], ['stt-', 'Theo phòng, STT giảm dần']];
+        return `<label class="sbox xep">${ic('ArrowUpDown')}<select class="in" id="avxep" aria-label="Xếp theo">${ds.map(([k, t]) => `<option value="${k}" ${v === k ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`; })()}
       <label class="sbox search">${ic('Search')}<input class="in" id="avq" type="search" placeholder="Tìm STT, mã, tên, phòng…" value="${esc(AV.q)}" aria-label="Tìm tài sản"></label>
     </div>
     <p class="dm-sum" id="avDem">${r.dem}</p>
@@ -410,7 +415,7 @@
     app.addEventListener('input', e => { if (e.target.id === 'avq') { AV.q = e.target.value; AV.lim = AV_LIM[AV.loc]; clearTimeout(app._av); app._av = setTimeout(avVe, 200); } });
     app.addEventListener('change', e => {
       if (e.target.id === 'avdv') { AV.dv = e.target.value; AV.lim = AV_LIM[AV.loc]; render(); }
-      else if (e.target.id === 'avxep') { AV.xep = e.target.value; AV.lim = AV_LIM[AV.loc]; render(); }
+      else if (e.target.id === 'avxep') { if (AV.loc === 'co') AV.xep = e.target.value; else AV.xepc = e.target.value; AV.lim = AV_LIM[AV.loc]; render(); document.getElementById('avxep')?.focus(); }
     });
   }
 
